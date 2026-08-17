@@ -1,0 +1,1057 @@
+// GENERATED from screens/Components.bundle.js — figma node StartScreen10.
+// Do not edit by hand; regenerate with tool/generate_screens.js.
+import 'package:flutter/material.dart';
+
+import '../fig/fig.dart';
+
+/// Коллекция — 375.0×887.0
+class Screen10Collection extends StatelessWidget {
+  const Screen10Collection({super.key});
+
+  static const double designWidth = 375.0;
+  static const double designHeight = 887.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return FigBox(
+      width: 375.0,
+      height: 887.0,
+      color: const Color(0xfffefefe),
+      radius: 8.0,
+      clip: true,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0.0, top: -57.0,
+            child: FigBox(
+              width: 375.0,
+              height: 468.0,
+              radius: 12.0,
+              bgImage: const FigBgImage('assets/figma/b9c2288b4b961f66.jpg'),
+              overlays: const [LinearGradient(begin: Alignment(0.0, -1.0), end: Alignment(0.0, 1.0), colors: [Color(0x33000000), Color(0x33000000)], stops: [0.0, 1.0])],
+            )
+          ),
+          Positioned(
+            left: 0.0, top: 0.0,
+            child: FigBox(
+              width: 375.0,
+              height: 48.0,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: 0.0, top: 0.0,
+                    child: FigBox(
+                      width: 375.0,
+                      height: 18.0,
+                    )
+                  ),
+                  Positioned(
+                    left: 287.0, top: 0.0,
+                    child: FigBox(
+                      width: 88.0,
+                      height: 48.0,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: 26.0, top: 18.0,
+                            child: FigSvg(
+                              width: 15.0, height: 11.0,
+                              vbLeft: 0.0, vbTop: 0.0, vbWidth: 15.0, vbHeight: 11.0,
+                              shapes: const [FigShape(d: _p0, fill: Color(0xffffffff))],
+                            )
+                          ),
+                          Positioned(
+                            left: 4.0, top: 18.0,
+                            child: FigSvg(
+                              width: 16.0, height: 11.0,
+                              vbLeft: 0.0, vbTop: 0.0, vbWidth: 16.0, vbHeight: 11.0,
+                              shapes: const [FigShape(d: _p1, fill: Color(0xffffffff))],
+                            )
+                          ),
+                          Positioned(
+                            left: 47.0, top: 18.0,
+                            child: FigBox(
+                              width: 24.0,
+                              height: 11.0,
+                              clip: true,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Positioned(
+                                    left: 0.0, top: 0.0,
+                                    child: FigBox(
+                                      width: 22.0,
+                                      height: 11.0,
+                                      radius: 3.0,
+                                      opacity: 0.35,
+                                      insets: const [FigInset(Color(0xffffffff), 1.0)],
+                                    )
+                                  ),
+                                  Positioned(
+                                    left: 23.0, top: 4.0,
+                                    child: Opacity(
+                                      opacity: 0.4,
+                                      child: FigSvg(
+                                        width: 1.0, height: 4.0,
+                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 1.0, vbHeight: 4.0,
+                                        shapes: const [FigShape(d: _p2, fill: Color(0xffffffff))],
+                                      ),
+                                    )
+                                  ),
+                                  Positioned(
+                                    left: 2.0, top: 2.0,
+                                    child: FigBox(
+                                      width: 18.0,
+                                      height: 7.0,
+                                      color: const Color(0xffffffff),
+                                      radius: 1.5,
+                                    )
+                                  ),
+                                ],
+                              )
+                              ,
+                            )
+                          ),
+                        ],
+                      )
+                      ,
+                    )
+                  ),
+                  Positioned(
+                    left: 23.0, top: 15.0,
+                    child: FigText(
+                      align: TextAlign.center,
+                      width: 54.0,
+                      height: 18.0,
+                      span: 
+                        TextSpan(text: '12:48', style: figStyle(fontSize: 15.0, family: FigFont.text, weight: 600, height: 1.0, letterSpacing: -0.3, color: const Color(0xffffffff)))
+                      ,
+                    )
+                  ),
+                ],
+              )
+              ,
+            )
+          ),
+          Positioned(
+            left: 0.0, top: 863.0,
+            child: FigBox(
+              width: 375.0,
+              height: 24.0,
+              padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+              child: FigOverflow(
+                alignment: const Alignment(0.0, 0.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  spacing: 10.0,
+                  children: [
+                    FigBox(
+                      width: 131.0,
+                      height: 5.0,
+                      color: const Color(0xff000000),
+                      radius: 100.0,
+                      opacity: 0.9,
+                    ),
+                  ],
+                )
+                ,
+              )
+              ,
+            )
+          ),
+          Positioned(
+            left: 25.0, top: 330.0,
+            child: FigBox(
+              width: 198.59,
+              child: FigOverflow(
+                alignment: const Alignment(-1.0, -1.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 8.0,
+                  children: [
+                    FigBox(
+                      width: 198.59,
+                      child: FigOverflow(
+                        alignment: const Alignment(-1.0, -1.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 3.0,
+                          children: [
+                            FigText(
+                              width: 198.59,
+                              span: 
+                                TextSpan(text: 'Новое предложение', style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xf2ffffff)))
+                              ,
+                            ),
+                            FigBox(
+                              width: 198.59,
+                              child: FigOverflow(
+                                freeWidth: true,
+                                alignment: const Alignment(-1.0, 0.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  spacing: 8.0,
+                                  children: [
+                                    FigText(
+                                      noWrap: true,
+                                      span: 
+                                        TextSpan(text: '3-комн.', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xffececec)))
+                                      ,
+                                    ),
+                                    FigBox(
+                                      width: 5.295,
+                                      height: 5.295,
+                                      color: const Color(0xffd9d9d9),
+                                      radius: 2.648,
+                                    ),
+                                    FigText(
+                                      span: 
+                                        TextSpan(style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xffececec)), children: [
+                                          TextSpan(text: '92м', style: figStyle(fontSize: 13.0, color: const Color(0xffececec))),
+                                          figSuper('2', figStyle(fontSize: 9.36, color: const Color(0xffececec)), 13.0),
+                                        ])
+                                      ,
+                                    ),
+                                    FigBox(
+                                      width: 5.295,
+                                      height: 5.295,
+                                      color: const Color(0xffd9d9d9),
+                                      radius: 2.648,
+                                    ),
+                                    FigBox(
+                                      child: FigOverflow(
+                                        freeWidth: true,
+                                        alignment: const Alignment(-1.0, 0.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          spacing: 4.0,
+                                          children: [
+                                            FigBox(
+                                              width: 12.0,
+                                              height: 10.0,
+                                              clip: true,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigSvg(
+                                                      width: 12.0, height: 10.0,
+                                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 12.0, vbHeight: 10.0,
+                                                      shapes: const [FigShape(d: _p3, fill: Color(0xffececec))],
+                                                    )
+                                                  ),
+                                                  Positioned(
+                                                    left: 3.818, top: 0.0,
+                                                    child: FigSvg(
+                                                      width: 1.0, height: 8.0,
+                                                      vbLeft: -0.5, vbTop: 0.0, vbWidth: 1.0, vbHeight: 8.0,
+                                                      shapes: const [FigShape(d: _p4, fill: Color(0xffececec))],
+                                                    )
+                                                  ),
+                                                  Positioned(
+                                                    left: 8.182, top: 2.0,
+                                                    child: FigSvg(
+                                                      width: 1.0, height: 8.0,
+                                                      vbLeft: -0.5, vbTop: 0.0, vbWidth: 1.0, vbHeight: 8.0,
+                                                      shapes: const [FigShape(d: _p4, fill: Color(0xffececec))],
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            ),
+                                            FigText(
+                                              noWrap: true,
+                                              span: 
+                                                TextSpan(text: 'Технопарк', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xffececec)))
+                                              ,
+                                            ),
+                                          ],
+                                        )
+                                        ,
+                                      )
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                          ],
+                        )
+                        ,
+                      )
+                      ,
+                    ),
+                    FigBox(
+                      child: FigOverflow(
+                        freeWidth: true,
+                        alignment: const Alignment(-1.0, 0.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          spacing: 6.0,
+                          children: [
+                            FigText(
+                              noWrap: true,
+                              span: 
+                                TextSpan(text: 'Подробнее', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2ea812e)))
+                              ,
+                            ),
+                            FigBox(
+                              width: 7.0,
+                              height: 12.0,
+                              clip: true,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Positioned(
+                                    left: 0.0, top: 0.0,
+                                    child: FigSvg(
+                                      width: 7.0, height: 12.0,
+                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 7.0, vbHeight: 12.0,
+                                      shapes: const [FigShape(d: _p5, fill: Color(0xffea812e), evenOdd: true)],
+                                    )
+                                  ),
+                                ],
+                              )
+                              ,
+                            ),
+                          ],
+                        )
+                        ,
+                      )
+                      ,
+                    ),
+                  ],
+                )
+                ,
+              )
+              ,
+            )
+          ),
+          Positioned(
+            left: 25.0, top: 47.0,
+            child: FigBox(
+              width: 325.0,
+              child: FigOverflow(
+                alignment: const Alignment(-1.0, 0.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    FigBox(
+                      width: 105.0,
+                      height: 4.0,
+                      color: const Color(0xffea812e),
+                      radius: 8.0,
+                    ),
+                    FigBox(
+                      width: 105.0,
+                      height: 4.0,
+                      color: const Color(0xff979797),
+                      radius: 8.0,
+                    ),
+                    FigBox(
+                      width: 105.0,
+                      height: 4.0,
+                      color: const Color(0xff979797),
+                      radius: 8.0,
+                    ),
+                  ],
+                )
+                ,
+              )
+              ,
+            )
+          ),
+          Positioned(
+            left: 25.0, top: 432.0,
+            child: FigBox(
+              width: 335.0,
+              child: FigOverflow(
+                alignment: const Alignment(-1.0, -1.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 21.0,
+                  children: [
+                    FigBox(
+                      width: 335.0,
+                      child: FigOverflow(
+                        alignment: const Alignment(-1.0, -1.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 8.0,
+                          children: [
+                            FigBox(
+                              width: 335.0,
+                              child: FigOverflow(
+                                alignment: const Alignment(-1.0, -1.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  spacing: 6.0,
+                                  children: [
+                                    FigText(
+                                      width: 335.0,
+                                      span: 
+                                        TextSpan(text: 'Поиск', style: figStyle(fontSize: 21.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
+                                      ,
+                                    ),
+                                    FigText(
+                                      width: 335.0,
+                                      span: 
+                                        TextSpan(text: 'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xff7d7d7d)))
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                            FigBox(
+                              width: 325.0,
+                              height: 40.0,
+                              color: const Color(0xffffffff),
+                              radius: 10.0,
+                              padding: const EdgeInsets.fromLTRB(15.0, 15.0, 15.0, 15.0),
+                              shadows: const [BoxShadow(color: Color(0xffeeeeee), offset: Offset(0.0, 0.0), blurRadius: 0.0, spreadRadius: 0.5), BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 0.0), blurRadius: 4.0, spreadRadius: 0.0), BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 4.0), blurRadius: 48.0, spreadRadius: 0.0)],
+                              insets: const [FigInset(Color(0xffeeeeee), 0.5)],
+                              child: FigOverflow(
+                                freeWidth: true,
+                                alignment: const Alignment(-1.0, 0.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  spacing: 8.0,
+                                  children: [
+                                    FigBox(
+                                      width: 14.0,
+                                      height: 14.0,
+                                      clip: true,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Positioned(
+                                            left: 0.0, top: 0.0,
+                                            child: FigSvg(
+                                              width: 12.444, height: 12.444,
+                                              vbLeft: 0.0, vbTop: 0.0, vbWidth: 12.444, vbHeight: 12.444,
+                                              shapes: const [FigShape(d: _p6, fill: Color(0xffea812e))],
+                                            )
+                                          ),
+                                          Positioned(
+                                            left: 10.617, top: 10.617,
+                                            child: FigSvg(
+                                              width: 3.383, height: 3.383,
+                                              vbLeft: 0.0, vbTop: 0.0, vbWidth: 3.383, vbHeight: 3.383,
+                                              shapes: const [FigShape(d: _p7, fill: Color(0xffea812e))],
+                                            )
+                                          ),
+                                        ],
+                                      )
+                                      ,
+                                    ),
+                                    FigText(
+                                      noWrap: true,
+                                      ellipsis: true,
+                                      width: 83.0,
+                                      span: 
+                                        TextSpan(text: 'Что ищете?', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.538, letterSpacing: -0.13, color: const Color(0xff555555)))
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                          ],
+                        )
+                        ,
+                      )
+                      ,
+                    ),
+                    FigBox(
+                      width: 335.0,
+                      child: FigOverflow(
+                        freeWidth: true,
+                        alignment: const Alignment(-1.0, 0.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          spacing: 25.0,
+                          children: [
+                            FigBox(
+                              width: 60.0,
+                              child: FigOverflow(
+                                alignment: const Alignment(0.0, -1.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  spacing: 4.0,
+                                  children: [
+                                    FigBox(
+                                      width: 60.0,
+                                      height: 60.0,
+                                      clip: true,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Positioned(
+                                            left: 0.0, top: 0.0,
+                                            child: FigBox(
+                                              width: 60.0,
+                                              height: 60.0,
+                                              color: const Color(0xffffffff),
+                                              radius: 6.923,
+                                              shadows: const [BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 0.0), blurRadius: 4.0, spreadRadius: 0.0), BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 4.0), blurRadius: 48.0, spreadRadius: 0.0)],
+                                            )
+                                          ),
+                                          Positioned(
+                                            left: 13.0, top: 15.0,
+                                            child: FigBox(
+                                              width: 34.0,
+                                              height: 29.513,
+                                              clip: true,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: Opacity(
+                                                      opacity: 0.0,
+                                                      child: FigSvg(
+                                                        width: 34.0, height: 29.513,
+                                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 34.0, vbHeight: 29.513,
+                                                        shapes: const [FigShape(d: _p8, fill: Color(0xffea812f))],
+                                                      ),
+                                                    )
+                                                  ),
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigSvg(
+                                                      width: 33.481, height: 29.485,
+                                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 33.481, vbHeight: 29.485,
+                                                      shapes: const [FigShape(d: _p9, fill: Color(0xffea812f))],
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            )
+                                          ),
+                                        ],
+                                      )
+                                      ,
+                                    ),
+                                    FigText(
+                                      align: TextAlign.center,
+                                      width: 60.0,
+                                      span: 
+                                        TextSpan(text: 'Дома', style: figStyle(fontSize: 12.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xff000000)))
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                            FigBox(
+                              width: 60.0,
+                              child: FigOverflow(
+                                alignment: const Alignment(-1.0, -1.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  spacing: 4.0,
+                                  children: [
+                                    FigBox(
+                                      width: 60.0,
+                                      height: 60.0,
+                                      clip: true,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Positioned(
+                                            left: 0.0, top: 0.0,
+                                            child: FigBox(
+                                              width: 60.0,
+                                              height: 60.0,
+                                              color: const Color(0xffffffff),
+                                              radius: 6.923,
+                                              shadows: const [BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 0.0), blurRadius: 4.0, spreadRadius: 0.0), BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 4.0), blurRadius: 48.0, spreadRadius: 0.0)],
+                                            )
+                                          ),
+                                          Positioned(
+                                            left: 14.333, top: 14.0,
+                                            child: FigBox(
+                                              width: 32.0,
+                                              height: 31.37,
+                                              clip: true,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: Opacity(
+                                                      opacity: 0.0,
+                                                      child: FigSvg(
+                                                        width: 32.0, height: 31.37,
+                                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 32.0, vbHeight: 31.37,
+                                                        shapes: const [FigShape(d: _p10, fill: Color(0xffea812f))],
+                                                      ),
+                                                    )
+                                                  ),
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigSvg(
+                                                      width: 31.37, height: 31.37,
+                                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 31.37, vbHeight: 31.37,
+                                                      shapes: const [FigShape(d: _p11, fill: Color(0xffea812f))],
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            )
+                                          ),
+                                        ],
+                                      )
+                                      ,
+                                    ),
+                                    FigText(
+                                      align: TextAlign.center,
+                                      width: 60.0,
+                                      span: 
+                                        TextSpan(text: 'Квартиры', style: figStyle(fontSize: 12.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xff000000)))
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                            FigBox(
+                              width: 60.0,
+                              child: FigOverflow(
+                                alignment: const Alignment(-1.0, -1.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  spacing: 4.0,
+                                  children: [
+                                    FigBox(
+                                      width: 60.0,
+                                      height: 60.0,
+                                      clip: true,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Positioned(
+                                            left: 0.0, top: 0.0,
+                                            child: FigBox(
+                                              width: 60.0,
+                                              height: 60.0,
+                                              color: const Color(0xffffffff),
+                                              radius: 6.923,
+                                              shadows: const [BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 0.0), blurRadius: 4.0, spreadRadius: 0.0), BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 4.0), blurRadius: 48.0, spreadRadius: 0.0)],
+                                            )
+                                          ),
+                                          Positioned(
+                                            left: 13.667, top: 16.0,
+                                            child: FigBox(
+                                              width: 32.0,
+                                              height: 28.16,
+                                              clip: true,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: Opacity(
+                                                      opacity: 0.0,
+                                                      child: FigSvg(
+                                                        width: 32.0, height: 28.16,
+                                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 32.0, vbHeight: 28.16,
+                                                        shapes: const [FigShape(d: _p12, fill: Color(0xffea8130))],
+                                                      ),
+                                                    )
+                                                  ),
+                                                  Positioned(
+                                                    left: 0.0, top: 0.038,
+                                                    child: FigSvg(
+                                                      width: 31.508, height: 28.122,
+                                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 31.508, vbHeight: 28.122,
+                                                      shapes: const [FigShape(d: _p13, fill: Color(0xffea8130))],
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            )
+                                          ),
+                                        ],
+                                      )
+                                      ,
+                                    ),
+                                    FigText(
+                                      align: TextAlign.center,
+                                      width: 60.0,
+                                      span: 
+                                        TextSpan(text: 'Участки', style: figStyle(fontSize: 12.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xff000000)))
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                            FigBox(
+                              width: 74.0,
+                              child: FigOverflow(
+                                alignment: const Alignment(0.0, -1.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  spacing: 4.0,
+                                  children: [
+                                    FigBox(
+                                      width: 60.0,
+                                      height: 60.0,
+                                      clip: true,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Positioned(
+                                            left: 0.0, top: 0.0,
+                                            child: FigBox(
+                                              width: 60.0,
+                                              height: 60.0,
+                                              color: const Color(0xffffffff),
+                                              radius: 6.923,
+                                              shadows: const [BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 0.0), blurRadius: 4.0, spreadRadius: 0.0), BoxShadow(color: Color(0x0a000000), offset: Offset(0.0, 4.0), blurRadius: 48.0, spreadRadius: 0.0)],
+                                            )
+                                          ),
+                                          Positioned(
+                                            left: 15.0, top: 12.0,
+                                            child: FigBox(
+                                              width: 30.365,
+                                              height: 35.847,
+                                              clip: true,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: Opacity(
+                                                      opacity: 0.0,
+                                                      child: FigSvg(
+                                                        width: 30.365, height: 35.847,
+                                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 30.365, vbHeight: 35.847,
+                                                        shapes: const [FigShape(d: _p14, fill: Color(0xffea8130))],
+                                                      ),
+                                                    )
+                                                  ),
+                                                  Positioned(
+                                                    left: 19.631, top: 7.35,
+                                                    child: FigSvg(
+                                                      width: 10.168, height: 28.482,
+                                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 10.168, vbHeight: 28.482,
+                                                      shapes: const [FigShape(d: _p15, fill: Color(0xffea8130))],
+                                                    )
+                                                  ),
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigSvg(
+                                                      width: 22.035, height: 35.832,
+                                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 22.035, vbHeight: 35.832,
+                                                      shapes: const [FigShape(d: _p16, fill: Color(0xffea8130))],
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            )
+                                          ),
+                                        ],
+                                      )
+                                      ,
+                                    ),
+                                    FigText(
+                                      align: TextAlign.center,
+                                      width: 74.0,
+                                      span: 
+                                        TextSpan(text: 'Новостройки', style: figStyle(fontSize: 12.0, family: FigFont.display, weight: 500, height: 1.0, letterSpacing: -0.12, color: const Color(0xff000000)))
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                          ],
+                        )
+                        ,
+                      )
+                      ,
+                    ),
+                    FigBox(
+                      width: 299.0,
+                      child: FigOverflow(
+                        alignment: const Alignment(-1.0, -1.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 11.0,
+                          children: [
+                            FigText(
+                              width: 299.0,
+                              span: 
+                                TextSpan(text: 'Все варинаты', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
+                              ,
+                            ),
+                            FigBox(
+                              width: 299.0,
+                              child: FigOverflow(
+                                alignment: const Alignment(-1.0, -1.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  spacing: 12.0,
+                                  children: [
+                                    FigBox(
+                                      width: 299.0,
+                                      child: FigOverflow(
+                                        freeWidth: true,
+                                        alignment: const Alignment(-1.0, 0.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          spacing: 12.0,
+                                          children: [
+                                            FigBox(
+                                              width: 87.0,
+                                              height: 30.0,
+                                              color: const Color(0x33ea812e),
+                                              radius: 8.0,
+                                              blur: 2.0,
+                                              padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigText(
+                                                      noWrap: true,
+                                                      width: 57.0,
+                                                      height: 14.0,
+                                                      span: 
+                                                        TextSpan(text: 'Вторичка', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
+                                                      ,
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            ),
+                                            FigBox(
+                                              width: 110.0,
+                                              height: 30.0,
+                                              color: const Color(0x33ea812e),
+                                              radius: 8.0,
+                                              blur: 2.0,
+                                              padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigText(
+                                                      noWrap: true,
+                                                      width: 80.0,
+                                                      height: 14.0,
+                                                      span: 
+                                                        TextSpan(text: 'Новостройки', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
+                                                      ,
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            ),
+                                            FigBox(
+                                              width: 76.0,
+                                              height: 30.0,
+                                              color: const Color(0x33ea812e),
+                                              radius: 8.0,
+                                              blur: 2.0,
+                                              padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigText(
+                                                      noWrap: true,
+                                                      width: 46.0,
+                                                      height: 14.0,
+                                                      span: 
+                                                        TextSpan(text: 'Бишкек', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
+                                                      ,
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            ),
+                                          ],
+                                        )
+                                        ,
+                                      )
+                                      ,
+                                    ),
+                                    FigBox(
+                                      child: FigOverflow(
+                                        freeWidth: true,
+                                        alignment: const Alignment(-1.0, 0.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          spacing: 12.0,
+                                          children: [
+                                            FigBox(
+                                              width: 144.0,
+                                              height: 30.0,
+                                              color: const Color(0x33ea812e),
+                                              radius: 8.0,
+                                              blur: 2.0,
+                                              padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigText(
+                                                      noWrap: true,
+                                                      width: 114.0,
+                                                      height: 14.0,
+                                                      span: 
+                                                        TextSpan(text: 'Квартиры в центре', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
+                                                      ,
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            ),
+                                            FigBox(
+                                              width: 113.0,
+                                              height: 30.0,
+                                              color: const Color(0x33ea812e),
+                                              radius: 8.0,
+                                              blur: 2.0,
+                                              padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigText(
+                                                      noWrap: true,
+                                                      width: 83.0,
+                                                      height: 14.0,
+                                                      span: 
+                                                        TextSpan(text: 'Все варианты', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
+                                                      ,
+                                                    )
+                                                  ),
+                                                ],
+                                              )
+                                              ,
+                                            ),
+                                          ],
+                                        )
+                                        ,
+                                      )
+                                      ,
+                                    ),
+                                  ],
+                                )
+                                ,
+                              )
+                              ,
+                            ),
+                          ],
+                        )
+                        ,
+                      )
+                      ,
+                    ),
+                  ],
+                )
+                ,
+              )
+              ,
+            )
+          ),
+        ],
+      )
+      ,
+    );
+  }
+}
+
+const String _p0 =
+    'M 5.112 8.72 C 6.491 7.761 8.51 7.761 9.889 8.72 C 9.958 8.771 9.998 8.844 10 8.921 C 10.002 8.998 9.965 9.072 9.898 9.126 L 7.739 10.918 C 7.676 10.97 7.59 11 7.5 11 C 7.41 11 7.324 10.97 7.261 10.918 L 5.102 9.126 C 5.035 9.072 4.998 8.998 5 8.921 C 5.002 8.844 5.043 8.771 5.112 8.72 Z M 3.099 6.11 C 5.861 3.297 10.139 3.297 12.901 6.11 C 12.964 6.176 12.999 6.267 13 6.362 C 13.001 6.457 12.967 6.548 12.906 6.615 L 11.745 7.899 C 11.626 8.031 11.432 8.034 11.31 7.906 C 10.403 7.007 9.223 6.509 7.999 6.509 C 6.776 6.509 5.597 7.007 4.69 7.906 C 4.568 8.034 4.374 8.031 4.255 7.899 L 3.095 6.615 C 3.034 6.548 2.999 6.457 3 6.362 C 3.001 6.267 3.036 6.176 3.099 6.11 Z M 0.095 3.193 C 4.235 -1.064 10.765 -1.064 14.905 3.193 C 14.965 3.257 15 3.343 15 3.434 C 15 3.524 14.967 3.611 14.908 3.675 L 13.772 4.904 C 13.655 5.03 13.466 5.031 13.348 4.907 C 11.77 3.298 9.676 2.401 7.5 2.4 C 5.324 2.401 3.231 3.298 1.653 4.907 C 1.535 5.032 1.344 5.031 1.228 4.904 L 0.092 3.675 C 0.033 3.611 0 3.524 0 3.434 C 0.001 3.343 0.035 3.257 0.095 3.193 Z';
+const String _p1 =
+    'M 2 7 C 2.552 7 3 7.448 3 8 L 3 10 C 3 10.552 2.552 11 2 11 L 1 11 C 0.448 11 0 10.552 0 10 L 0 8 C 0 7.448 0.448 7 1 7 L 2 7 Z M 6 5 C 6.552 5 7 5.448 7 6 L 7 10 C 7 10.552 6.552 11 6 11 L 5 11 C 4.448 11 4 10.552 4 10 L 4 6 C 4 5.448 4.448 5 5 5 L 6 5 Z M 11 2 C 11.552 2 12 2.484 12 3.08 L 12 9.92 C 12 10.516 11.552 11 11 11 L 10 11 C 9.448 11 9 10.516 9 9.92 L 9 3.08 C 9 2.484 9.448 2 10 2 L 11 2 Z M 15 0 C 15.552 0 16 0.462 16 1.031 L 16 9.969 C 16 10.538 15.552 11 15 11 L 14 11 C 13.448 11 13 10.538 13 9.969 L 13 1.031 C 13 0.462 13.448 0 14 0 L 15 0 Z';
+const String _p2 =
+    'M 0 0 L 0 4 C 0.606 3.661 1 2.873 1 2 C 1 1.127 0.606 0.339 0 0';
+const String _p3 =
+    'M 0 2 L -0.232 1.557 C -0.397 1.643 -0.5 1.814 -0.5 2 L 0 2 Z M 0 10 L -0.5 10 C -0.5 10.175 -0.409 10.337 -0.259 10.428 C -0.109 10.518 0.077 10.524 0.232 10.443 L 0 10 Z M 3.818 8 L 4.027 7.545 C 3.886 7.481 3.723 7.485 3.586 7.557 L 3.818 8 Z M 8.182 10 L 7.973 10.455 C 8.114 10.519 8.277 10.515 8.414 10.443 L 8.182 10 Z M 12 8 L 12.232 8.443 C 12.397 8.357 12.5 8.186 12.5 8 L 12 8 Z M 12 0 L 12.5 0 C 12.5 -0.175 12.409 -0.337 12.259 -0.428 C 12.109 -0.518 11.923 -0.524 11.768 -0.443 L 12 0 Z M 8.182 2 L 7.973 2.455 C 8.114 2.519 8.277 2.515 8.414 2.443 L 8.182 2 Z M 3.818 0 L 4.027 -0.455 C 3.886 -0.519 3.723 -0.515 3.586 -0.443 L 3.818 0 Z M 0 2 L -0.5 2 L -0.5 10 L 0 10 L 0.5 10 L 0.5 2 L 0 2 Z M 0 10 L 0.232 10.443 L 4.05 8.443 L 3.818 8 L 3.586 7.557 L -0.232 9.557 L 0 10 Z M 3.818 8 L 3.61 8.455 L 7.973 10.455 L 8.182 10 L 8.39 9.545 L 4.027 7.545 L 3.818 8 Z M 8.182 10 L 8.414 10.443 L 12.232 8.443 L 12 8 L 11.768 7.557 L 7.95 9.557 L 8.182 10 Z M 12 8 L 12.5 8 L 12.5 0 L 12 0 L 11.5 0 L 11.5 8 L 12 8 Z M 12 0 L 11.768 -0.443 L 7.95 1.557 L 8.182 2 L 8.414 2.443 L 12.232 0.443 L 12 0 Z M 8.182 2 L 8.39 1.545 L 4.027 -0.455 L 3.818 0 L 3.61 0.455 L 7.973 2.455 L 8.182 2 Z M 3.818 0 L 3.586 -0.443 L -0.232 1.557 L 0 2 L 0.232 2.443 L 4.05 0.443 L 3.818 0 Z';
+const String _p4 =
+    'M 0.5 0 C 0.5 -0.276 0.276 -0.5 0 -0.5 C -0.276 -0.5 -0.5 -0.276 -0.5 0 L 0 0 L 0.5 0 Z M -0.5 8 C -0.5 8.276 -0.276 8.5 0 8.5 C 0.276 8.5 0.5 8.276 0.5 8 L 0 8 L -0.5 8 Z M 0 0 L -0.5 0 L -0.5 8 L 0 8 L 0.5 8 L 0.5 0 L 0 0 Z';
+const String _p5 =
+    'M 0.293 0.293 C -0.098 0.683 -0.098 1.317 0.293 1.707 L 4.586 6 L 0.293 10.293 C -0.098 10.683 -0.098 11.317 0.293 11.707 C 0.683 12.098 1.317 12.098 1.707 11.707 L 6.707 6.707 C 7.098 6.317 7.098 5.683 6.707 5.293 L 1.707 0.293 C 1.317 -0.098 0.683 -0.098 0.293 0.293 Z';
+const String _p6 =
+    'M 12.444 6.222 L 11.444 6.222 C 11.444 9.106 9.106 11.444 6.222 11.444 L 6.222 12.444 L 6.222 13.444 C 10.211 13.444 13.444 10.211 13.444 6.222 L 12.444 6.222 Z M 6.222 12.444 L 6.222 11.444 C 3.338 11.444 1 9.106 1 6.222 L 0 6.222 L -1 6.222 C -1 10.211 2.233 13.444 6.222 13.444 L 6.222 12.444 Z M 0 6.222 L 1 6.222 C 1 3.338 3.338 1 6.222 1 L 6.222 0 L 6.222 -1 C 2.233 -1 -1 2.233 -1 6.222 L 0 6.222 Z M 6.222 0 L 6.222 1 C 9.106 1 11.444 3.338 11.444 6.222 L 12.444 6.222 L 13.444 6.222 C 13.444 2.233 10.211 -1 6.222 -1 L 6.222 0 Z';
+const String _p7 =
+    'M 2.676 4.09 C 3.067 4.481 3.7 4.481 4.09 4.09 C 4.481 3.7 4.481 3.067 4.09 2.676 L 3.383 3.383 L 2.676 4.09 Z M 0.707 -0.707 C 0.317 -1.098 -0.317 -1.098 -0.707 -0.707 C -1.098 -0.317 -1.098 0.317 -0.707 0.707 L 0 0 L 0.707 -0.707 Z M 3.383 3.383 L 4.09 2.676 L 0.707 -0.707 L 0 0 L -0.707 0.707 L 2.676 4.09 L 3.383 3.383 Z';
+const String _p8 =
+    'M 34 0 L 0 0 L 0 29.513 L 34 29.513 L 34 0 Z';
+const String _p9 =
+    'M 12.675 28.041 L 20.807 28.041 L 20.807 18.984 C 20.807 18.339 20.386 17.918 19.741 17.918 L 13.754 17.918 C 13.109 17.918 12.675 18.339 12.675 18.984 L 12.675 28.041 Z M 1.206 14.974 C 1.598 14.974 1.921 14.764 2.215 14.525 L 16.25 2.734 C 16.404 2.608 16.586 2.538 16.741 2.538 C 16.909 2.538 17.077 2.608 17.231 2.734 L 31.28 14.525 C 31.56 14.764 31.883 14.974 32.276 14.974 C 33.033 14.974 33.481 14.427 33.481 13.852 C 33.481 13.53 33.355 13.193 33.033 12.941 L 18.423 0.673 C 17.89 0.224 17.315 0 16.741 0 C 16.166 0 15.591 0.224 15.058 0.673 L 0.449 12.941 C 0.14 13.193 0 13.53 0 13.852 C 0 14.427 0.449 14.974 1.206 14.974 Z M 25.868 7.529 L 29.387 10.501 L 29.387 4.178 C 29.387 3.561 28.995 3.169 28.378 3.169 L 26.878 3.169 C 26.275 3.169 25.868 3.561 25.868 4.178 L 25.868 7.529 Z M 7.263 29.485 L 26.233 29.485 C 28.224 29.485 29.387 28.35 29.387 26.387 L 29.387 10.852 L 27.13 9.324 L 27.13 25.826 C 27.13 26.737 26.639 27.228 25.756 27.228 L 7.739 27.228 C 6.842 27.228 6.351 26.737 6.351 25.826 L 6.351 9.338 L 4.094 10.852 L 4.094 26.387 C 4.094 28.364 5.258 29.485 7.263 29.485 Z';
+const String _p10 =
+    'M 32 0 L 0 0 L 0 31.37 L 32 31.37 L 32 0 Z';
+const String _p11 =
+    'M 13.751 30.262 L 16.494 30.262 L 16.494 18.488 C 16.494 17.227 17.261 16.511 18.624 16.511 L 30.075 16.511 L 30.075 13.768 L 18.573 13.768 C 15.557 13.768 13.751 15.489 13.751 18.368 L 13.751 30.262 Z M 5.35 31.37 L 26.019 31.37 C 29.598 31.37 31.37 29.615 31.37 26.104 L 31.37 5.282 C 31.37 1.772 29.598 0 26.019 0 L 5.35 0 C 1.789 0 0 1.772 0 5.282 L 0 26.104 C 0 29.615 1.789 31.37 5.35 31.37 Z M 5.384 28.626 C 3.681 28.626 2.743 27.723 2.743 25.951 L 2.743 5.436 C 2.743 3.663 3.681 2.743 5.384 2.743 L 25.985 2.743 C 27.672 2.743 28.626 3.663 28.626 5.436 L 28.626 25.951 C 28.626 27.723 27.672 28.626 25.985 28.626 L 5.384 28.626 Z';
+const String _p12 =
+    'M 32 0 L 0 0 L 0 28.16 L 32 28.16 L 32 0 Z';
+const String _p13 =
+    'M 0 19.13 C 0 20.696 1.342 21.983 2.977 21.983 C 4.133 21.983 5.156 21.321 5.635 20.378 L 25.674 25.995 C 25.993 27.217 27.163 28.122 28.545 28.122 C 30.166 28.122 31.508 26.848 31.508 25.282 C 31.508 24.097 30.738 23.078 29.674 22.658 L 29.103 9.82 C 30.246 9.438 31.07 8.393 31.07 7.158 C 31.07 5.591 29.741 4.318 28.12 4.318 C 27.03 4.318 26.086 4.878 25.555 5.693 L 14.485 2.789 C 14.445 1.248 13.13 0 11.535 0 C 9.9 0 8.558 1.286 8.558 2.853 C 8.558 3.694 8.944 4.445 9.555 4.98 L 3.389 16.341 C 3.243 16.302 3.11 16.29 2.977 16.29 C 1.342 16.29 0 17.563 0 19.13 Z M 5.13 17.194 L 11.309 5.655 C 12.346 5.782 13.342 5.311 13.874 4.521 L 25.209 7.502 C 25.302 8.61 26.14 9.565 27.243 9.883 L 27.708 22.543 C 26.831 22.785 26.113 23.409 25.794 24.212 L 5.847 18.595 C 5.767 18.047 5.528 17.602 5.13 17.194 Z';
+const String _p14 =
+    'M 30.365 0 L 0 0 L 0 35.847 L 30.365 35.847 L 30.365 0 Z';
+const String _p15 =
+    'M 10.168 2.649 L 10.168 25.848 C 10.168 27.441 9.249 28.482 7.764 28.482 L 0 28.482 C 1.393 28.482 2.288 27.566 2.393 26.139 L 6.998 26.139 C 7.565 26.139 7.84 25.879 7.84 25.312 L 7.84 3.17 C 7.84 2.603 7.565 2.328 6.998 2.328 L 2.404 2.328 L 2.404 0 L 7.764 0 C 9.249 0 10.168 1.026 10.168 2.649 Z M 5.145 18.023 L 5.145 20.305 C 5.145 20.596 4.946 20.78 4.64 20.78 L 2.404 20.78 L 2.404 17.533 L 4.64 17.533 C 4.946 17.533 5.145 17.717 5.145 18.023 Z M 5.145 12.465 L 5.145 14.746 C 5.145 15.037 4.946 15.236 4.64 15.236 L 2.404 15.236 L 2.404 11.975 L 4.64 11.975 C 4.946 11.975 5.145 12.174 5.145 12.465 Z M 5.145 6.906 L 5.145 9.188 C 5.145 9.479 4.946 9.678 4.64 9.678 L 2.404 9.678 L 2.404 6.416 L 4.64 6.416 C 4.946 6.416 5.145 6.615 5.145 6.906 Z';
+const String _p16 =
+    'M 2.404 35.832 L 19.631 35.832 C 21.116 35.832 22.035 34.791 22.035 33.198 L 22.035 2.634 C 22.035 1.026 21.116 0 19.631 0 L 2.404 0 C 0.919 0 0 1.026 0 2.634 L 0 33.198 C 0 34.791 0.919 35.832 2.404 35.832 Z M 3.17 33.489 C 2.618 33.489 2.328 33.229 2.328 32.662 L 2.328 3.17 C 2.328 2.603 2.618 2.328 3.17 2.328 L 18.865 2.328 C 19.432 2.328 19.708 2.603 19.708 3.17 L 19.708 32.662 C 19.708 33.229 19.432 33.489 18.865 33.489 L 3.17 33.489 Z M 6.248 10.765 L 9.218 10.765 C 9.601 10.765 9.846 10.52 9.846 10.137 L 9.846 7.243 C 9.846 6.875 9.601 6.615 9.218 6.615 L 6.248 6.615 C 5.865 6.615 5.635 6.875 5.635 7.243 L 5.635 10.137 C 5.635 10.52 5.865 10.765 6.248 10.765 Z M 12.801 10.765 L 15.772 10.765 C 16.155 10.765 16.4 10.52 16.4 10.137 L 16.4 7.243 C 16.4 6.875 16.155 6.615 15.772 6.615 L 12.801 6.615 C 12.434 6.615 12.189 6.875 12.189 7.243 L 12.189 10.137 C 12.189 10.52 12.434 10.765 12.801 10.765 Z M 6.248 16.829 L 9.218 16.829 C 9.601 16.829 9.846 16.584 9.846 16.201 L 9.846 13.307 C 9.846 12.939 9.601 12.679 9.218 12.679 L 6.248 12.679 C 5.865 12.679 5.635 12.939 5.635 13.307 L 5.635 16.201 C 5.635 16.584 5.865 16.829 6.248 16.829 Z M 12.801 16.829 L 15.772 16.829 C 16.155 16.829 16.4 16.584 16.4 16.201 L 16.4 13.307 C 16.4 12.939 16.155 12.679 15.772 12.679 L 12.801 12.679 C 12.434 12.679 12.189 12.939 12.189 13.307 L 12.189 16.201 C 12.189 16.584 12.434 16.829 12.801 16.829 Z M 6.248 22.893 L 9.218 22.893 C 9.601 22.893 9.846 22.632 9.846 22.265 L 9.846 19.371 C 9.846 18.988 9.601 18.743 9.218 18.743 L 6.248 18.743 C 5.865 18.743 5.635 18.988 5.635 19.371 L 5.635 22.265 C 5.635 22.632 5.865 22.893 6.248 22.893 Z M 12.801 22.893 L 15.772 22.893 C 16.155 22.893 16.4 22.632 16.4 22.265 L 16.4 19.371 C 16.4 18.988 16.155 18.743 15.772 18.743 L 12.801 18.743 C 12.434 18.743 12.189 18.988 12.189 19.371 L 12.189 22.265 C 12.189 22.632 12.434 22.893 12.801 22.893 Z M 6.523 34.607 L 8.422 34.607 L 8.422 29.722 C 8.422 29.416 8.56 29.263 8.897 29.263 L 13.154 29.263 C 13.475 29.263 13.628 29.416 13.628 29.722 L 13.628 34.607 L 15.527 34.607 L 15.527 29.186 C 15.527 27.946 14.991 27.349 13.782 27.349 L 8.269 27.349 C 7.059 27.349 6.523 27.946 6.523 29.186 L 6.523 34.607 Z';
