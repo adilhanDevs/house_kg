@@ -1,0 +1,362 @@
+"""Тесты уведомлений, настроек, устройств и push."""
+
+from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from apps.notifications.models import (
+    DeviceToken,
+    Notification,
+    NotificationSettings,
+    NotificationType,
+)
+from apps.notifications.push import send_to_user
+from apps.notifications.services import notify, register_device
+from apps.notifications.tasks import notify_price_drop, send_push
+from tests.factories import CityFactory, DistrictFactory, ListingFactory, UserFactory
+
+LIST_URL = "/api/v1/notifications/"
+UNREAD_URL = "/api/v1/notifications/unread-count/"
+READ_URL = "/api/v1/notifications/read/"
+SETTINGS_URL = "/api/v1/notifications/settings/"
+DEVICES_URL = "/api/v1/devices/"
+DEVICE_URL = "/api/v1/devices/{token}/"
+FAVOURITE_URL = "/api/v1/listings/{slug}/favourite/"
+
+
+def client_for(user) -> APIClient:
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(user).access_token}")
+    return client
+
+
+def fcm_response(*successes: bool, exception=None):
+    """Ответ FCM в форме, которую отдаёт send_each_for_multicast."""
+    responses = [
+        SimpleNamespace(success=ok, exception=None if ok else exception) for ok in successes
+    ]
+    return SimpleNamespace(success_count=sum(successes), responses=responses)
+
+
+@pytest.fixture
+def user(db):
+    return UserFactory()
+
+
+@pytest.fixture
+def auth(user):
+    return client_for(user)
+
+
+@pytest.fixture
+def district(db):
+    return DistrictFactory(city=CityFactory(slug="bishkek", is_default=True), name="Технопарк")
+
+
+# -- сервис notify -----------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_settings_are_created_with_user() -> None:
+    user = UserFactory()
+
+    assert NotificationSettings.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+def test_notify_creates_one_record_and_one_task(user, django_capture_on_commit_callbacks) -> None:
+    with patch("apps.notifications.tasks.send_push") as send_push_task:
+        with django_capture_on_commit_callbacks(execute=True):
+            notification = notify(
+                user,
+                NotificationType.SYSTEM,
+                title="Заголовок",
+                body="Текст",
+                payload={"kind": "test"},
+            )
+
+    assert Notification.objects.count() == 1
+    assert notification.payload == {"kind": "test"}
+    send_push_task.delay.assert_called_once_with(notification.pk)
+
+
+@pytest.mark.django_db
+def test_push_is_skipped_when_disabled(user) -> None:
+    NotificationSettings.objects.filter(user=user).update(push_enabled=False)
+    DeviceToken.objects.create(user=user, token="token-1", platform="android")
+    notification = Notification.objects.create(
+        user=user, type=NotificationType.PRICE_DROP, title="Цена"
+    )
+
+    with patch("firebase_admin.messaging.send_each_for_multicast") as fcm:
+        assert send_push(notification.pk) == 0
+
+    # Уведомление в базе есть, push не ушёл.
+    assert Notification.objects.count() == 1
+    fcm.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_push_is_skipped_for_disabled_type(user) -> None:
+    NotificationSettings.objects.filter(user=user).update(price_drop_enabled=False)
+    DeviceToken.objects.create(user=user, token="token-1", platform="android")
+    notification = Notification.objects.create(
+        user=user, type=NotificationType.PRICE_DROP, title="Цена"
+    )
+
+    with patch("firebase_admin.messaging.send_each_for_multicast") as fcm:
+        assert send_to_user(user, notification) == 0
+
+    fcm.assert_not_called()
+
+
+# -- отправка push -----------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_push_is_sent_to_active_devices(user) -> None:
+    DeviceToken.objects.create(user=user, token="alive", platform="android")
+    DeviceToken.objects.create(user=user, token="disabled", platform="ios", is_active=False)
+    notification = Notification.objects.create(
+        user=user, type=NotificationType.SYSTEM, title="Привет", body="Текст"
+    )
+
+    with (
+        patch("apps.notifications.push.get_fcm_app", return_value=object()),
+        patch(
+            "firebase_admin.messaging.send_each_for_multicast",
+            return_value=fcm_response(True),
+        ) as fcm,
+    ):
+        assert send_to_user(user, notification) == 1
+
+    message = fcm.call_args.args[0]
+    assert message.tokens == ["alive"]
+    assert message.data["notification_id"] == str(notification.pk)
+
+
+@pytest.mark.django_db
+def test_unregistered_token_is_deactivated(user) -> None:
+    DeviceToken.objects.create(user=user, token="dead", platform="android")
+    DeviceToken.objects.create(user=user, token="alive", platform="android")
+    notification = Notification.objects.create(
+        user=user, type=NotificationType.SYSTEM, title="Привет"
+    )
+
+    unregistered = SimpleNamespace(code="UNREGISTERED")
+    response = fcm_response(False, True, exception=unregistered)
+    response.responses[0].exception = unregistered
+
+    with (
+        patch("apps.notifications.push.get_fcm_app", return_value=object()),
+        patch("firebase_admin.messaging.send_each_for_multicast", return_value=response),
+    ):
+        assert send_to_user(user, notification) == 1
+
+    assert DeviceToken.objects.get(token="dead").is_active is False
+    assert DeviceToken.objects.get(token="alive").is_active is True
+
+
+@pytest.mark.django_db
+def test_push_without_fcm_credentials_is_noop(user) -> None:
+    DeviceToken.objects.create(user=user, token="alive", platform="android")
+    notification = Notification.objects.create(
+        user=user, type=NotificationType.SYSTEM, title="Привет"
+    )
+
+    with patch("apps.notifications.push.get_fcm_app", return_value=None):
+        assert send_to_user(user, notification) == 0
+
+
+# -- лента -------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_unread_count_matches_reality(auth: APIClient, user) -> None:
+    for index in range(5):
+        Notification.objects.create(user=user, title=f"№{index}", type=NotificationType.SYSTEM)
+    Notification.objects.filter(title="№0").update(is_read=True)
+    Notification.objects.create(user=UserFactory(), title="чужое", type=NotificationType.SYSTEM)
+
+    assert auth.get(UNREAD_URL).json() == {"count": 4}
+
+
+@pytest.mark.django_db
+def test_mark_all_read_resets_counter(auth: APIClient, user) -> None:
+    for index in range(3):
+        Notification.objects.create(user=user, title=f"№{index}", type=NotificationType.SYSTEM)
+    stranger_notification = Notification.objects.create(
+        user=UserFactory(), title="чужое", type=NotificationType.SYSTEM
+    )
+
+    response = auth.post(READ_URL, {"all": True}, format="json")
+
+    assert response.status_code == 200
+    assert response.json() == {"updated": 3, "unread_count": 0}
+    assert auth.get(UNREAD_URL).json() == {"count": 0}
+    # Чужие уведомления не тронуты.
+    stranger_notification.refresh_from_db()
+    assert stranger_notification.is_read is False
+
+
+@pytest.mark.django_db
+def test_mark_read_by_ids(auth: APIClient, user) -> None:
+    first = Notification.objects.create(user=user, title="1", type=NotificationType.SYSTEM)
+    Notification.objects.create(user=user, title="2", type=NotificationType.SYSTEM)
+
+    response = auth.post(READ_URL, {"ids": [first.pk]}, format="json")
+
+    assert response.json() == {"updated": 1, "unread_count": 1}
+
+
+@pytest.mark.django_db
+def test_mark_read_requires_ids_or_all(auth: APIClient) -> None:
+    assert auth.post(READ_URL, {}, format="json").status_code == 400
+
+
+@pytest.mark.django_db
+def test_list_filters_by_read_and_type(auth: APIClient, user) -> None:
+    Notification.objects.create(user=user, title="цена", type=NotificationType.PRICE_DROP)
+    Notification.objects.create(
+        user=user, title="фильтр", type=NotificationType.SAVED_FILTER_MATCH, is_read=True
+    )
+
+    unread = auth.get(LIST_URL, {"is_read": "false"}).json()
+    by_type = auth.get(LIST_URL, {"type": "price_drop"}).json()
+
+    assert [item["title"] for item in unread["results"]] == ["цена"]
+    assert [item["title"] for item in by_type["results"]] == ["цена"]
+
+
+@pytest.mark.django_db
+def test_delete_own_notification_only(auth: APIClient, user) -> None:
+    mine = Notification.objects.create(user=user, title="моё", type=NotificationType.SYSTEM)
+    stranger = Notification.objects.create(
+        user=UserFactory(), title="чужое", type=NotificationType.SYSTEM
+    )
+
+    assert auth.delete(f"{LIST_URL}{mine.pk}/").status_code == 204
+    assert auth.delete(f"{LIST_URL}{stranger.pk}/").status_code == 404
+    assert Notification.objects.filter(pk=stranger.pk).exists()
+
+
+# -- настройки и устройства --------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_settings_read_and_update(auth: APIClient, user) -> None:
+    body = auth.get(SETTINGS_URL).json()
+    assert body["push_enabled"] is True
+
+    response = auth.patch(SETTINGS_URL, {"price_drop_enabled": False}, format="json")
+
+    assert response.status_code == 200
+    assert response.json()["price_drop_enabled"] is False
+    assert NotificationSettings.objects.get(user=user).price_drop_enabled is False
+
+
+@pytest.mark.django_db
+def test_device_registration_is_upsert(auth: APIClient, user) -> None:
+    first = auth.post(
+        DEVICES_URL,
+        {"token": "device-token", "platform": "android", "app_version": "1.0.0"},
+        format="json",
+    )
+    second = auth.post(
+        DEVICES_URL,
+        {"token": "device-token", "platform": "android", "app_version": "1.1.0"},
+        format="json",
+    )
+
+    assert first.status_code == second.status_code == 200
+    assert DeviceToken.objects.count() == 1
+    assert DeviceToken.objects.get().app_version == "1.1.0"
+
+
+@pytest.mark.django_db
+def test_device_token_moves_to_current_user(user) -> None:
+    previous_owner = UserFactory()
+    register_device(previous_owner, "shared-token", "android")
+
+    device = register_device(user, "shared-token", "android", "1.2.0")
+
+    assert DeviceToken.objects.count() == 1
+    assert device.user == user
+    assert device.is_active is True
+
+
+@pytest.mark.django_db
+def test_device_deactivation(auth: APIClient, user) -> None:
+    register_device(user, "device-token", "ios")
+
+    assert auth.delete(DEVICE_URL.format(token="device-token")).status_code == 204
+    assert DeviceToken.objects.get().is_active is False
+    assert auth.delete(DEVICE_URL.format(token="unknown")).status_code == 404
+
+
+@pytest.mark.django_db
+def test_notifications_require_authentication(api_client: APIClient) -> None:
+    assert api_client.get(LIST_URL).status_code == 401
+    assert api_client.get(UNREAD_URL).status_code == 401
+    assert api_client.post(DEVICES_URL, {}, format="json").status_code == 401
+
+
+# -- снижение цены -----------------------------------------------------------
+
+
+def _favourite_with_drop(user, district, old: str, new: str):
+    from apps.engagement.models import Favourite
+
+    listing = ListingFactory(district=district, rooms=3, price=Decimal(new))
+    return Favourite.objects.create(user=user, listing=listing, price_at_add=Decimal(old)), listing
+
+
+@pytest.mark.django_db
+def test_two_percent_drop_is_ignored(user, district) -> None:
+    _favourite_with_drop(user, district, "100000", "98000")
+
+    assert notify_price_drop() == 0
+    assert Notification.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_five_percent_drop_creates_single_notification(user, district) -> None:
+    favourite, listing = _favourite_with_drop(user, district, "102000", "97000")
+
+    assert notify_price_drop() == 1
+
+    notification = Notification.objects.get()
+    assert notification.type == NotificationType.PRICE_DROP
+    assert notification.listing == listing
+    expected = f"Цена снизилась на 5%: Технопарк, 3-комн. — {listing.price_display}"
+    assert notification.body == expected
+    assert notification.body.startswith("Цена снизилась на 5%: Технопарк, 3-комн. — 97")
+    assert notification.payload["listing_slug"] == listing.slug
+
+    # Отметка цены обновлена — повторно о том же снижении не напишем.
+    favourite.refresh_from_db()
+    assert favourite.price_at_add == Decimal("97000.00")
+    assert notify_price_drop() == 0
+    assert Notification.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_price_growth_is_ignored(user, district) -> None:
+    _favourite_with_drop(user, district, "90000", "100000")
+
+    assert notify_price_drop() == 0
+
+
+@pytest.mark.django_db
+def test_favourite_remembers_price_at_add(auth: APIClient, user, district) -> None:
+    from apps.engagement.models import Favourite
+
+    listing = ListingFactory(district=district, price=Decimal("120000"))
+
+    auth.post(FAVOURITE_URL.format(slug=listing.slug))
+
+    assert Favourite.objects.get().price_at_add == Decimal("120000.00")

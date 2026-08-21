@@ -1,0 +1,108 @@
+[project]
+name = "house-kgz-backend"
+version = "1.0.0"
+description = "Backend API для мобильного приложения-агрегатора недвижимости house_kgz"
+requires-python = ">=3.12"
+
+dependencies = [
+    "django>=5.0,<6.0",
+    "djangorestframework>=3.15",
+    "djangorestframework-simplejwt>=5.3",
+    "django-filter>=24.2",
+    "drf-spectacular>=0.27",
+    "django-environ>=0.11",
+    "django-cors-headers>=4.4",
+    "django-storages[s3]>=1.14",
+    "psycopg[binary]>=3.2",
+    "celery>=5.4",
+    "django-celery-beat>=2.6",
+    "redis>=5.0",
+    "pillow>=10.4",
+    "phonenumbers>=9.0",
+    "requests>=2.32",
+    "python-magic>=0.4.27",
+    "firebase-admin>=6.5",
+    "gunicorn>=22.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "pytest-cov>=5.0",
+    "factory-boy>=3.3",
+    "freezegun>=1.5",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "django-stubs[compatible-mypy]>=5.0",
+    "django-debug-toolbar>=4.4",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["config", "apps"]
+
+# ----------------------------------------------------------------------------
+# Ruff
+# ----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "DJ"]
+ignore = [
+    "B008",  # вызовы в аргументах по умолчанию — обычная практика в DRF
+]
+
+[tool.ruff.lint.per-file-ignores]
+"config/settings/*.py" = ["F403", "F405"]  # звёздочный импорт из base — осознанный
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ----------------------------------------------------------------------------
+# Pytest
+# ----------------------------------------------------------------------------
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
+addopts = [
+    "--reuse-db",
+    "--strict-markers",
+    "--cov=apps",
+    "--cov=config",
+    "--cov-report=term-missing",
+]
+
+filterwarnings = [
+    # firebase-admin 7.x переименовал MulticastMessage.tokens в fids; мы шлём
+    # именно регистрационные токены FCM, поэтому параметр не меняем.
+    "ignore:MulticastMessage.tokens is deprecated:DeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/migrations/*", "*/tests/*", "config/asgi.py", "config/wsgi.py"]
+
+# ----------------------------------------------------------------------------
+# Mypy
+# ----------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+exclude = ["migrations"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.local"
