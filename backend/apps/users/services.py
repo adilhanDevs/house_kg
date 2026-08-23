@@ -16,7 +16,7 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.catalog.enums import ListingStatus
-from apps.common.audit import record_audit
+from apps.common.audit import audit, record_audit
 from apps.common.exceptions import ApiValidationError, ConflictError, InvalidCredentialsError
 from apps.common.models import AuditLog
 from apps.common.storages import private_storage
@@ -94,13 +94,20 @@ def verify_otp(
     code: str,
     name: str = "",
     purpose: str = OtpPurpose.LOGIN,
+    accepted_terms_version: str = "",
+    request: Any = None,
 ) -> tuple[User, bool]:
     """Проверяет код и возвращает (пользователь, новый ли он).
 
     Любая ошибка — ApiValidationError с человекочитаемым сообщением.
     Транзакцией накрыт только успешный путь: счётчик неудачных попыток
     должен сохраниться даже тогда, когда запрос завершается ошибкой.
+
+    Регистрация нового аккаунта требует согласия на обработку ПДн: без
+    `accepted_terms_version` пользователь не создаётся.
     """
+    from apps.users.privacy import has_consent, record_consent, require_terms_version
+
     otp = _active_otp(phone, purpose)
     if otp is None:
         raise ApiValidationError("Код не найден, запросите новый.")
@@ -124,12 +131,21 @@ def verify_otp(
         otp.save(update_fields=["attempts"])
         raise ApiValidationError("Неверный код", {"attempts_left": attempts_left})
 
+    # Согласие проверяется до создания аккаунта: обрабатывать ПДн без него
+    # нельзя, а созданный и тут же брошенный пользователь — уже обработка.
+    existing = User.objects.filter(phone=phone).first()
+    needs_consent = existing is None or not has_consent(existing)
+    if needs_consent:
+        version = require_terms_version(accepted_terms_version)
+
     with transaction.atomic():
         otp.is_used = True
         otp.save(update_fields=["is_used"])
         user, is_new_user = _get_or_create_user(phone, name, purpose)
         if purpose == OtpPurpose.PRO_REGISTER:
             activate_pro(user)
+        if needs_consent:
+            record_consent(user, version, request=request)
 
     logger.info("Успешный вход %s (новый: %s)", mask_phone(phone), is_new_user)
     return user, is_new_user
@@ -230,8 +246,22 @@ def authenticate_pro(phone: str, password: str) -> User:
         raise InvalidCredentialsError(LOGIN_FAILED_MESSAGE)
 
     if not (user.is_active and user.is_pro and user.check_password(password)):
+        audit(
+            actor=user,
+            action=AuditLog.Action.PASSWORD_LOGIN,
+            target=user,
+            target_user=user,
+            extra={"result": "failed"},
+        )
         raise InvalidCredentialsError(LOGIN_FAILED_MESSAGE)
 
+    audit(
+        actor=user,
+        action=AuditLog.Action.PASSWORD_LOGIN,
+        target=user,
+        target_user=user,
+        extra={"result": "success"},
+    )
     return user
 
 
@@ -270,6 +300,22 @@ def anonymize_user(user: User) -> int:
     Строка в БД остаётся — на неё ссылаются объявления, обращения и леджер.
     """
     archived = archive_user_listings(user)
+    # Журнал пишем ДО обезличивания: после него неоткуда взять, чей это был
+    # аккаунт, а факт удаления должен остаться восстановимым.
+    audit(
+        actor=user,
+        action=AuditLog.Action.USER_DELETED,
+        target=user,
+        target_user=user,
+        changes={"is_active": {"before": True, "after": False}},
+        extra={"archived_listings": archived},
+    )
+
+    # Файлы и обезличивание леджера — в фоне: их много, и держать на них
+    # HTTP-запрос пользователя незачем.
+    from apps.users.tasks import purge_user_data
+
+    transaction.on_commit(lambda: purge_user_data.delay(user.pk))
 
     if user.avatar:
         user.avatar.delete(save=False)

@@ -45,7 +45,8 @@ ASGI_APPLICATION = "config.asgi.application"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DJANGO_APPS = [
-    "django.contrib.admin",
+    # Своя админка: обязательный второй фактор для персонала.
+    "apps.common.admin_site.HouseAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -61,6 +62,12 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "storages",
     "django_celery_beat",
+    "django_prometheus",
+    "csp",
+    # 2FA для персонала: доступ к ПДн граждан не защищается одним паролем.
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
 ]
 
 LOCAL_APPS = [
@@ -75,14 +82,24 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    # Метрики django-prometheus снаружи: они должны видеть полное время
+    # запроса, включая работу остальных middleware.
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
+    "apps.common.middleware.RequestContextMiddleware",
+    "apps.common.middleware.InternalOnlyMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Сразу после аутентификации: OTPMiddleware выставляет request.user.is_verified.
+    "django_otp.middleware.OTPMiddleware",
+    "apps.common.middleware.AdminIpRestrictionMiddleware",
+    "apps.common.middleware.UserContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 TEMPLATES = [
@@ -212,7 +229,15 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.common.exceptions.custom_exception_handler",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "DEFAULT_THROTTLE_CLASSES": (
+        "apps.common.throttling.DefaultAnonThrottle",
+        "apps.common.throttling.DefaultUserThrottle",
+    ),
     "DEFAULT_THROTTLE_RATES": {
+        # Общий потолок. Не защита от DDoS (она уровнем выше), а страховка
+        # от скрипта, который ходит по API без пауз.
+        "anon": env.str("ANON_THROTTLE", default="100/min"),
+        "user": env.str("USER_THROTTLE", default="300/min"),
         "support_tickets": env.str("SUPPORT_TICKET_THROTTLE", default="5/hour"),
         # Запрос SMS-кода: не чаще раза в минуту и 5 раз в час на номер,
         # 20 раз в час с одного IP.
@@ -224,6 +249,14 @@ REST_FRAMEWORK = {
         "password_login_ip": env.str("PASSWORD_LOGIN_IP_THROTTLE", default="30/hour"),
         # Подача документов на верификацию.
         "kyc_submit": env.str("KYC_SUBMIT_THROTTLE", default="3/day"),
+        # Раскрытие телефона продавца: порог против выгрузки базы номеров.
+        "contact_reveal": env.str("CONTACT_REVEAL_THROTTLE", default="30/hour"),
+        # Отзывы: живой человек не пишет десять отзывов в сутки.
+        "review_create": env.str("REVIEW_CREATE_THROTTLE", default="10/day"),
+        # Загрузка медиа: считаются файлы, а не запросы.
+        "media_upload": env.str("MEDIA_UPLOAD_THROTTLE", default="100/hour"),
+        # Счета на пополнение: больше десяти в час — это перебор карт.
+        "wallet_topup": env.str("WALLET_TOPUP_THROTTLE", default="10/hour"),
     },
 }
 
@@ -252,6 +285,32 @@ OTP_RETENTION_DAYS = env.int("OTP_RETENTION_DAYS", default=7)
 OTP_SMS_TEMPLATE = env.str("OTP_SMS_TEMPLATE", default="house_kgz: код {code}")
 
 # ----------------------------------------------------------------------------
+# Платежи и пополнение кошелька
+# ----------------------------------------------------------------------------
+# Бонус за пополнение: 12 000 сом -> 12 000 кирпичей + 1 200 бонусных.
+TOPUP_BONUS_RATE = env.float("TOPUP_BONUS_RATE", default=0.10)
+# Сколько минут счёт ждёт оплаты.
+PAYMENT_EXPIRY_MINUTES = env.int("PAYMENT_EXPIRY_MINUTES", default=30)
+# Границы суммы пополнения, сом.
+PAYMENT_MIN_AMOUNT = env.int("PAYMENT_MIN_AMOUNT", default=100)
+PAYMENT_MAX_AMOUNT = env.int("PAYMENT_MAX_AMOUNT", default=500_000)
+# Сколько живёт ключ идемпотентности пополнения.
+PAYMENT_IDEMPOTENCY_TTL_HOURS = env.int("PAYMENT_IDEMPOTENCY_TTL_HOURS", default=24)
+
+# Активный провайдер: mock (разработка) или код банка.
+PAYMENT_PROVIDER = env.str("PAYMENT_PROVIDER", default="mock")
+# Общий секрет для проверки подписи вебхука.
+PAYMENT_WEBHOOK_SECRET = env.str("PAYMENT_WEBHOOK_SECRET", default="")
+# Куда клиент возвращается после оплаты.
+PAYMENT_RETURN_URL = env.str("PAYMENT_RETURN_URL", default="housekgz://wallet/topup")
+
+# Шлюз банка (заполняется при подключении реального провайдера).
+BANK_PAYMENT_API_URL = env.str("BANK_PAYMENT_API_URL", default="")
+BANK_PAYMENT_MERCHANT_ID = env.str("BANK_PAYMENT_MERCHANT_ID", default="")
+BANK_PAYMENT_SECRET = env.str("BANK_PAYMENT_SECRET", default="")
+BANK_PAYMENT_TIMEOUT = env.int("BANK_PAYMENT_TIMEOUT", default=15)
+
+# ----------------------------------------------------------------------------
 # Push-уведомления (FCM)
 # ----------------------------------------------------------------------------
 # Либо путь к service-account JSON, либо его содержимое в base64.
@@ -267,12 +326,77 @@ FALLBACK_USD_KGS_RATE = env.float("FALLBACK_USD_KGS_RATE", default=87.5)
 NBKR_RATES_URL = env.str("NBKR_RATES_URL", default="https://www.nbkr.kg/XML/daily.xml")
 NBKR_TIMEOUT = env.int("NBKR_TIMEOUT", default=10)
 
+# Сколько активных объявлений можно держать бесплатно.
+FREE_ACTIVE_LISTINGS = env.int("FREE_ACTIVE_LISTINGS", default=3)
+# Сколько дней объявление висит активным после публикации.
+LISTING_ACTIVE_DAYS = env.int("LISTING_ACTIVE_DAYS", default=30)
+# За сколько дней предупреждать о снятии с публикации.
+LISTING_EXPIRY_WARNING_DAYS = env.int("LISTING_EXPIRY_WARNING_DAYS", default=3)
+# Как часто можно бесплатно поднимать объявление, часы.
+LISTING_BUMP_COOLDOWN_HOURS = env.int("LISTING_BUMP_COOLDOWN_HOURS", default=24)
+
 # Сколько дней храним историю просмотров.
 VIEW_HISTORY_RETENTION_DAYS = env.int("VIEW_HISTORY_RETENTION_DAYS", default=90)
 
 # Границы ползунка цены, когда активных объявлений в городе ещё нет.
 CATALOG_DEFAULT_PRICE_MIN = env.int("CATALOG_DEFAULT_PRICE_MIN", default=30_000)
 CATALOG_DEFAULT_PRICE_MAX = env.int("CATALOG_DEFAULT_PRICE_MAX", default=350_000)
+
+# ----------------------------------------------------------------------------
+# Модерация объявлений
+# ----------------------------------------------------------------------------
+# Окно, за которое считается медиана цены по району, дни.
+MODERATION_PRICE_WINDOW_DAYS = env.int("MODERATION_PRICE_WINDOW_DAYS", default=90)
+# Меньше этого числа соседей — проверка цены пропускается: медиана по пяти
+# объектам ничего не значит, а ложная метка стоит модератору времени.
+MODERATION_PRICE_MIN_PEERS = env.int("MODERATION_PRICE_MIN_PEERS", default=10)
+MODERATION_PRICE_SIGMAS = env.float("MODERATION_PRICE_SIGMAS", default=3.0)
+# Запасной порог, когда все соседи стоят одинаково и сигма нулевая.
+MODERATION_PRICE_FALLBACK_RATIO = env.float("MODERATION_PRICE_FALLBACK_RATIO", default=0.5)
+
+# Допуски поиска дубликата: площадь ±2 м², цена ±3 %.
+MODERATION_DUPLICATE_AREA_SPREAD = env.float("MODERATION_DUPLICATE_AREA_SPREAD", default=2.0)
+MODERATION_DUPLICATE_PRICE_RATIO = env.float("MODERATION_DUPLICATE_PRICE_RATIO", default=0.03)
+
+# Порог расстояния Хэмминга для «то же самое фото» и предел сканирования.
+MODERATION_PHASH_MAX_DISTANCE = env.int("MODERATION_PHASH_MAX_DISTANCE", default=5)
+MODERATION_PHASH_SCAN_LIMIT = env.int("MODERATION_PHASH_SCAN_LIMIT", default=5000)
+
+# Сколько неразрешённых жалоб снимают активное объявление с публикации.
+MODERATION_REPORTS_THRESHOLD = env.int("MODERATION_REPORTS_THRESHOLD", default=3)
+# Сколько прошлых отклонений автора показывать модератору.
+MODERATION_HISTORY_LIMIT = env.int("MODERATION_HISTORY_LIMIT", default=10)
+
+# ----------------------------------------------------------------------------
+# Медиафайлы объявления
+# ----------------------------------------------------------------------------
+# Тип файла проверяется по содержимому; список — то, что принимает клиент.
+LISTING_PHOTO_MIME_TYPES = env.list(
+    "LISTING_PHOTO_MIME_TYPES", default=["image/jpeg", "image/png", "image/heic"]
+)
+LISTING_VIDEO_MIME_TYPES = env.list(
+    "LISTING_VIDEO_MIME_TYPES", default=["video/mp4", "video/quicktime"]
+)
+LISTING_PHOTO_MAX_SIZE = env.int("LISTING_PHOTO_MAX_SIZE", default=15 * 1024 * 1024)
+LISTING_VIDEO_MAX_SIZE = env.int("LISTING_VIDEO_MAX_SIZE", default=200 * 1024 * 1024)
+LISTING_PHOTO_MIN_WIDTH = env.int("LISTING_PHOTO_MIN_WIDTH", default=600)
+LISTING_PHOTO_MIN_HEIGHT = env.int("LISTING_PHOTO_MIN_HEIGHT", default=400)
+LISTING_VIDEO_MAX_DURATION = env.int("LISTING_VIDEO_MAX_DURATION", default=180)
+
+# Максимальная сторона каждого варианта изображения, пиксели.
+LISTING_IMAGE_VARIANTS = {
+    "thumb": env.int("LISTING_THUMB_SIZE", default=400),
+    "medium": env.int("LISTING_MEDIUM_SIZE", default=1080),
+    "original": env.int("LISTING_ORIGINAL_SIZE", default=2560),
+}
+LISTING_WEBP_QUALITY = env.int("LISTING_WEBP_QUALITY", default=82)
+LISTING_JPEG_QUALITY = env.int("LISTING_JPEG_QUALITY", default=85)
+
+# Внешние утилиты для видео. Само видео не перекодируется — только читается.
+FFPROBE_BIN = env.str("FFPROBE_BIN", default="ffprobe")
+FFMPEG_BIN = env.str("FFMPEG_BIN", default="ffmpeg")
+FFPROBE_TIMEOUT = env.int("FFPROBE_TIMEOUT", default=30)
+FFMPEG_TIMEOUT = env.int("FFMPEG_TIMEOUT", default=60)
 
 # ----------------------------------------------------------------------------
 # Верификация личности (KYC)
@@ -323,6 +447,11 @@ SPECTACULAR_SETTINGS = {
         "ListingStatusEnum": "apps.catalog.enums.ListingStatus.choices",
         "SellerKindEnum": "apps.catalog.enums.SellerKind.choices",
         "WalletEntryKindEnum": "apps.common.enums.WalletEntryKind.choices",
+        "ModerationStatusEnum": "apps.catalog.enums.ModerationStatus.choices",
+        "PromotionStatusEnum": "apps.billing.models.PromotionStatus.choices",
+        "SubscriptionStatusEnum": "apps.billing.models.SubscriptionStatus.choices",
+        "ReviewStatusEnum": "apps.users.models.ReviewStatus.choices",
+        "VerificationStatusEnum": "apps.users.models.VerificationStatus.choices",
     },
 }
 
@@ -362,6 +491,16 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour="3", minute="15"),
         "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
     },
+    "expire-listings": {
+        "task": "catalog.expire_listings",
+        "schedule": crontab(hour="5", minute="0"),
+        "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
+    },
+    "expire-payments": {
+        "task": "billing.expire_payments",
+        "schedule": crontab(minute="*/5"),
+        "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
+    },
     "notify-price-drop": {
         "task": "notifications.notify_price_drop",
         # 10:00 по Asia/Bishkek — CELERY_TIMEZONE совпадает с TIME_ZONE проекта.
@@ -384,6 +523,32 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour="9", minute="0"),
         "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
     },
+    "expire-promotions": {
+        "task": "billing.expire_promotions",
+        "schedule": crontab(minute="5"),  # каждый час в :05
+        "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
+    },
+    "flush-impressions": {
+        "task": "catalog.flush_impressions",
+        "schedule": crontab(minute="*/5"),
+        "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
+    },
+    "process-subscriptions": {
+        "task": "billing.process_subscriptions",
+        "schedule": crontab(hour="6", minute="0"),
+        "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
+    },
+    "auto-bump-listings": {
+        "task": "billing.auto_bump_listings",
+        # После обработки подписок: у истёкших фича уже не действует.
+        "schedule": crontab(hour="6", minute="30"),
+        "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
+    },
+    "refresh-metrics": {
+        "task": "common.refresh_metrics",
+        "schedule": crontab(minute="*/2"),
+        "options": {"queue": CELERY_TASK_DEFAULT_QUEUE},
+    },
     "purge-identity-files": {
         "task": "users.purge_identity_files",
         "schedule": crontab(hour="3", minute="45"),
@@ -392,25 +557,90 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # ----------------------------------------------------------------------------
+# Админка, служебные пути и внутренняя сеть
+# ----------------------------------------------------------------------------
+# Путь админки берётся из окружения: /admin/ сканируют боты по умолчанию.
+ADMIN_URL_PATH = env.str("ADMIN_URL_PATH", default="admin/").strip("/") + "/"
+# Список адресов, с которых пускают в админку. Пусто — без ограничения
+# (так работает разработка); на проде обязателен, см. production.py.
+ALLOWED_ADMIN_IPS = env.list("ALLOWED_ADMIN_IPS", default=[])
+# Требовать ли подтверждение второго фактора при входе в админку.
+# Локально удобно выключить, на проде — включено (см. production.py).
+ADMIN_REQUIRE_OTP = env.bool("ADMIN_REQUIRE_OTP", default=False)
+
+# Пути, доступные только из внутренней сети.
+INTERNAL_ONLY_PATHS = ("/metrics",)
+INTERNAL_NETWORKS = env.list(
+    "INTERNAL_NETWORKS",
+    default=["127.0.0.1/32", "::1/128", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+)
+
+# ----------------------------------------------------------------------------
+# Персональные данные
+# ----------------------------------------------------------------------------
+# Ключ шифрования ИИН (Fernet, base64). Пустой — поле хранится как есть:
+# так работают тесты и локальная разработка, на проде ключ обязателен.
+FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", default="")
+
+# Актуальная версия документа о согласии на обработку ПДн.
+CONSENT_DOCUMENT_VERSION = env.str("CONSENT_DOCUMENT_VERSION", default="1")
+# Не чаще одного экспорта данных в сутки и ссылка живёт 24 часа.
+DATA_EXPORT_COOLDOWN_HOURS = env.int("DATA_EXPORT_COOLDOWN_HOURS", default=24)
+DATA_EXPORT_URL_TTL = env.int("DATA_EXPORT_URL_TTL", default=24 * 3600)
+
+# ----------------------------------------------------------------------------
+# Наблюдаемость
+# ----------------------------------------------------------------------------
+SENTRY_DSN = env.str("SENTRY_DSN", default="")
+SENTRY_ENVIRONMENT = env.str("SENTRY_ENVIRONMENT", default="local")
+SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0)
+SENTRY_PROFILES_SAMPLE_RATE = env.float("SENTRY_PROFILES_SAMPLE_RATE", default=0.0)
+
+# ----------------------------------------------------------------------------
 # Логирование
 # ----------------------------------------------------------------------------
+# Импорт модуля логирования здесь безопасен: он не тянет ни моделей,
+# ни настроек — только structlog и стандартную библиотеку.
+from apps.common.logging import foreign_pre_chain, stdlib_renderer  # noqa: E402
+
+# JSON-логи по умолчанию везде, кроме локальной разработки: их читает
+# агрегатор, а не человек.
+LOG_JSON = env.bool("LOG_JSON", default=True)
+LOG_LEVEL = env.str("DJANGO_LOG_LEVEL", default="INFO")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    # Фильтр висит на обработчике, а не на отдельных логгерах: через него
+    # обязаны пройти и Django, и requests, и любая сторонняя библиотека.
+    # Маскирование ПДн не может зависеть от того, вспомнил ли о нём автор кода.
+    "filters": {
+        "mask_pii": {"()": "apps.common.logging.PiiMaskingFilter"},
+    },
     "formatters": {
         "verbose": {
             "format": "[{asctime}] {levelname} {name}: {message}",
             "style": "{",
         },
+        "structured": {
+            # Процессоры передаются объектами, а не путями: dictConfig не
+            # резолвит строки внутри чужих формтеров.
+            "()": "structlog.stdlib.ProcessorFormatter",
+            "processor": stdlib_renderer,
+            "foreign_pre_chain": foreign_pre_chain(),
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "structured" if LOG_JSON else "verbose",
+            "filters": ["mask_pii"],
         },
     },
-    "root": {"handlers": ["console"], "level": env.str("DJANGO_LOG_LEVEL", default="INFO")},
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
         "django.db.backends": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        # Тело запроса к платёжному шлюзу логируем сами, с маскированием.
+        "urllib3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }

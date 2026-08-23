@@ -13,8 +13,10 @@ from django.db import transaction
 from django.db.models import Model
 
 from apps.billing.models import Wallet, WalletTransaction
+from apps.common.audit import audit
 from apps.common.enums import WalletEntryKind
 from apps.common.exceptions import InsufficientFundsError
+from apps.common.models import AuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +66,7 @@ def apply_transaction(
         label=label,
         balance_after=locked.balance,
         related_content_type=related_type,
-        related_object_id=getattr(related, "pk", None),
+        related_object_id=str(related.pk) if related is not None else None,
         idempotency_key=idempotency_key or None,
     )
 
@@ -77,5 +79,20 @@ def apply_transaction(
         amount,
         kind,
         locked.balance,
+    )
+
+    # Каждое движение денег — в журнал аудита. Леджер отвечает на вопрос
+    # «сколько», журнал — на вопрос «кто и откуда».
+    audit(
+        actor=locked.user,
+        action=AuditLog.Action.WALLET_TRANSACTION,
+        target=operation,
+        changes={"balance": {"before": locked.balance - amount, "after": locked.balance}},
+        target_user=locked.user,
+        extra={
+            "amount": amount,
+            "kind": kind,
+            "related": operation.related_content_type.model if related is not None else "",
+        },
     )
     return operation

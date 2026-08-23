@@ -14,6 +14,9 @@ from tests.factories import UserFactory
 
 REQUEST_URL = "/api/v1/auth/otp/request/"
 VERIFY_URL = "/api/v1/auth/otp/verify/"
+
+# Согласие на обработку ПДн обязательно при регистрации.
+CONSENT = {"accepted_terms_version": "1"}
 REFRESH_URL = "/api/v1/auth/refresh/"
 LOGOUT_URL = "/api/v1/auth/logout/"
 ME_URL = "/api/v1/users/me/"
@@ -95,7 +98,7 @@ def test_plain_code_is_not_logged(api_client: APIClient, caplog) -> None:
 def test_debug_code_works_for_test_phone(api_client: APIClient) -> None:
     api_client.post(REQUEST_URL, {"phone": TEST_PHONE})
 
-    response = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE})
+    response = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, **CONSENT})
 
     assert response.status_code == 200
     assert response.json()["user"]["phone"] == TEST_PHONE
@@ -106,7 +109,8 @@ def test_debug_code_works_for_test_phone(api_client: APIClient) -> None:
 def test_debug_mode_uses_static_code(api_client: APIClient) -> None:
     api_client.post(REQUEST_URL, {"phone": TEST_PHONE})
 
-    assert api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE}).status_code == 200
+    response = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, **CONSENT})
+    assert response.status_code == 200
 
 
 @pytest.mark.django_db
@@ -115,7 +119,7 @@ def test_verify_creates_new_user(api_client: APIClient) -> None:
     issue_otp(TEST_PHONE)
 
     response = api_client.post(
-        VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "name": "Азамат"}
+        VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "name": "Азамат", **CONSENT}
     )
 
     assert response.status_code == 200
@@ -136,7 +140,7 @@ def test_verify_existing_user_keeps_name(api_client: APIClient) -> None:
     issue_otp(TEST_PHONE)
 
     body = api_client.post(
-        VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "name": "Подменённое имя"}
+        VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "name": "Подменённое имя", **CONSENT}
     ).json()
 
     assert body["is_new_user"] is False
@@ -169,7 +173,7 @@ def test_wrong_code_increments_attempts_and_burns_code(api_client: APIClient) ->
     assert otp.is_used is True
 
     # Правильный код после блокировки уже не поможет.
-    late = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE})
+    late = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, **CONSENT})
     assert late.status_code == 400
     assert late.json()["error"]["message"] == "Код не найден, запросите новый."
     assert User.objects.filter(phone=TEST_PHONE).count() == 0
@@ -181,7 +185,7 @@ def test_expired_code_is_rejected(api_client: APIClient) -> None:
     otp, _ = issue_otp(TEST_PHONE)
     OtpCode.objects.filter(pk=otp.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
 
-    response = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE})
+    response = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, **CONSENT})
 
     assert response.status_code == 400
     assert response.json()["error"]["message"] == "Код истёк, запросите новый."
@@ -190,7 +194,7 @@ def test_expired_code_is_rejected(api_client: APIClient) -> None:
 
 @pytest.mark.django_db
 def test_verify_without_requested_code(api_client: APIClient) -> None:
-    response = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE})
+    response = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, **CONSENT})
 
     assert response.status_code == 400
     assert response.json()["error"]["message"] == "Код не найден, запросите новый."
@@ -203,7 +207,9 @@ def test_verify_without_requested_code(api_client: APIClient) -> None:
 def tokens(api_client: APIClient) -> dict[str, str]:
     with override_settings(OTP_TEST_PHONES=[TEST_PHONE]):
         issue_otp(TEST_PHONE)
-        body = api_client.post(VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE}).json()
+        body = api_client.post(
+            VERIFY_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, **CONSENT}
+        ).json()
     return {"access": body["access"], "refresh": body["refresh"]}
 
 

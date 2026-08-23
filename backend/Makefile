@@ -6,6 +6,18 @@
 
 COMPOSE ?= docker compose
 SERVICE ?= web
+
+# Пороги покрытия. Для биллинга он выше: непокрытая ветка в леджере стоит
+# дороже любой другой.
+COV_MIN         ?= 80
+COV_MIN_BILLING ?= 95
+
+# Параметры нагрузочного прогона.
+HOST       ?= http://localhost:8000
+USERS      ?= 100
+RATE       ?= 10
+TIME       ?= 3m
+LOAD_COUNT ?= 50000
 VENV    ?= .venv
 PY      ?= $(VENV)/bin/python
 PIP     ?= $(VENV)/bin/pip
@@ -14,7 +26,9 @@ PYTEST  ?= $(VENV)/bin/pytest
 MYPY    ?= $(VENV)/bin/mypy
 
 .DEFAULT_GOAL := help
-.PHONY: help venv install up down logs migrate makemigrations shell test lint format \
+.PHONY: help venv install up down logs migrate makemigrations shell test test-cov \
+        test-billing test-concurrency schema-update loadtest loaddata lint format \
+        audit security \
         typecheck superuser seed build ps restart clean
 
 help: ## Показать список команд
@@ -83,8 +97,40 @@ seed: ## Наполнить БД демо-данными (make seed ARGS=--flush
 # ---------------------------------------------------------------------------
 # Качество кода
 # ---------------------------------------------------------------------------
-test: ## Прогнать тесты с покрытием
-	$(PYTEST)
+test: ## Прогнать тесты (быстро, без порога покрытия)
+	$(PYTEST) --no-cov
+
+test-cov: ## Тесты с покрытием и порогом 80 % по проекту
+	$(PYTEST) --cov-fail-under=$(COV_MIN)
+
+test-billing: ## Покрытие apps/billing с порогом 95 % — там движутся деньги
+	# addopts обнуляется: иначе --cov=apps из pyproject подмешался бы к --cov=apps/billing
+	# и порог считался бы по всему проекту.
+	$(PYTEST) tests -o addopts="" --reuse-db --strict-markers \
+		--cov=apps/billing --cov-report=term-missing \
+		--cov-fail-under=$(COV_MIN_BILLING)
+
+test-concurrency: ## Тесты гонок (нужен PostgreSQL, иначе пропускаются)
+	$(PYTEST) tests/test_concurrency.py --no-cov -rs
+
+audit: ## Аудит зависимостей на известные уязвимости
+	# --skip-editable пропускает сам проект (его нет на PyPI). Найденная
+	# уязвимость всё равно завершает команду ненулевым кодом.
+	$(VENV)/bin/pip-audit --desc --skip-editable
+
+security: lint audit ## Полная проверка безопасности: ruff (S/bandit) + pip-audit
+
+schema-update: ## Пересобрать снапшот OpenAPI (осознанное действие!)
+	$(PY) scripts/update_schema_snapshot.py
+
+loadtest: ## Нагрузочный прогон locust (HOST/USERS/RATE/TIME переопределяются)
+	$(VENV)/bin/locust -f loadtest/locustfile.py \
+		--host $(HOST) --users $(USERS) --spawn-rate $(RATE) \
+		--run-time $(TIME) --headless \
+		--html loadtest/report.html
+
+loaddata: ## Наполнить БД объявлениями для нагрузочного теста
+	$(PY) manage.py generate_load_data --count=$(LOAD_COUNT)
 
 lint: ## Проверить код (ruff check + ruff format --check)
 	$(RUFF) check .

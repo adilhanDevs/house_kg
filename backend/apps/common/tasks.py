@@ -18,3 +18,17 @@ def notify_support_ticket(ticket_id: int) -> None:
         logger.warning("Обращение %s не найдено — письмо не отправлено", ticket_id)
         return
     notify_staff_about_ticket(ticket)
+
+
+@shared_task(name="common.refresh_metrics", ignore_result=True)
+def refresh_metrics() -> dict[str, int]:
+    """Обновляет метрики-состояния (длину очереди модерации).
+
+    Gauge нельзя посчитать в момент скрейпа: /metrics/ обслуживает любой
+    воркер, и запрос к БД оттуда сделал бы скрейп источником нагрузки.
+    """
+    from apps.common.metrics import refresh_moderation_queue_size
+
+    sizes = refresh_moderation_queue_size()
+    logger.info("Очередь модерации: %s", sizes)
+    return sizes

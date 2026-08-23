@@ -60,10 +60,17 @@ def test_http_provider_requires_url() -> None:
 
 @override_settings(DEBUG=True)
 def test_console_provider_prints_code_in_debug(caplog) -> None:
+    """Код виден (это и есть смысл консольного провайдера), номер — нет.
+
+    Маскирование ПДн работает на уровне обработчика логов, поэтому телефон
+    не появится в выводе даже здесь.
+    """
     with caplog.at_level(logging.INFO):
         ConsoleSmsProvider().send(PHONE, TEXT)
 
-    assert f"SMS to {PHONE}: {TEXT}" in caplog.text
+    assert TEXT in caplog.text
+    assert PHONE not in caplog.text
+    assert "+996 7XX XXX XX" in caplog.text
 
 
 @override_settings(DEBUG=False)

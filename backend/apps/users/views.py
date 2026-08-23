@@ -4,13 +4,15 @@ from typing import Any
 
 from django.conf import settings
 from django.core import signing
+from django.db.models import QuerySet
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.generics import GenericAPIView, ListAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,15 +21,52 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.common.audit import record_audit
+from apps.catalog.enums import ListingStatus
+from apps.catalog.filters import ListingFilterSet
+from apps.catalog.models import Listing
+from apps.catalog.serializers import ListingListSerializer
+from apps.catalog.views import (
+    ALLOWED_LISTING_ORDERINGS,
+    DEFAULT_LISTING_ORDERING,
+    ListingCursorPagination,
+)
+from apps.common.audit import client_ip, record_audit
 from apps.common.exceptions import ApiValidationError
 from apps.common.models import AuditLog
+from apps.common.pagination import DefaultCursorPagination
 from apps.common.serializers import ErrorSerializer
 from apps.users.kyc import read_file_token
-from apps.users.models import IdentityVerification, User, VerificationStatus
+from apps.users.models import (
+    DataExport,
+    IdentityVerification,
+    Review,
+    SellerVerification,
+    User,
+    VerificationStatus,
+)
 from apps.users.permissions import CanReviewIdentity, IsProUser
+from apps.users.privacy import (
+    read_export_token,
+    record_consent,
+    request_data_export,
+)
+from apps.users.sellers import (
+    create_review,
+    delete_review,
+    get_seller_profile,
+    public_sellers,
+    published_reviews,
+    reveal_contact,
+    seller_card,
+    seller_listings,
+    submit_seller_verification,
+    update_review,
+)
 from apps.users.serializers import (
     AuthTokensSerializer,
+    ConsentRequestSerializer,
+    ContactRevealSerializer,
+    DataExportSerializer,
     IdentityQueueItemSerializer,
     IdentityReviewSerializer,
     IdentityStatusSerializer,
@@ -40,6 +79,14 @@ from apps.users.serializers import (
     PasswordLoginSerializer,
     ProRegisterResponseSerializer,
     ProRegisterSerializer,
+    ReviewCreateSerializer,
+    ReviewSerializer,
+    ReviewUpdateSerializer,
+    SellerCardSerializer,
+    SellerProfileSerializer,
+    SellerVerificationRequestSerializer,
+    SellerVerificationSerializer,
+    UserConsentSerializer,
     UserMeSerializer,
     UserUpdateSerializer,
 )
@@ -55,12 +102,14 @@ from apps.users.services import (
     verify_otp,
 )
 from apps.users.throttling import (
+    ContactRevealThrottle,
     KycSubmitThrottle,
     OtpIpThrottle,
     OtpPhoneHourlyThrottle,
     OtpPhoneResendThrottle,
     PasswordLoginIpThrottle,
     PasswordLoginPhoneThrottle,
+    ReviewCreateThrottle,
 )
 
 
@@ -120,7 +169,10 @@ class OtpVerifyView(GenericAPIView):
             "Проверяет последний неиспользованный код номера. Новый пользователь "
             "создаётся автоматически — имя берётся из поля `name`.\n\n"
             "Неверный код: 400 «Неверный код» и `details.attempts_left`. "
-            "После пяти неудачных попыток код сжигается."
+            "После пяти неудачных попыток код сжигается.\n\n"
+            "Для нового пользователя обязателен `accepted_terms_version` — "
+            "версия принятого соглашения об обработке персональных данных. "
+            "Без него регистрация отклоняется с 400."
         ),
         responses={
             status.HTTP_200_OK: AuthTokensSerializer,
@@ -138,6 +190,8 @@ class OtpVerifyView(GenericAPIView):
             code=data["code"],
             name=data.get("name", ""),
             purpose=data["purpose"],
+            accepted_terms_version=data.get("accepted_terms_version", ""),
+            request=request,
         )
 
         return Response(
@@ -542,3 +596,402 @@ class IdentityFileView(APIView):
         )
 
         return FileResponse(file_field.open("rb"), content_type="application/octet-stream")
+
+
+class SellerDetailView(APIView):
+    """GET /api/v1/sellers/{user_id}/ — публичная карточка продавца."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        operation_id="sellers_detail",
+        summary="Профиль продавца",
+        description=(
+            "Контакты отдаются полностью только авторизованному пользователю; "
+            "анониму телефон приходит замаскированным, как в карточке "
+            "объявления."
+        ),
+        responses={
+            status.HTTP_200_OK: SellerCardSerializer,
+            status.HTTP_404_NOT_FOUND: ErrorSerializer,
+        },
+    )
+    def get(self, request: Request, user_id: int) -> Response:
+        seller = get_object_or_404(public_sellers(), pk=user_id)
+        card = seller_card(seller, request.user)
+        return Response(SellerCardSerializer(card, context={"request": request}).data)
+
+
+class SellerListingsView(ListAPIView):
+    """GET /api/v1/sellers/{user_id}/listings/ — активные объявления продавца."""
+
+    permission_classes = [AllowAny]
+    serializer_class = ListingListSerializer
+    pagination_class = ListingCursorPagination
+    filterset_class = ListingFilterSet
+    queryset = Listing.objects.none()  # для генератора схемы
+
+    def get_ordering(self, request: Request) -> str:
+        """Тот же набор сортировок, что и в каталоге."""
+        requested = request.query_params.get("ordering")
+        return requested if requested in ALLOWED_LISTING_ORDERINGS else DEFAULT_LISTING_ORDERING
+
+    def get_queryset(self) -> QuerySet[Listing]:
+        seller = get_object_or_404(public_sellers(), pk=self.kwargs["user_id"])
+        return seller_listings(seller, self.request.user)
+
+    @extend_schema(
+        operation_id="sellers_listings",
+        summary="Объявления продавца",
+        description="Фильтры и пагинация — те же, что в каталоге.",
+        responses={status.HTTP_200_OK: ListingListSerializer(many=True)},
+    )
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        return super().get(request, *args, **kwargs)
+
+
+class SellerMeView(APIView):
+    """GET/PATCH /api/v1/sellers/me/ — свой профиль продавца."""
+
+    permission_classes = [IsAuthenticated, IsProUser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    @extend_schema(
+        operation_id="sellers_me",
+        summary="Мой профиль продавца",
+        responses={
+            status.HTTP_200_OK: SellerProfileSerializer,
+            status.HTTP_403_FORBIDDEN: ErrorSerializer,
+        },
+    )
+    def get(self, request: Request) -> Response:
+        profile = get_seller_profile(request.user)
+        return Response(SellerProfileSerializer(profile, context={"request": request}).data)
+
+    @extend_schema(
+        operation_id="sellers_me_update",
+        summary="Изменить профиль продавца",
+        description=(
+            "Редактируются все поля, кроме `rating`, `reviews_count` и "
+            "`is_verified`: рейтинг — агрегат отзывов, а значок проверенного "
+            "ставит модератор."
+        ),
+        request=SellerProfileSerializer,
+        responses={
+            status.HTTP_200_OK: SellerProfileSerializer,
+            status.HTTP_400_BAD_REQUEST: ErrorSerializer,
+            status.HTTP_403_FORBIDDEN: ErrorSerializer,
+        },
+    )
+    def patch(self, request: Request) -> Response:
+        profile = get_seller_profile(request.user)
+        serializer = SellerProfileSerializer(
+            profile, data=request.data, partial=True, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class SellerReviewsView(ListAPIView):
+    """GET/POST /api/v1/sellers/{user_id}/reviews/"""
+
+    serializer_class = ReviewSerializer
+    pagination_class = DefaultCursorPagination
+    queryset = Review.objects.none()  # для генератора схемы
+
+    def get_permissions(self) -> list[Any]:
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def get_throttles(self) -> list[Any]:
+        return [ReviewCreateThrottle()] if self.request.method == "POST" else []
+
+    def get_seller(self) -> User:
+        return get_object_or_404(public_sellers(), pk=self.kwargs["user_id"])
+
+    def get_queryset(self) -> QuerySet[Review]:
+        return published_reviews(self.get_seller())
+
+    @extend_schema(
+        operation_id="sellers_reviews",
+        summary="Отзывы о продавце",
+        description="Только опубликованные: отзывы на модерации публика не видит.",
+        responses={status.HTTP_200_OK: ReviewSerializer(many=True)},
+    )
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        operation_id="sellers_reviews_create",
+        summary="Оставить отзыв",
+        description=(
+            "Отзыв создаётся со статусом `pending` и уходит в очередь "
+            "модерации. Один отзыв на продавца от пользователя; чтобы "
+            "изменить — PATCH своего отзыва."
+        ),
+        request=ReviewCreateSerializer,
+        responses={
+            status.HTTP_201_CREATED: ReviewSerializer,
+            status.HTTP_400_BAD_REQUEST: ErrorSerializer,
+            status.HTTP_409_CONFLICT: ErrorSerializer,
+        },
+    )
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        seller = self.get_seller()
+
+        form = ReviewCreateSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+
+        listing = None
+        slug = form.validated_data.get("listing")
+        if slug:
+            listing = Listing.objects.filter(slug=slug, owner=seller).first()
+
+        review = create_review(
+            seller=seller,
+            author=request.user,
+            rating=form.validated_data["rating"],
+            text=form.validated_data.get("text", ""),
+            listing=listing,
+        )
+        return Response(ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
+
+
+class MyReviewView(APIView):
+    """PATCH/DELETE /api/v1/reviews/{review_id}/ — свой отзыв."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_review(self, review_id: int, user: User) -> Review:
+        review = get_object_or_404(Review.objects.select_related("seller"), pk=review_id)
+        if review.author_id != user.pk:
+            raise PermissionDenied("Изменять отзыв может только его автор.")
+        return review
+
+    @extend_schema(
+        operation_id="reviews_update",
+        summary="Изменить свой отзыв",
+        description="Изменённый отзыв возвращается на модерацию.",
+        request=ReviewUpdateSerializer,
+        responses={
+            status.HTTP_200_OK: ReviewSerializer,
+            status.HTTP_403_FORBIDDEN: ErrorSerializer,
+        },
+    )
+    def patch(self, request: Request, review_id: int) -> Response:
+        review = self.get_review(review_id, request.user)
+
+        form = ReviewUpdateSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+
+        updated = update_review(
+            review,
+            rating=form.validated_data.get("rating"),
+            text=form.validated_data.get("text"),
+        )
+        return Response(ReviewSerializer(updated).data)
+
+    @extend_schema(
+        operation_id="reviews_delete",
+        summary="Удалить свой отзыв",
+        responses={status.HTTP_204_NO_CONTENT: None},
+    )
+    def delete(self, request: Request, review_id: int) -> Response:
+        delete_review(self.get_review(review_id, request.user))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SellerVerificationView(APIView):
+    """GET/POST /api/v1/sellers/me/verification/ — документы агентства."""
+
+    permission_classes = [IsAuthenticated, IsProUser]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(
+        operation_id="sellers_verification_status",
+        summary="Статус проверки продавца",
+        responses={status.HTTP_200_OK: SellerVerificationSerializer(many=True)},
+    )
+    def get(self, request: Request) -> Response:
+        applications = SellerVerification.objects.filter(seller=request.user)
+        return Response(SellerVerificationSerializer(applications, many=True).data)
+
+    @extend_schema(
+        operation_id="sellers_verification_submit",
+        summary="Подать документы агентства",
+        description=(
+            "Загружает документы юрлица и заводит заявку модератору. "
+            "Имена файлов в хранилище не сохраняются."
+        ),
+        request=SellerVerificationRequestSerializer,
+        responses={
+            status.HTTP_201_CREATED: SellerVerificationSerializer,
+            status.HTTP_400_BAD_REQUEST: ErrorSerializer,
+            status.HTTP_409_CONFLICT: ErrorSerializer,
+        },
+    )
+    def post(self, request: Request) -> Response:
+        form = SellerVerificationRequestSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+
+        verification = submit_seller_verification(request.user, form.validated_data["documents"])
+        return Response(
+            SellerVerificationSerializer(verification).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ListingContactView(APIView):
+    """POST /api/v1/listings/{slug}/contact/ — раскрытие телефона продавца."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ContactRevealThrottle]
+
+    @extend_schema(
+        operation_id="listings_contact",
+        summary="Показать контакты продавца",
+        description=(
+            "Отдаёт телефон целиком, засчитывает показ в статистику объявления "
+            "и пишет событие для антифрода. Ограничение — 30 раскрытий в час "
+            "на пользователя."
+        ),
+        request=None,
+        responses={
+            status.HTTP_200_OK: ContactRevealSerializer,
+            status.HTTP_401_UNAUTHORIZED: ErrorSerializer,
+            status.HTTP_404_NOT_FOUND: ErrorSerializer,
+            status.HTTP_429_TOO_MANY_REQUESTS: ErrorSerializer,
+        },
+    )
+    def post(self, request: Request, slug: str) -> Response:
+        listing = get_object_or_404(
+            Listing.objects.select_related("owner", "owner__seller_profile").filter(
+                status=ListingStatus.ACTIVE
+            ),
+            slug=slug,
+        )
+        contacts = reveal_contact(listing, request.user, client_ip(request))
+        return Response(ContactRevealSerializer(contacts).data)
+
+
+class DataExportView(APIView):
+    """POST/GET /api/v1/users/me/export/ — выгрузка персональных данных."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="users_me_export_status",
+        summary="Статус выгрузки данных",
+        responses={status.HTTP_200_OK: DataExportSerializer(many=True)},
+    )
+    def get(self, request: Request) -> Response:
+        exports = DataExport.objects.filter(user=request.user)[:10]
+        return Response(DataExportSerializer(exports, many=True, context={"request": request}).data)
+
+    @extend_schema(
+        operation_id="users_me_export",
+        summary="Запросить выгрузку своих данных",
+        description=(
+            "Собирает профиль, объявления, избранное, историю просмотров и "
+            "операции по кошельку в один JSON. Файл лежит в приватном "
+            "хранилище и доступен по подписанной ссылке 24 часа. "
+            "Не чаще одной выгрузки в сутки."
+        ),
+        request=None,
+        responses={
+            status.HTTP_202_ACCEPTED: DataExportSerializer,
+            status.HTTP_409_CONFLICT: ErrorSerializer,
+        },
+    )
+    def post(self, request: Request) -> Response:
+        export = request_data_export(request.user, request)
+        return Response(
+            DataExportSerializer(export, context={"request": request}).data,
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class DataExportFileView(APIView):
+    """GET /api/v1/users/me/export/{token}/ — скачивание выгрузки."""
+
+    permission_classes = [AllowAny]
+    authentication_classes: list = []
+
+    @extend_schema(
+        operation_id="users_me_export_file",
+        summary="Скачать выгрузку по подписанной ссылке",
+        description="Ссылка живёт 24 часа и привязана к пользователю, который её запросил.",
+        responses={
+            (status.HTTP_200_OK, "application/json"): OpenApiTypes.BINARY,
+            status.HTTP_404_NOT_FOUND: ErrorSerializer,
+        },
+        auth=[],
+    )
+    def get(self, request: Request, token: str) -> FileResponse:
+        try:
+            payload = read_export_token(token)
+        except signing.BadSignature as exc:
+            raise NotFound("Ссылка недействительна или истекла.") from exc
+
+        export = get_object_or_404(
+            DataExport.objects.select_related("user"),
+            pk=payload["export"],
+            user_id=payload["user"],
+        )
+        if not export.is_ready:
+            raise NotFound("Выгрузка ещё не готова.")
+
+        record_audit(
+            action=AuditLog.Action.DATA_EXPORTED,
+            request=request,
+            actor=export.user,
+            target_user=export.user,
+            obj=export,
+            extra={"downloaded": True},
+        )
+        return FileResponse(
+            export.file.open("rb"),
+            as_attachment=True,
+            filename=f"house-kgz-export-{export.pk}.json",
+            content_type="application/json",
+        )
+
+
+class ConsentView(APIView):
+    """GET/POST /api/v1/users/me/consents/ — согласия пользователя."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="users_me_consents",
+        summary="Мои согласия",
+        responses={status.HTTP_200_OK: UserConsentSerializer(many=True)},
+    )
+    def get(self, request: Request) -> Response:
+        return Response(UserConsentSerializer(request.user.consents.all(), many=True).data)
+
+    @extend_schema(
+        operation_id="users_me_consent_grant",
+        summary="Дать или отозвать согласие",
+        description=(
+            "Каждое решение — новая запись с версией документа, временем и "
+            "адресом: закон требует уметь показать, какую именно редакцию "
+            "человек принял."
+        ),
+        request=ConsentRequestSerializer,
+        responses={status.HTTP_201_CREATED: UserConsentSerializer},
+    )
+    def post(self, request: Request) -> Response:
+        form = ConsentRequestSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+
+        consent = record_consent(
+            request.user,
+            document_version=form.validated_data["document_version"],
+            consent_type=form.validated_data["consent_type"],
+            granted=form.validated_data["granted"],
+            request=request,
+        )
+        return Response(UserConsentSerializer(consent).data, status=status.HTTP_201_CREATED)

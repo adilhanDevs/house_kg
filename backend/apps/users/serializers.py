@@ -1,5 +1,6 @@
-"""Сериализаторы профиля пользователя."""
+"""Сериализаторы профиля пользователя и публичного профиля продавца."""
 
+import re
 from typing import Any
 
 from django.contrib.auth.password_validation import validate_password
@@ -7,13 +8,29 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from apps.catalog.models import District
+from apps.catalog.serializers import DistrictBriefSerializer
 from apps.users.kyc import validate_document
-from apps.users.models import IdentityVerification, OtpPurpose, User, mask_iin
+from apps.users.models import (
+    ConsentType,
+    DataExport,
+    IdentityVerification,
+    OtpPurpose,
+    Review,
+    SellerProfile,
+    SellerVerification,
+    User,
+    UserConsent,
+    mask_iin,
+)
 from apps.users.phone import normalize_phone
 from apps.users.services import REVIEW_APPROVE, REVIEW_REJECT, build_signed_files
 from apps.users.validators import validate_iin
 
 BRICK_CURRENCY = "brick"
+
+# Время в часах работы: «09:00», «18:30».
+TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 class WalletBalanceSerializer(serializers.Serializer):
@@ -114,6 +131,15 @@ class OtpVerifySerializer(serializers.Serializer):
     purpose = serializers.ChoiceField(
         choices=OtpPurpose.choices,
         default=OtpPurpose.LOGIN,
+    )
+    # Согласие на обработку ПДн обязательно: без него аккаунт не заводится.
+    # Проверку версии делает сервис, здесь поле просто принимается.
+    accepted_terms_version = serializers.CharField(
+        max_length=32,
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text="Версия принятого соглашения (см. GET /app/pages/terms/).",
     )
 
     def validate_phone(self, value: str) -> str:
@@ -283,3 +309,228 @@ class IdentityReviewSerializer(serializers.Serializer):
         if attrs["action"] == REVIEW_REJECT and not attrs.get("reason"):
             raise serializers.ValidationError({"reason": "Укажите причину отказа."})
         return attrs
+
+
+class SellerContactsSerializer(serializers.Serializer):
+    """Контакты продавца. Анониму телефон приходит замаскированным."""
+
+    phone = serializers.CharField()
+    whatsapp = serializers.CharField(allow_blank=True)
+    telegram = serializers.CharField(allow_blank=True)
+    instagram = serializers.CharField(allow_blank=True)
+
+
+class SellerCardSerializer(serializers.Serializer):
+    """Публичная карточка продавца — экран «Агент»."""
+
+    id = serializers.IntegerField()
+    name = serializers.CharField(allow_blank=True)
+    company_name = serializers.CharField(allow_blank=True)
+    seller_kind = serializers.CharField()
+    logo_url = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
+    about = serializers.CharField(allow_blank=True)
+    experience_years = serializers.IntegerField()
+    is_verified = serializers.BooleanField()
+    rating = serializers.DecimalField(max_digits=3, decimal_places=2)
+    reviews_count = serializers.IntegerField()
+    active_listings_count = serializers.IntegerField()
+    member_since = serializers.DateTimeField()
+    work_districts = DistrictBriefSerializer(many=True)
+    working_hours = serializers.JSONField()
+    contacts = SellerContactsSerializer()
+
+    def _url(self, file_field: Any) -> str | None:
+        if not file_field:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(file_field.url) if request else file_field.url
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_logo_url(self, obj: dict[str, Any]) -> str | None:
+        return self._url(obj.get("logo"))
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_avatar_url(self, obj: dict[str, Any]) -> str | None:
+        return self._url(obj.get("avatar"))
+
+
+class SellerProfileSerializer(serializers.ModelSerializer):
+    """Свой профиль продавца: всё, что можно редактировать.
+
+    `rating`, `reviews_count` и `is_verified` только на чтение: рейтинг —
+    агрегат отзывов, а значок проверенного ставит модератор.
+    """
+
+    work_districts = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=District.objects.filter(is_active=True),
+        required=False,
+    )
+    logo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SellerProfile
+        fields = [
+            "company_name",
+            "logo",
+            "logo_url",
+            "about",
+            "experience_years",
+            "work_districts",
+            "whatsapp",
+            "telegram",
+            "instagram",
+            "working_hours",
+            "rating",
+            "reviews_count",
+            "is_verified",
+            "verified_at",
+        ]
+        read_only_fields = ["rating", "reviews_count", "is_verified", "verified_at"]
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_logo_url(self, obj: SellerProfile) -> str | None:
+        if not obj.logo:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.logo.url) if request else obj.logo.url
+
+    def validate_working_hours(self, value: Any) -> dict[str, Any]:
+        """`{"mon": ["09:00", "18:00"]}`; пустой список — выходной."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError('Ожидается объект вида {"mon": ["09:00", "18:00"]}.')
+
+        allowed = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+        unknown = sorted(set(value) - allowed)
+        if unknown:
+            raise serializers.ValidationError(f"Неизвестные дни недели: {', '.join(unknown)}.")
+
+        for day, hours in value.items():
+            if hours in ([], None):
+                continue
+            if not isinstance(hours, list | tuple) or len(hours) != 2:
+                raise serializers.ValidationError(
+                    f"{day}: ожидается пара «начало, конец» или пустой список."
+                )
+            for moment in hours:
+                if not isinstance(moment, str) or not TIME_RE.match(moment):
+                    raise serializers.ValidationError(f"{day}: время в формате ЧЧ:ММ.")
+
+        return value
+
+
+class ReviewAuthorSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField(allow_blank=True)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    """Отзыв в публичном списке и в ответе на создание."""
+
+    author = serializers.SerializerMethodField()
+    listing_slug = serializers.CharField(source="listing.slug", default=None, read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            "id",
+            "author",
+            "rating",
+            "text",
+            "listing_slug",
+            "status",
+            "created_at",
+        ]
+        read_only_fields = ["id", "author", "listing_slug", "status", "created_at"]
+
+    @extend_schema_field(ReviewAuthorSerializer())
+    def get_author(self, obj: Review) -> dict[str, Any]:
+        return {"id": obj.author_id, "name": obj.author.name}
+
+
+class ReviewCreateSerializer(serializers.Serializer):
+    """Тело нового отзыва."""
+
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+    text = serializers.CharField(allow_blank=True, required=False, default="")
+    listing = serializers.SlugField(required=False, allow_blank=True, default="")
+
+
+class ReviewUpdateSerializer(serializers.Serializer):
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    text = serializers.CharField(allow_blank=True, required=False)
+
+
+class SellerVerificationSerializer(serializers.ModelSerializer):
+    documents_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SellerVerification
+        fields = ["id", "status", "comment", "documents_count", "created_at", "reviewed_at"]
+        read_only_fields = fields
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_documents_count(self, obj: SellerVerification) -> int:
+        return len(obj.documents or [])
+
+
+class SellerVerificationRequestSerializer(serializers.Serializer):
+    documents = serializers.ListField(child=serializers.FileField(), allow_empty=False)
+
+
+class ContactRevealSerializer(serializers.Serializer):
+    """Ответ на раскрытие контакта."""
+
+    phone = serializers.CharField()
+    whatsapp = serializers.CharField(allow_blank=True)
+    name = serializers.CharField(allow_blank=True)
+
+
+class DataExportSerializer(serializers.ModelSerializer):
+    """Статус выгрузки и ссылка на скачивание, пока она жива."""
+
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DataExport
+        fields = [
+            "id",
+            "status",
+            "size_bytes",
+            "error",
+            "download_url",
+            "expires_at",
+            "created_at",
+            "completed_at",
+        ]
+        read_only_fields = fields
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_download_url(self, obj: DataExport) -> str | None:
+        """Подписанная ссылка живёт сутки — как и требует ТЗ."""
+        if not obj.is_ready:
+            return None
+
+        from django.urls import reverse
+
+        from apps.users.privacy import make_export_token
+
+        path = reverse("users:data-export-file", args=[make_export_token(obj.pk, obj.user_id)])
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request else path
+
+
+class UserConsentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserConsent
+        fields = ["id", "consent_type", "document_version", "granted", "created_at"]
+        read_only_fields = fields
+
+
+class ConsentRequestSerializer(serializers.Serializer):
+    """Согласие, данное уже после регистрации (реклама, аналитика)."""
+
+    consent_type = serializers.ChoiceField(choices=ConsentType.choices)
+    document_version = serializers.CharField(max_length=32)
+    granted = serializers.BooleanField(default=True)

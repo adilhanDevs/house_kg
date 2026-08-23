@@ -17,37 +17,20 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from PIL import Image
 
+from apps.common.files import detect_mime
+
 logger = logging.getLogger(__name__)
 
 SIGNING_SALT = "kyc.file"
 
-# Pillow-форматы, которым доверяем, и их MIME.
-PILLOW_FORMAT_TO_MIME = {
-    "JPEG": "image/jpeg",
-    "PNG": "image/png",
-    "HEIF": "image/heic",
-}
-
-
-def detect_mime(data: bytes) -> str:
-    """MIME по содержимому файла, а не по расширению или заголовку запроса.
-
-    Основной путь — libmagic (python-magic). Если библиотеки в системе нет,
-    откатываемся на определение формата средствами Pillow: это слабее, но
-    всё равно смотрит на содержимое, а не на то, что прислал клиент.
-    """
-    try:
-        import magic
-    except (ImportError, OSError):
-        logger.warning("libmagic недоступна, тип файла определяется через Pillow")
-    else:
-        return magic.from_buffer(data[:2048], mime=True)
-
-    try:
-        with Image.open(BytesIO(data)) as image:
-            return PILLOW_FORMAT_TO_MIME.get(image.format or "", "application/octet-stream")
-    except Exception:
-        return "application/octet-stream"
+__all__ = [
+    "detect_mime",
+    "make_file_token",
+    "read_file_token",
+    "strip_exif",
+    "supports_presigned_urls",
+    "validate_document",
+]
 
 
 def validate_document(data: bytes, field_name: str = "файл") -> None:

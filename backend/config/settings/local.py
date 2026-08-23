@@ -13,6 +13,13 @@ CORS_ALLOW_CREDENTIALS = True
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
+# Логи для человека, а не для агрегатора.
+LOG_JSON = env.bool("LOG_JSON", default=False)
+
+# Второй фактор в разработке не требуем: заводить TOTP на каждый запуск
+# локальной среды — лишнее трение. На проде он обязателен.
+ADMIN_REQUIRE_OTP = env.bool("ADMIN_REQUIRE_OTP", default=False)
+
 # django-debug-toolbar ставится только в dev-группе зависимостей.
 try:
     import debug_toolbar  # noqa: F401

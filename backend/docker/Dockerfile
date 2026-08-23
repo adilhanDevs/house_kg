@@ -49,8 +49,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # libmagic1 нужен python-magic: тип загруженного файла определяется
 # по содержимому, а не по расширению.
+# ffmpeg — длительность и разрешение видео (ffprobe) и кадр-превью.
+# Само видео не перекодируется.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl libmagic1 \
+    && apt-get install -y --no-install-recommends curl libmagic1 ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app

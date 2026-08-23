@@ -5,8 +5,19 @@ from typing import Any
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from apps.catalog.enums import ListingStatus
-from apps.catalog.models import Builder, City, District, Listing, ListingMedia
+from apps.catalog.constants import MAX_FILES_PER_REQUEST
+from apps.catalog.enums import ListingStatus, MediaKind
+from apps.catalog.models import (
+    Builder,
+    City,
+    District,
+    HouseSeries,
+    Listing,
+    ListingMedia,
+    ListingReport,
+    ModerationTask,
+    RejectReason,
+)
 from apps.users.phone import mask_public_phone
 
 
@@ -111,31 +122,115 @@ class BuilderBriefSerializer(serializers.ModelSerializer):
 
 
 class ListingMediaSerializer(serializers.ModelSerializer):
+    """Файл объявления во всех вариантах размеров.
+
+    `url` отдаётся всегда: пока обработка не закончилась (`status` != `ready`),
+    в нём лежит оригинал, и экран не ждёт конвертации.
+    """
+
     url = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
+    url_thumb = serializers.SerializerMethodField()
+    url_medium = serializers.SerializerMethodField()
+    url_original = serializers.SerializerMethodField()
+    url_thumb_jpeg = serializers.SerializerMethodField()
+    url_medium_jpeg = serializers.SerializerMethodField()
+    url_original_jpeg = serializers.SerializerMethodField()
 
     class Meta:
         model = ListingMedia
         fields = [
             "id",
             "kind",
+            "status",
             "url",
             "thumbnail_url",
+            "url_thumb",
+            "url_medium",
+            "url_original",
+            "url_thumb_jpeg",
+            "url_medium_jpeg",
+            "url_original_jpeg",
             "order",
             "is_cover",
             "width",
             "height",
             "duration_seconds",
+            "size_bytes",
         ]
         read_only_fields = fields
 
+    def _url(self, file_field: Any) -> str | None:
+        return absolute_file_url(file_field, self.context.get("request"))
+
     @extend_schema_field(serializers.URLField())
     def get_url(self, obj: ListingMedia) -> str | None:
-        return absolute_file_url(obj.file, self.context.get("request"))
+        return self._url(obj.display_file())
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_thumbnail_url(self, obj: ListingMedia) -> str | None:
-        return absolute_file_url(obj.thumbnail, self.context.get("request"))
+        return self._url(obj.thumbnail or obj.url_thumb)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_url_thumb(self, obj: ListingMedia) -> str | None:
+        return self._url(obj.url_thumb)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_url_medium(self, obj: ListingMedia) -> str | None:
+        return self._url(obj.url_medium)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_url_original(self, obj: ListingMedia) -> str | None:
+        return self._url(obj.url_original)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_url_thumb_jpeg(self, obj: ListingMedia) -> str | None:
+        return self._url(obj.url_thumb_jpeg)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_url_medium_jpeg(self, obj: ListingMedia) -> str | None:
+        return self._url(obj.url_medium_jpeg)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_url_original_jpeg(self, obj: ListingMedia) -> str | None:
+        return self._url(obj.url_original_jpeg)
+
+
+class MediaUploadSerializer(serializers.Serializer):
+    """Пачка файлов из галереи телефона."""
+
+    files = serializers.ListField(
+        child=serializers.FileField(),
+        allow_empty=False,
+        max_length=MAX_FILES_PER_REQUEST,
+        help_text="Несколько файлов одним запросом — пользователь выбирает их скопом.",
+    )
+    kind = serializers.ChoiceField(choices=MediaKind.choices, default=MediaKind.PHOTO)
+
+
+class RejectedFileSerializer(serializers.Serializer):
+    """Почему конкретный файл из пачки не взяли."""
+
+    file_index = serializers.CharField()
+    reason = serializers.CharField()
+
+
+class MediaUploadResultSerializer(serializers.Serializer):
+    """Ответ загрузки: сколько взяли, сколько отклонили и почему."""
+
+    accepted = serializers.IntegerField()
+    rejected = serializers.IntegerField()
+    reason = serializers.CharField(allow_blank=True)
+    free_slots = serializers.IntegerField()
+    media = ListingMediaSerializer(many=True)
+    # Разбивка по файлам: форма подсвечивает именно те, что не прошли.
+    rejected_details = RejectedFileSerializer(many=True)
+
+
+class MediaReorderSerializer(serializers.Serializer):
+    """Новый порядок файлов: список id от первого к последнему."""
+
+    order = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
 
 
 class SellerSerializer(serializers.Serializer):
@@ -277,3 +372,196 @@ class FeaturedSerializer(serializers.Serializer):
     plot = ListingListSerializer(many=True)
     room = ListingListSerializer(many=True)
     commercial = ListingListSerializer(many=True)
+
+
+class ListingCompletenessSerializer(serializers.Serializer):
+    """Готовность черновика к публикации."""
+
+    is_complete = serializers.BooleanField()
+    missing_fields = serializers.ListField(child=serializers.CharField())
+
+
+class ListingDraftSerializer(ListingDetailSerializer):
+    """Черновик: карточка плюс подсказка, что ещё заполнить."""
+
+    completeness = serializers.SerializerMethodField()
+
+    class Meta(ListingDetailSerializer.Meta):
+        fields = [*ListingDetailSerializer.Meta.fields, "status", "completeness"]
+        read_only_fields = fields
+
+    @extend_schema_field(ListingCompletenessSerializer)
+    def get_completeness(self, obj: Listing) -> dict[str, Any]:
+        from apps.catalog.services import listing_completeness
+
+        return listing_completeness(obj)
+
+
+class ListingUpdateSerializer(serializers.ModelSerializer):
+    """Частичное обновление формы объявления.
+
+    Все поля необязательны: клиент шлёт PATCH по мере заполнения.
+    """
+
+    district = serializers.SlugRelatedField(
+        slug_field="slug", queryset=District.objects.all(), required=False, allow_null=True
+    )
+    city = serializers.SlugRelatedField(
+        slug_field="slug", queryset=City.objects.all(), required=False, allow_null=True
+    )
+    series = serializers.SlugRelatedField(
+        slug_field="code", queryset=HouseSeries.objects.all(), required=False, allow_null=True
+    )
+    builder = serializers.SlugRelatedField(
+        slug_field="slug", queryset=Builder.objects.all(), required=False, allow_null=True
+    )
+
+    class Meta:
+        model = Listing
+        fields = [
+            "kind",
+            "district",
+            "city",
+            "address",
+            "rooms",
+            "area",
+            "land_area",
+            "floor",
+            "floors",
+            "series",
+            "builder",
+            "price",
+            "currency",
+            "seller_kind",
+            "is_secondary",
+            "description",
+            "allow_media_download",
+            "contact_name",
+            "contact_phone",
+            "latitude",
+            "longitude",
+        ]
+        extra_kwargs = {field: {"required": False} for field in fields}
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # Город всегда согласован с районом: клиент присылает только район.
+        district = attrs.get("district")
+        if district is not None and "city" not in attrs:
+            attrs["city"] = district.city
+        return attrs
+
+
+class MyListingSerializer(ListingListSerializer):
+    """Объявление в разделе «Мои объявления» — со статистикой."""
+
+    completeness = serializers.SerializerMethodField()
+
+    class Meta(ListingListSerializer.Meta):
+        fields = [
+            *ListingListSerializer.Meta.fields,
+            "status",
+            "rejection_reason",
+            "views_count",
+            "favourites_count",
+            "promoted_until",
+            "expires_at",
+            "completeness",
+        ]
+        read_only_fields = fields
+
+    @extend_schema_field(ListingCompletenessSerializer)
+    def get_completeness(self, obj: Listing) -> dict[str, Any]:
+        from apps.catalog.services import listing_completeness
+
+        return listing_completeness(obj)
+
+
+class RejectReasonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RejectReason
+        fields = ["code", "title", "description", "order"]
+        read_only_fields = fields
+
+
+class RejectionHistorySerializer(serializers.Serializer):
+    """Прошлое отклонение автора — контекст для модератора."""
+
+    listing_slug = serializers.CharField()
+    reason_code = serializers.CharField(allow_blank=True)
+    reason_title = serializers.CharField(allow_blank=True)
+    comment = serializers.CharField(allow_blank=True)
+    resolved_at = serializers.DateTimeField(allow_null=True)
+
+
+class ModerationReviewSerializer(serializers.Serializer):
+    """Отзыв в карточке задачи модерации."""
+
+    id = serializers.IntegerField()
+    rating = serializers.IntegerField()
+    text = serializers.CharField(allow_blank=True)
+    status = serializers.CharField()
+    seller_id = serializers.IntegerField()
+    author_id = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+
+
+class ModerationTaskSerializer(serializers.ModelSerializer):
+    """Задача в очереди: объект целиком, автопроверки и история автора."""
+
+    listing = ListingDetailSerializer(read_only=True)
+    review = ModerationReviewSerializer(read_only=True)
+    reject_reason = RejectReasonSerializer(read_only=True)
+    triggered_checks = serializers.SerializerMethodField()
+    author_rejections = serializers.SerializerMethodField()
+    assigned_to = serializers.SerializerMethodField()
+    target_kind = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = ModerationTask
+        fields = [
+            "id",
+            "target_kind",
+            "listing",
+            "review",
+            "status",
+            "checks",
+            "triggered_checks",
+            "priority",
+            "assigned_to",
+            "reject_reason",
+            "comment",
+            "resolved_at",
+            "created_at",
+            "author_rejections",
+        ]
+        read_only_fields = fields
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_triggered_checks(self, obj: ModerationTask) -> list[str]:
+        return obj.triggered_checks
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_assigned_to(self, obj: ModerationTask) -> str | None:
+        return obj.assigned_to.get_username() if obj.assigned_to_id else None
+
+    @extend_schema_field(RejectionHistorySerializer(many=True))
+    def get_author_rejections(self, obj: ModerationTask) -> list[dict[str, Any]]:
+        """История берётся из контекста — иначе это запрос на каждую задачу."""
+        if not obj.listing_id:
+            return []
+        history = self.context.get("rejection_history") or {}
+        return history.get(obj.listing.owner_id, [])
+
+
+class ModerationRejectSerializer(serializers.Serializer):
+    """Решение об отклонении."""
+
+    reason_code = serializers.CharField(max_length=32)
+    comment = serializers.CharField(allow_blank=True, required=False, default="")
+
+
+class ListingReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ListingReport
+        fields = ["id", "reason", "comment", "is_resolved", "created_at"]
+        read_only_fields = ["id", "is_resolved", "created_at"]

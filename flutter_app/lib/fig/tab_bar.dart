@@ -57,11 +57,11 @@ class FigTabBar extends StatelessWidget {
     return FigBox(
       width: 377.0,
       height: 85.5,
-      color: const Color(0xf2f8f8f8),
+      color: const Color(0xffffffff),
       radius: 8.0,
       blur: 32.0,
       padding: const EdgeInsets.fromLTRB(1.0, 0.5, 1.0, 1.0),
-      border: const Border(top: BorderSide(color: Color(0xf2f8f8f8), width: 0.5), right: BorderSide(color: Color(0xf2f8f8f8), width: 1.0), bottom: BorderSide(color: Color(0xf2f8f8f8), width: 1.0), left: BorderSide(color: Color(0xf2f8f8f8), width: 1.0)),
+      border: const Border(top: BorderSide(color: Color(0xffececec), width: 0.5), right: BorderSide(color: Color(0xffffffff), width: 1.0), bottom: BorderSide(color: Color(0xffffffff), width: 1.0), left: BorderSide(color: Color(0xffffffff), width: 1.0)),
       child: Stack(
         clipBehavior: Clip.none,
         children: [

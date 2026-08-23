@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.conf import settings
 
 
 class CommonConfig(AppConfig):
@@ -10,3 +11,13 @@ class CommonConfig(AppConfig):
     def ready(self) -> None:
         # Подключаем обработчики инвалидации кэша.
         from apps.common import signals  # noqa: F401
+        from apps.common.logging import configure_structlog
+        from apps.common.observability import init_sentry
+
+        # Логирование настраивается здесь, а не в settings: настройки читает
+        # и Celery, и management-команды — точка входа у всех одна.
+        configure_structlog(
+            json_logs=getattr(settings, "LOG_JSON", True),
+            level=getattr(settings, "LOG_LEVEL", "INFO"),
+        )
+        init_sentry()

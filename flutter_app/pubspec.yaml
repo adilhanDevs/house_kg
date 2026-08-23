@@ -34,6 +34,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:
@@ -57,7 +58,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Bitmaps exported with the design, copied from ../screens/assets.
+  # Bitmaps exported with the design bundle (the bundle itself is no longer
+  # in the repo — see «Перегенерация» in README).
   assets:
     - assets/figma/
 

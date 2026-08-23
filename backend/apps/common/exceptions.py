@@ -89,8 +89,9 @@ class InvalidCredentialsError(APIException):
 class InsufficientFundsError(APIException):
     """402 — не хватает средств на балансе пользователя.
 
-    В `details` уходит, сколько нужно и сколько есть: приложению этого хватает,
-    чтобы сразу предложить пополнение на недостающую сумму.
+    В `details` уходит, сколько нужно, сколько есть и сколько не хватает:
+    приложению этого хватает, чтобы сразу открыть экран пополнения на
+    недостающую сумму, ничего не пересчитывая.
     """
 
     status_code = status.HTTP_402_PAYMENT_REQUIRED
@@ -109,6 +110,8 @@ class InsufficientFundsError(APIException):
             self.extra_details["required"] = required
         if available is not None:
             self.extra_details["available"] = available
+        if required is not None and available is not None:
+            self.extra_details["shortfall"] = max(required - available, 0)
 
 
 def build_error_payload(

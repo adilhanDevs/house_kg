@@ -5,6 +5,7 @@
 """
 
 import uuid
+from typing import Any
 
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
@@ -24,9 +25,13 @@ from apps.catalog.enums import (
     Currency,
     ListingStatus,
     MediaKind,
+    MediaStatus,
+    ModerationStatus,
     PropertyKind,
+    ReportReason,
     SellerKind,
 )
+from apps.catalog.media import media_upload_to
 from apps.common.models import TimeStampedModel
 
 
@@ -127,6 +132,20 @@ def listing_media_path(instance: "ListingMedia", filename: str) -> str:
     return f"listings/{instance.listing.slug}/{filename}"
 
 
+class ListingQuerySet(models.QuerySet):
+    """Общие выборки объявлений."""
+
+    def alive(self) -> "ListingQuerySet":
+        return self.filter(is_deleted=False)
+
+
+class ListingManager(models.Manager.from_queryset(ListingQuerySet)):
+    """Менеджер по умолчанию: удалённые объявления не видны нигде."""
+
+    def get_queryset(self) -> ListingQuerySet:
+        return super().get_queryset().filter(is_deleted=False)
+
+
 def build_listing_slug(district_slug: str, rooms: int) -> str:
     """«technopark-3k-9f1c2a4b» — читаемо и уникально.
 
@@ -143,6 +162,9 @@ class Listing(TimeStampedModel):
     """Объявление о продаже объекта — центральная сущность каталога."""
 
     slug = models.SlugField("Слаг", max_length=SLUG_MAX_LENGTH, unique=True, blank=True)
+    # Ключи файлов в хранилище строятся из uuid, а не из slug или pk: slug
+    # виден в ссылках, а по последовательному pk можно перебрать чужие файлы.
+    uuid = models.UUIDField("UUID", default=uuid.uuid4, editable=False, unique=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="Владелец",
@@ -159,17 +181,22 @@ class Listing(TimeStampedModel):
 
     # Город продублирован рядом с районом осознанно: фильтр по городу —
     # самый частый запрос каталога, и джойн ради него делать не хочется.
+    # Город и район заполняются в форме, поэтому у черновика их может не быть.
     city = models.ForeignKey(
         City,
         verbose_name="Город",
         on_delete=models.PROTECT,
         related_name="listings",
+        blank=True,
+        null=True,
     )
     district = models.ForeignKey(
         District,
         verbose_name="Район",
         on_delete=models.PROTECT,
         related_name="listings",
+        blank=True,
+        null=True,
     )
     address = models.CharField("Адрес", max_length=255, blank=True)
     latitude = models.DecimalField("Широта", max_digits=9, decimal_places=6, blank=True, null=True)
@@ -177,7 +204,7 @@ class Listing(TimeStampedModel):
         "Долгота", max_digits=9, decimal_places=6, blank=True, null=True
     )
 
-    price = models.DecimalField("Цена", max_digits=12, decimal_places=2)
+    price = models.DecimalField("Цена", max_digits=12, decimal_places=2, blank=True, null=True)
     currency = models.CharField(
         "Валюта", max_length=3, choices=Currency.choices, default=Currency.USD
     )
@@ -202,7 +229,7 @@ class Listing(TimeStampedModel):
     )
 
     rooms = models.PositiveSmallIntegerField("Комнат", default=0)
-    area = models.DecimalField("Площадь, м²", max_digits=8, decimal_places=2)
+    area = models.DecimalField("Площадь, м²", max_digits=8, decimal_places=2, blank=True, null=True)
     land_area = models.DecimalField(
         "Площадь участка, соток", max_digits=8, decimal_places=2, blank=True, null=True
     )
@@ -243,6 +270,10 @@ class Listing(TimeStampedModel):
     published_at = models.DateTimeField("Опубликовано", blank=True, null=True)
     expires_at = models.DateTimeField("Снять с публикации", blank=True, null=True)
     promoted_until = models.DateTimeField("Продвигается до", blank=True, null=True, db_index=True)
+    bumped_at = models.DateTimeField("Последний подъём", blank=True, null=True)
+    # Мягкое удаление: объявление исчезает из выдачи, но остаётся в истории
+    # просмотров, избранном и леджере операций.
+    is_deleted = models.BooleanField("Удалено", default=False, db_index=True)
 
     # Денормализованные счётчики: меняются только через сервисы, F-выражениями.
     views_count = models.PositiveIntegerField("Просмотров", default=0)
@@ -254,10 +285,16 @@ class Listing(TimeStampedModel):
 
     search_vector = SearchVectorField("Поисковый вектор", blank=True, null=True, editable=False)
 
+    objects = ListingManager()
+    # Полный набор, включая удалённые: нужен админке и разбору инцидентов.
+    all_objects = models.Manager()
+
     class Meta:
         verbose_name = "Объявление"
         verbose_name_plural = "Объявления"
         ordering = ["-created_at"]
+        # Связанные объекты должны находиться даже у удалённого объявления.
+        base_manager_name = "all_objects"
         indexes = [
             models.Index(fields=["status", "-published_at"], name="listing_status_pub_idx"),
             models.Index(fields=["status", "district", "kind"], name="listing_status_geo_idx"),
@@ -271,13 +308,16 @@ class Listing(TimeStampedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.district.name} · {self.price:.0f} {self.currency}"
+        district = self.district.name if self.district_id else "Черновик"
+        price = f"{self.price:.0f} {self.currency}" if self.price is not None else "без цены"
+        return f"{district} · {price}"
 
     def save(self, *args: object, **kwargs: object) -> None:
         from apps.catalog.rates import to_usd
 
         if not self.slug:
-            self.slug = build_listing_slug(self.district.slug, self.rooms)
+            district_slug = self.district.slug if self.district_id else ""
+            self.slug = build_listing_slug(district_slug, self.rooms)
 
         self.price_usd = to_usd(self.price, self.currency)
         update_fields = kwargs.get("update_fields")
@@ -298,13 +338,15 @@ class Listing(TimeStampedModel):
     @property
     def price_display(self) -> str:
         """«102 000$» — как в макете: тысячи через неразрывный пробел."""
+        if self.price is None:
+            return ""
         amount = f"{int(self.price):,}".replace(",", "\u00a0")
         return f"{amount}$" if self.currency == Currency.USD else f"{amount}\u00a0сом"
 
     @property
     def discount_percent(self) -> int | None:
         """На сколько процентов цена ниже прежней."""
-        if not self.old_price or self.old_price <= self.price:
+        if self.price is None or not self.old_price or self.old_price <= self.price:
             return None
         return round((self.old_price - self.price) / self.old_price * 100)
 
@@ -318,8 +360,16 @@ class ListingMedia(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="media",
     )
-    file = models.FileField("Файл", upload_to="listings/%Y/%m/")
+    uuid = models.UUIDField("UUID", default=uuid.uuid4, editable=False, unique=True)
+    file = models.FileField("Оригинал", upload_to=media_upload_to)
     kind = models.CharField("Тип", max_length=8, choices=MediaKind.choices, default=MediaKind.PHOTO)
+    status = models.CharField(
+        "Статус обработки",
+        max_length=12,
+        choices=MediaStatus.choices,
+        default=MediaStatus.UPLOADING,
+        db_index=True,
+    )
     order = models.PositiveSmallIntegerField("Порядок", default=0)
     is_cover = models.BooleanField("Обложка", default=False)
 
@@ -327,9 +377,22 @@ class ListingMedia(TimeStampedModel):
     height = models.PositiveIntegerField("Высота", blank=True, null=True)
     duration_seconds = models.PositiveIntegerField("Длительность, с", blank=True, null=True)
     size_bytes = models.PositiveBigIntegerField("Размер, байт", blank=True, null=True)
-    thumbnail = models.ImageField(
-        "Превью", upload_to="listings/thumbnails/%Y/%m/", blank=True, null=True
-    )
+    thumbnail = models.ImageField("Превью", upload_to=media_upload_to, blank=True, null=True)
+
+    # Перцептивный хеш: одинаковые снимки в разных объявлениях дают одно
+    # значение, и модератор видит переклейку чужих фото.
+    phash = models.CharField("Перцептивный хеш", max_length=64, blank=True, db_index=True)
+
+    # Варианты размеров. Имена полей повторяют имена в ответе API.
+    url_thumb = models.FileField("Превью 400px", upload_to=media_upload_to, blank=True)
+    url_medium = models.FileField("Средний 1080px", upload_to=media_upload_to, blank=True)
+    url_original = models.FileField("Оригинал ≤2560px", upload_to=media_upload_to, blank=True)
+    # JPEG-фолбэк для клиентов, которые не умеют WebP.
+    url_thumb_jpeg = models.FileField("Превью JPEG", upload_to=media_upload_to, blank=True)
+    url_medium_jpeg = models.FileField("Средний JPEG", upload_to=media_upload_to, blank=True)
+    url_original_jpeg = models.FileField("Оригинал JPEG", upload_to=media_upload_to, blank=True)
+
+    processing_error = models.CharField("Ошибка обработки", max_length=255, blank=True)
 
     class Meta:
         verbose_name = "Медиа объявления"
@@ -351,6 +414,37 @@ class ListingMedia(TimeStampedModel):
     def limit(self) -> int:
         return MAX_PHOTOS_PER_LISTING if self.kind == MediaKind.PHOTO else MAX_VIDEOS_PER_LISTING
 
+    # Поля, в которых лежат файлы. Порядок важен: по нему удаляются варианты.
+    FILE_FIELDS = (
+        "url_thumb",
+        "url_medium",
+        "url_original",
+        "url_thumb_jpeg",
+        "url_medium_jpeg",
+        "url_original_jpeg",
+        "thumbnail",
+        "file",
+    )
+
+    @property
+    def is_ready(self) -> bool:
+        return self.status == MediaStatus.READY
+
+    def display_file(self) -> Any:
+        """Что показывать клиенту сейчас.
+
+        Пока обработка не закончилась, отдаётся оригинал: экран не должен
+        ждать конвертации, чтобы показать только что снятую фотографию.
+        """
+        return self.url_medium if self.url_medium else self.file
+
+    def delete_files(self) -> None:
+        """Убирает из хранилища сам файл и все варианты размеров."""
+        for name in self.FILE_FIELDS:
+            file_field = getattr(self, name, None)
+            if file_field:
+                file_field.delete(save=False)
+
     def clean(self) -> None:
         """Не даём превысить лимит файлов — то же ограничение, что в форме Flutter."""
         super().clean()
@@ -367,6 +461,231 @@ class ListingMedia(TimeStampedModel):
                 {"file": f"К объявлению можно приложить не больше {self.limit} {word}."},
                 code="validation_error",
             )
+
+
+class ListingDailyStat(models.Model):
+    """Показатели объявления за сутки — график на экране статистики.
+
+    Отдельная таблица, а не счётчики на объявлении: владельцу нужна динамика
+    по дням, чтобы сравнить период до продвижения и во время него.
+    """
+
+    listing = models.ForeignKey(
+        Listing,
+        verbose_name="Объявление",
+        on_delete=models.CASCADE,
+        related_name="daily_stats",
+    )
+    date = models.DateField("Дата", db_index=True)
+    # Показ в выдаче — самое частое событие, пишется пачкой из Celery.
+    impressions = models.PositiveIntegerField("Показы в выдаче", default=0)
+    views = models.PositiveIntegerField("Открытия карточки", default=0)
+    favourites = models.PositiveIntegerField("Добавления в избранное", default=0)
+    phone_reveals = models.PositiveIntegerField("Показы телефона", default=0)
+
+    class Meta:
+        verbose_name = "Статистика объявления за день"
+        verbose_name_plural = "Статистика объявлений по дням"
+        ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(fields=["listing", "date"], name="listing_daily_stat_unique"),
+        ]
+        indexes = [
+            models.Index(fields=["listing", "-date"], name="listing_stat_recent_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.listing_id} · {self.date}"
+
+
+class RejectReason(DictionaryModel):
+    """Справочник причин отклонения — редактируется в админке.
+
+    Причина — отдельная сущность, а не строка в задаче: текст формулировки
+    правится редактором один раз и подтягивается во все прошлые отклонения,
+    а по коду собирается статистика «за что чаще всего отклоняем».
+    """
+
+    code = models.SlugField("Код", max_length=32, unique=True)
+    title = models.CharField("Заголовок", max_length=150)
+    description = models.TextField(
+        "Пояснение",
+        blank=True,
+        help_text="Текст, который увидит владелец объявления.",
+    )
+
+    class Meta:
+        verbose_name = "Причина отклонения"
+        verbose_name_plural = "Причины отклонения"
+        ordering = ["order", "code"]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class ModerationTask(TimeStampedModel):
+    """Одна проверка объявления модератором.
+
+    На объявление их может быть несколько: после исправления и повторной
+    подачи заводится новая, а прошлые остаются историей — по ним видно, кто
+    и сколько раз уже приходил с одним и тем же нарушением.
+    """
+
+    # Задача может быть либо об объявлении, либо об отзыве: очередь одна,
+    # чтобы модератор не переключался между двумя списками.
+    listing = models.ForeignKey(
+        Listing,
+        verbose_name="Объявление",
+        on_delete=models.CASCADE,
+        related_name="moderation_tasks",
+        blank=True,
+        null=True,
+    )
+    review = models.ForeignKey(
+        "users.Review",
+        verbose_name="Отзыв",
+        on_delete=models.CASCADE,
+        related_name="moderation_tasks",
+        blank=True,
+        null=True,
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Модератор",
+        on_delete=models.SET_NULL,
+        related_name="moderation_tasks",
+        limit_choices_to={"is_staff": True},
+        blank=True,
+        null=True,
+    )
+    status = models.CharField(
+        "Статус",
+        max_length=16,
+        choices=ModerationStatus.choices,
+        default=ModerationStatus.OPEN,
+        db_index=True,
+    )
+    # Результаты автопроверок: {"contacts_in_text": {"triggered": true, "details": {...}}}
+    checks = models.JSONField("Автопроверки", default=dict, blank=True)
+    priority = models.PositiveSmallIntegerField(
+        "Приоритет",
+        default=0,
+        db_index=True,
+        help_text="Количество сработавших автопроверок; жалобы дают 10.",
+    )
+
+    reject_reason = models.ForeignKey(
+        RejectReason,
+        verbose_name="Причина отклонения",
+        on_delete=models.SET_NULL,
+        related_name="moderation_tasks",
+        blank=True,
+        null=True,
+    )
+    comment = models.TextField("Комментарий модератора", blank=True)
+
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Кто решил",
+        on_delete=models.SET_NULL,
+        related_name="resolved_moderation_tasks",
+        blank=True,
+        null=True,
+    )
+    resolved_at = models.DateTimeField("Когда решено", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Задача модерации"
+        verbose_name_plural = "Очередь модерации"
+        # Порядок очереди: сначала подозрительные, внутри — по времени подачи.
+        ordering = ["-priority", "created_at"]
+        indexes = [
+            models.Index(fields=["status", "-priority", "created_at"], name="moderation_queue_idx"),
+        ]
+        constraints = [
+            # Один объект не может стоять в очереди дважды. NULL в частичном
+            # индексе не конфликтует, поэтому задачи об отзывах не мешают
+            # задачам об объявлениях.
+            models.UniqueConstraint(
+                fields=["listing"],
+                condition=Q(status=ModerationStatus.OPEN),
+                name="moderation_single_open_task",
+            ),
+            models.UniqueConstraint(
+                fields=["review"],
+                condition=Q(status=ModerationStatus.OPEN),
+                name="moderation_single_open_review",
+            ),
+            models.CheckConstraint(
+                condition=Q(listing__isnull=False) | Q(review__isnull=False),
+                name="moderation_task_has_target",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        target = f"объявление {self.listing_id}" if self.listing_id else f"отзыв {self.review_id}"
+        return f"Модерация: {target} ({self.get_status_display()})"
+
+    @property
+    def target_kind(self) -> str:
+        return "listing" if self.listing_id else "review"
+
+    @property
+    def triggered_checks(self) -> list[str]:
+        """Имена сработавших проверок."""
+        return [
+            name
+            for name, result in (self.checks or {}).items()
+            if isinstance(result, dict) and result.get("triggered")
+        ]
+
+    @property
+    def is_open(self) -> bool:
+        return self.status == ModerationStatus.OPEN
+
+
+class ListingReport(TimeStampedModel):
+    """Жалоба пользователя на объявление.
+
+    Три неразрешённые жалобы снимают активное объявление с публикации
+    автоматически: ждать модератора, пока люди видят мошенническое
+    объявление, нельзя.
+    """
+
+    listing = models.ForeignKey(
+        Listing,
+        verbose_name="Объявление",
+        on_delete=models.CASCADE,
+        related_name="reports",
+    )
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Кто пожаловался",
+        on_delete=models.CASCADE,
+        related_name="listing_reports",
+    )
+    reason = models.CharField("Причина", max_length=16, choices=ReportReason.choices)
+    comment = models.TextField("Комментарий", blank=True)
+    is_resolved = models.BooleanField("Разобрано", default=False, db_index=True)
+
+    class Meta:
+        verbose_name = "Жалоба на объявление"
+        verbose_name_plural = "Жалобы на объявления"
+        ordering = ["-created_at"]
+        constraints = [
+            # Один пользователь — одна жалоба на объявление: иначе порог
+            # автоснятия накручивается одним человеком.
+            models.UniqueConstraint(
+                fields=["listing", "reporter"],
+                name="listing_report_unique_reporter",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["listing", "is_resolved"], name="report_listing_open_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_reason_display()} · {self.listing_id}"
 
 
 class ExchangeRate(TimeStampedModel):

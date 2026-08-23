@@ -125,3 +125,114 @@ def purge_identity_files() -> int:
 
     logger.info("Удалены документы у заявок: %s", purged)
     return purged
+
+
+@shared_task(name="users.build_data_export", ignore_result=True)
+def build_data_export(export_id: int) -> str:
+    """Собирает выгрузку персональных данных и кладёт в приватное хранилище."""
+    import json
+    from datetime import timedelta
+
+    from django.conf import settings
+    from django.core.files.base import ContentFile
+    from django.utils import timezone
+
+    from apps.notifications.models import NotificationType
+    from apps.notifications.services import notify
+    from apps.users.models import DataExport, DataExportStatus
+    from apps.users.privacy import collect_user_data
+
+    export = DataExport.objects.select_related("user").filter(pk=export_id).first()
+    if export is None:
+        logger.info("Выгрузка %s удалена до начала сборки", export_id)
+        return "missing"
+
+    try:
+        payload = collect_user_data(export.user)
+        content = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    except Exception as exc:  # noqa: BLE001 - причина уходит в поле и в лог
+        logger.exception("Не удалось собрать выгрузку %s", export_id)
+        DataExport.objects.filter(pk=export_id).update(
+            status=DataExportStatus.FAILED,
+            error=f"{exc.__class__.__name__}: {exc}"[:255],
+        )
+        return "failed"
+
+    # Имя файла без телефона и имени: выгрузка лежит в хранилище, и ключ
+    # не должен сам по себе быть персональными данными.
+    export.file.save(f"export-{export.pk}-{export.user_id}.json", ContentFile(content), save=False)
+    export.status = DataExportStatus.READY
+    export.size_bytes = len(content)
+    export.completed_at = timezone.now()
+    export.expires_at = timezone.now() + timedelta(seconds=settings.DATA_EXPORT_URL_TTL)
+    export.save(update_fields=["file", "status", "size_bytes", "completed_at", "expires_at"])
+
+    notify(
+        user=export.user,
+        notification_type=NotificationType.SYSTEM,
+        title="Выгрузка данных готова",
+        body="Файл с вашими данными доступен для скачивания в течение суток.",
+        payload={"kind": "data_export_ready", "export_id": export.pk},
+    )
+    logger.info("Выгрузка %s готова: %s байт", export.pk, export.size_bytes)
+    return "ready"
+
+
+@shared_task(name="users.purge_user_data", ignore_result=True)
+def purge_user_data(user_id: int) -> dict[str, int]:
+    """Удаляет файлы пользователя и обезличивает записи в леджере.
+
+    Сами операции по кошельку остаются: они нужны бухгалтерии и сходимости
+    баланса. Но всё, что связывает их с человеком, из них уходит.
+    """
+    from apps.billing.models import Wallet, WalletTransaction
+    from apps.catalog.models import Listing, ListingMedia
+    from apps.users.models import DataExport, User
+
+    user = User.objects.filter(pk=user_id).first()
+    if user is None:
+        logger.info("Пользователь %s исчез до очистки данных", user_id)
+        return {}
+
+    # 1. Медиафайлы объявлений: физически удаляем из хранилища.
+    removed_files = 0
+    media = ListingMedia.objects.filter(listing__owner_id=user_id).select_related("listing")
+    for item in media:
+        item.delete_files()
+        removed_files += 1
+    media.delete()
+
+    # 2. Выгрузки данных: файл с полным профилем не должен пережить аккаунт.
+    for export in DataExport.objects.filter(user_id=user_id):
+        if export.file:
+            export.file.delete(save=False)
+    DataExport.objects.filter(user_id=user_id).delete()
+
+    # 3. Прочие файлы профиля.
+    profile = getattr(user, "seller_profile", None)
+    if profile is not None and profile.logo:
+        profile.logo.delete(save=False)
+        profile.save(update_fields=["logo"])
+
+    # 4. Леджер: записи остаются, персональные подписи из них уходят.
+    anonymized = 0
+    wallet = Wallet.objects.filter(user_id=user_id).first()
+    if wallet is not None:
+        anonymized = WalletTransaction.objects.filter(wallet=wallet).update(
+            label="операция удалённого аккаунта"
+        )
+
+    # 5. Контактные данные в объявлениях: объявления уже в архиве, но
+    #    телефон в контактных полях остаётся ПДн.
+    listings = Listing.all_objects.filter(owner_id=user_id).update(
+        contact_phone="", contact_name=""
+    )
+
+    logger.info(
+        "Данные пользователя %s очищены: файлов %s, операций %s, объявлений %s",
+        user_id,
+        removed_files,
+        anonymized,
+        listings,
+    )
+    return {"files": removed_files, "transactions": anonymized, "listings": listings}

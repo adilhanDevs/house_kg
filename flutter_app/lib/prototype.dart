@@ -1,6 +1,7 @@
 // The screen list, the clickable zones and the tab-bar wiring, copied from the
 // prototype's SCREENS / HOTSPOTS / TAB_TARGETS / SCREEN_TAB / NAV_SCREENS
-// tables in "House KGZ - Прототип.dc.html".
+// tables. The HTML prototype itself is no longer in the repo — these values
+// are the source of truth now.
 import 'package:flutter/material.dart';
 
 import 'screens/screen_01_splash.dart';
@@ -108,6 +109,22 @@ class FigHotspot {
   final bool? pro;
 }
 
+/// Кнопка, которую макет рисует поверх списка, — «Связаться с собственником».
+/// Приложение снимает её с кадра и держит над нижним меню: в кадре она стоит
+/// на своей координате и при другой высоте окна оказывается где придётся, а
+/// под ней у макета остаётся обрезок следующего ряда карточек — его в макете
+/// закрывает полоса меню.
+@immutable
+class FigPinnedCta {
+  const FigPinnedCta({required this.top, required this.label});
+
+  /// Где кнопка нарисована в кадре. Ниже этой черты кадр не показываем —
+  /// там место кнопки и меню приложения.
+  final double top;
+
+  final String label;
+}
+
 class FigScreen {
   const FigScreen({
     required this.number,
@@ -122,6 +139,7 @@ class FigScreen {
     this.autoAdvanceAfter,
     this.tabBarAt,
     this.tabBarPinned = false,
+    this.pinnedCta,
     this.activeTab,
     this.mockupTab,
     this.viewportWidth = 375,
@@ -151,6 +169,9 @@ class FigScreen {
 
   /// Where the mockup draws the tab bar, so it scrolls with the content.
   final Offset? tabBarAt;
+
+  /// Кнопка макета, которую приложение держит над меню, а не в кадре.
+  final FigPinnedCta? pinnedCta;
 
   /// The mockup has no tab bar here, so the prototype injects one pinned to
   /// the bottom of the viewport (`NAV_SCREENS`).
@@ -182,6 +203,7 @@ const List<FigScreen> figScreens = [
     width: Screen01Splash.designWidth,
     height: Screen01Splash.designHeight,
     builder: _splash,
+    tapAnywhereTo: 1,
     autoAdvanceTo: 1,
     autoAdvanceAfter: Duration(milliseconds: 1600),
   ),
@@ -242,7 +264,11 @@ const List<FigScreen> figScreens = [
     width: Screen07Welcome2.designWidth,
     height: Screen07Welcome2.designHeight,
     builder: _welcome2,
-    hotspots: [FigHotspot(25, 656, 324, 36, 7, 'Войти')],
+    hotspots: [
+      FigHotspot(25, 656, 324, 36, 7, 'Войти'),
+      FigHotspot(116, 717, 143, 20, 5, 'Зарегистрироваться', pro: false),
+      FigHotspot(118, 753, 140, 20, 55, 'Режим исполнителя', pro: true),
+    ],
   ),
   FigScreen(
     number: '08',
@@ -316,6 +342,7 @@ const List<FigScreen> figScreens = [
     tabBarAt: Screen13Screen573408.tabBarAt,
     mockupTab: Screen13Screen573408.mockupTab,
     activeTab: 1,
+    pinnedCta: const FigPinnedCta(top: 678, label: 'Связаться с собственником'),
     hotspots: [FigHotspot(25, 238, 183, 21, 12, 'Садыр Жапаров')],
   ),
   FigScreen(
@@ -436,7 +463,6 @@ const List<FigScreen> figScreens = [
     width: Screen24PhotoConfirm1.designWidth,
     height: Screen24PhotoConfirm1.designHeight,
     builder: _photoConfirm1,
-    // регистрация исполнителя: клик по экрану — следующий шаг
     tapAnywhereTo: 24,
   ),
   FigScreen(
@@ -446,7 +472,6 @@ const List<FigScreen> figScreens = [
     width: Screen25PhotoConfirm2.designWidth,
     height: Screen25PhotoConfirm2.designHeight,
     builder: _photoConfirm2,
-    // последний шаг регистрации — дальше профиль исполнителя
     tapAnywhereTo: 37,
   ),
   FigScreen(

@@ -5,6 +5,7 @@
 // markup actually uses — box + border-radius + shadows (incl. inset rings),
 // background images, backdrop-filter, flexbox rows/columns and inline SVG —
 // so the generated screens can stay a literal transcription of the design.
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -129,9 +130,8 @@ class FigText extends StatelessWidget {
         leadingDistribution: TextLeadingDistribution.even,
       ),
     );
-    if (width != null || height != null) {
-      child = SizedBox(width: width, height: height, child: child);
-    }
+    if (width != null) child = _FigNoBreak(width: width!, align: align, child: child);
+    if (height != null) child = SizedBox(height: height, child: child);
     if (opacity != null) child = Opacity(opacity: opacity!, child: child);
     return child;
   }
@@ -146,6 +146,97 @@ class FigText extends StatelessWidget {
       ),
       children: span.children?.map((s) => _tinted(s, tint)).toList(),
     );
+  }
+}
+
+/// A fixed-width box for text that keeps the browser's `overflow-wrap: normal`.
+///
+/// CSS never breaks inside a word: a word wider than its block overflows it.
+/// Flutter's line breaker, given a tight width, falls back to breaking between
+/// characters — which is how "Кыргызстан" ended up as "Кыргызста / н". Laying
+/// the text out at least as wide as its longest word, while still reporting the
+/// design's width, reproduces the CSS behaviour: the word stays whole and hangs
+/// out of the box.
+class _FigNoBreak extends SingleChildRenderObjectWidget {
+  const _FigNoBreak({required this.width, required this.align, required Widget super.child});
+
+  final double width;
+  final TextAlign align;
+
+  @override
+  _RenderFigNoBreak createRenderObject(BuildContext context) =>
+      _RenderFigNoBreak(width, align, Directionality.of(context));
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderFigNoBreak renderObject) {
+    renderObject
+      ..width = width
+      ..align = align
+      ..direction = Directionality.of(context);
+  }
+}
+
+class _RenderFigNoBreak extends RenderShiftedBox {
+  _RenderFigNoBreak(this._width, this._align, this._direction) : super(null);
+
+  double _width;
+  set width(double value) {
+    if (_width == value) return;
+    _width = value;
+    markNeedsLayout();
+  }
+
+  TextAlign _align;
+  set align(TextAlign value) {
+    if (_align == value) return;
+    _align = value;
+    markNeedsLayout();
+  }
+
+  TextDirection _direction;
+  set direction(TextDirection value) {
+    if (_direction == value) return;
+    _direction = value;
+    markNeedsLayout();
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) => _width;
+
+  @override
+  double computeMaxIntrinsicWidth(double height) => _width;
+
+  @override
+  void performLayout() {
+    final child = this.child;
+    if (child == null) {
+      size = constraints.constrain(Size(_width, 0));
+      return;
+    }
+    // the widest the text can get without breaking a word
+    final unbroken = child.getMinIntrinsicWidth(double.infinity);
+    final inner = math.max(_width, unbroken);
+    child.layout(
+      BoxConstraints(
+        minWidth: inner,
+        maxWidth: inner,
+        minHeight: constraints.minHeight,
+        maxHeight: constraints.maxHeight,
+      ),
+      parentUsesSize: true,
+    );
+    size = constraints.constrain(Size(_width, child.size.height));
+    // an overflowing line is laid out inside `inner`; CSS centres and right-
+    // aligns it against the design's width, so it hangs out on both sides
+    final overflow = inner - _width;
+    final dx = switch (_align) {
+      TextAlign.center => -overflow / 2,
+      TextAlign.right => -overflow,
+      TextAlign.end => _direction == TextDirection.rtl ? 0.0 : -overflow,
+      TextAlign.start => _direction == TextDirection.rtl ? -overflow : 0.0,
+      _ => 0.0,
+    };
+    (child.parentData! as BoxParentData).offset = Offset(dx, 0);
   }
 }
 
@@ -287,7 +378,14 @@ class FigBox extends StatelessWidget {
       layers.add(Positioned.fill(
         child: IgnorePointer(
           child: DecoratedBox(
-            decoration: BoxDecoration(borderRadius: _radius, border: border),
+            // Flutter скругляет только рамку одного цвета. У полосок с
+            // волосяной линией сверху цвета сторон разные — там рамка
+            // рисуется без скругления, как это делает и браузер на своих
+            // 8 pt: на длинной стороне закругления всё равно не видно.
+            decoration: BoxDecoration(
+              borderRadius: border!.isUniform ? _radius : null,
+              border: border,
+            ),
           ),
         ),
       ));
@@ -418,12 +516,13 @@ class _RenderFigOverflow extends RenderShiftedBox {
       size = constraints.smallest;
       return;
     }
+    final maxH = freeHeight ? math.max(constraints.maxHeight, 10000.0) : constraints.maxHeight;
     child.layout(
       BoxConstraints(
         minWidth: freeWidth ? 0 : constraints.minWidth,
         maxWidth: freeWidth ? double.infinity : constraints.maxWidth,
         minHeight: freeHeight ? 0 : constraints.minHeight,
-        maxHeight: freeHeight ? double.infinity : constraints.maxHeight,
+        maxHeight: maxH,
       ),
       parentUsesSize: true,
     );

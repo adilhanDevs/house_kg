@@ -24,7 +24,7 @@ from django.db import transaction
 from django.utils import timezone
 from PIL import Image, ImageDraw, ImageFont
 
-from apps.billing.models import Wallet, WalletTransaction
+from apps.billing.models import PaymentProviderConfig, Wallet, WalletTransaction
 from apps.billing.services import apply_transaction, get_wallet
 from apps.catalog.enums import (
     Currency,
@@ -46,7 +46,7 @@ FILLER_DESCRIPTION = (
 )
 DEFAULT_ADDRESS = "Бишкек, Октябрьский район,\nул.Бакаева 178/4"
 DEFAULT_AGENT = "Садыр Жапаров"
-DEMO_PASSWORD = "demo12345"
+DEMO_PASSWORD = "demo12345"  # noqa: S105 - демо-пароль сидера, не секрет
 
 # Районы Бишкека: (название, slug).
 DISTRICTS: list[tuple[str, str]] = [
@@ -301,6 +301,14 @@ BUILDERS = [name for name, _ in BUILDER_SPECS] + [""]
 
 # Город прототипа.
 DEMO_CITY = ("Бишкек", "bishkek")
+
+# Банки на экране пополнения: (код, название, шаблон диплинка).
+PAYMENT_PROVIDERS: list[tuple[str, str, str]] = [
+    ("mbank", "MBank", "mbank://pay?target={provider_ref}&amount={amount}"),
+    ("odengi", "О!Деньги", "odengi://pay?ref={provider_ref}&amount={amount}"),
+    ("elsom", "Элсом", "elsom://pay?ref={provider_ref}&amount={amount}"),
+    ("optima", "Optima24", "optima24://pay?ref={provider_ref}&amount={amount}"),
+]
 STREETS = [
     "ул. Байтик Баатыра",
     "ул. Ахунбаева",
@@ -364,6 +372,7 @@ class Command(BaseCommand):
         districts = self._seed_districts()
         series = self._seed_series()
         builders = self._seed_builders()
+        providers = self._seed_payment_providers()
         listings = self._seed_anchor_listings(users, districts, series)
         listings += self._seed_generated_listings(users, districts, series)
         media_count = self._seed_media(listings)
@@ -378,6 +387,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  районов         {len(districts)}")
         self.stdout.write(f"  серий домов     {len(series)}")
         self.stdout.write(f"  застройщиков    {builders}")
+        self.stdout.write(f"  способов оплаты {providers}")
         self.stdout.write(
             f"  объявлений      {len(listings)} "
             f"({len(ANCHOR_LISTINGS)} из прототипа + {GENERATED_COUNT} сгенерированных)"
@@ -398,6 +408,7 @@ class Command(BaseCommand):
         City.objects.all().delete()
         HouseSeries.objects.all().delete()
         Builder.objects.all().delete()
+        PaymentProviderConfig.objects.all().delete()
         WalletTransaction.objects.all().delete()
         Wallet.objects.all().delete()
         get_user_model().objects.filter(phone__in=[u["phone"] for u in DEMO_USERS]).delete()
@@ -451,6 +462,15 @@ class Command(BaseCommand):
             series[code] = item
         self.stdout.write(f"  серий домов: {len(series)}")
         return series
+
+    def _seed_payment_providers(self) -> int:
+        for order, (code, name, deeplink) in enumerate(PAYMENT_PROVIDERS):
+            PaymentProviderConfig.objects.get_or_create(
+                code=code,
+                defaults={"name": name, "deeplink_template": deeplink, "order": order},
+            )
+        self.stdout.write(f"  способов оплаты: {len(PAYMENT_PROVIDERS)}")
+        return len(PAYMENT_PROVIDERS)
 
     def _seed_builders(self) -> int:
         for order, (name, slug) in enumerate(BUILDER_SPECS):

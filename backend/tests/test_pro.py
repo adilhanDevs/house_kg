@@ -12,6 +12,9 @@ from tests.factories import UserFactory
 
 REGISTER_URL = "/api/v1/auth/pro/register/"
 VERIFY_URL = "/api/v1/auth/otp/verify/"
+
+# Согласие на обработку ПДн обязательно при регистрации.
+CONSENT = {"accepted_terms_version": "1"}
 LOGIN_URL = "/api/v1/auth/password/login/"
 
 PHONE = "+996700123456"
@@ -82,7 +85,7 @@ def test_verify_pro_register_enables_pro_and_creates_wallet(api_client: APIClien
 
     response = api_client.post(
         VERIFY_URL,
-        {"phone": PHONE, "code": DEBUG_CODE, "purpose": OtpPurpose.PRO_REGISTER},
+        {"phone": PHONE, "code": DEBUG_CODE, "purpose": OtpPurpose.PRO_REGISTER, **CONSENT},
     )
 
     assert response.status_code == 200
@@ -105,7 +108,7 @@ def test_verify_pro_register_is_idempotent_for_wallet(api_client: APIClient) -> 
 
     api_client.post(
         VERIFY_URL,
-        {"phone": PHONE, "code": DEBUG_CODE, "purpose": OtpPurpose.PRO_REGISTER},
+        {"phone": PHONE, "code": DEBUG_CODE, "purpose": OtpPurpose.PRO_REGISTER, **CONSENT},
     )
 
     assert Wallet.objects.count() == 1

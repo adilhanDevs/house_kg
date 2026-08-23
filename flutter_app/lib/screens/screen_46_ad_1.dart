@@ -22,138 +22,7 @@ class Screen46Ad1 extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned(
-            left: 0.0, top: 788.0,
-            child: FigBox(
-              width: 375.0,
-              height: 24.0,
-              padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-              child: FigOverflow(
-                alignment: const Alignment(0.0, 0.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  spacing: 10.0,
-                  children: [
-                    FigBox(
-                      width: 131.0,
-                      height: 5.0,
-                      color: const Color(0xff000000),
-                      radius: 100.0,
-                      opacity: 0.9,
-                    ),
-                  ],
-                )
-                ,
-              )
-              ,
-            )
-          ),
-          Positioned(
-            left: 0.0, top: 0.0,
-            child: FigBox(
-              width: 375.0,
-              height: 48.0,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    left: 0.0, top: 0.0,
-                    child: FigBox(
-                      width: 375.0,
-                      height: 18.0,
-                    )
-                  ),
-                  Positioned(
-                    left: 287.0, top: 0.0,
-                    child: FigBox(
-                      width: 88.0,
-                      height: 48.0,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 26.0, top: 18.0,
-                            child: FigSvg(
-                              width: 15.0, height: 11.0,
-                              vbLeft: 0.0, vbTop: 0.0, vbWidth: 15.0, vbHeight: 11.0,
-                              shapes: const [FigShape(d: _p0, fill: Color(0xff000000))],
-                            )
-                          ),
-                          Positioned(
-                            left: 4.0, top: 18.0,
-                            child: FigSvg(
-                              width: 16.0, height: 11.0,
-                              vbLeft: 0.0, vbTop: 0.0, vbWidth: 16.0, vbHeight: 11.0,
-                              shapes: const [FigShape(d: _p1, fill: Color(0xff000000))],
-                            )
-                          ),
-                          Positioned(
-                            left: 47.0, top: 18.0,
-                            child: FigBox(
-                              width: 24.0,
-                              height: 11.0,
-                              clip: true,
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Positioned(
-                                    left: 0.0, top: 0.0,
-                                    child: FigBox(
-                                      width: 22.0,
-                                      height: 11.0,
-                                      radius: 3.0,
-                                      opacity: 0.35,
-                                      insets: const [FigInset(Color(0xff000000), 1.0)],
-                                    )
-                                  ),
-                                  Positioned(
-                                    left: 23.0, top: 4.0,
-                                    child: Opacity(
-                                      opacity: 0.4,
-                                      child: FigSvg(
-                                        width: 1.0, height: 4.0,
-                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 1.0, vbHeight: 4.0,
-                                        shapes: const [FigShape(d: _p2, fill: Color(0xff000000))],
-                                      ),
-                                    )
-                                  ),
-                                  Positioned(
-                                    left: 2.0, top: 2.0,
-                                    child: FigBox(
-                                      width: 18.0,
-                                      height: 7.0,
-                                      color: const Color(0xff000000),
-                                      radius: 1.5,
-                                    )
-                                  ),
-                                ],
-                              )
-                              ,
-                            )
-                          ),
-                        ],
-                      )
-                      ,
-                    )
-                  ),
-                  Positioned(
-                    left: 23.0, top: 15.0,
-                    child: FigText(
-                      align: TextAlign.center,
-                      width: 54.0,
-                      height: 18.0,
-                      span: 
-                        TextSpan(text: '12:48', style: figStyle(fontSize: 15.0, family: FigFont.text, weight: 600, height: 1.0, letterSpacing: -0.3, color: const Color(0xff000000)))
-                      ,
-                    )
-                  ),
-                ],
-              )
-              ,
-            )
-          ),
+          // Статус-бар рисует система — полоса 0..48 остаётся пустой.
           Positioned(
             left: 25.0, top: 732.0,
             child: FigBox(
@@ -473,11 +342,12 @@ class Screen46Ad1 extends StatelessWidget {
                                           crossAxisAlignment: CrossAxisAlignment.center,
                                           spacing: 8.0,
                                           children: [
-                                            FigSvg(
-                                              width: 48.0, height: 48.0,
-                                              vbLeft: 0.0, vbTop: 0.0, vbWidth: 48.0, vbHeight: 48.0,
-                                              shapes: const [FigShape(d: _p3, fill: Color(0xffffffff))],
-                                            ),
+                                            FigBox(
+                                               width: 48.0,
+                                               height: 48.0,
+                                               radius: 8.0,
+                                               bgImage: const FigBgImage('assets/figma/2e62acec850fa8b9.jpg'),
+                                             ),
                                             FigBox(
                                               width: 139.0,
                                               child: FigOverflow(
@@ -732,14 +602,6 @@ class Screen46Ad1 extends StatelessWidget {
   }
 }
 
-const String _p0 =
-    'M 5.112 8.72 C 6.491 7.761 8.51 7.761 9.889 8.72 C 9.958 8.771 9.998 8.844 10 8.921 C 10.002 8.998 9.965 9.072 9.898 9.126 L 7.739 10.918 C 7.676 10.97 7.59 11 7.5 11 C 7.41 11 7.324 10.97 7.261 10.918 L 5.102 9.126 C 5.035 9.072 4.998 8.998 5 8.921 C 5.002 8.844 5.043 8.771 5.112 8.72 Z M 3.099 6.11 C 5.861 3.297 10.139 3.297 12.901 6.11 C 12.964 6.176 12.999 6.267 13 6.362 C 13.001 6.457 12.967 6.548 12.906 6.615 L 11.745 7.899 C 11.626 8.031 11.432 8.034 11.31 7.906 C 10.403 7.007 9.223 6.509 7.999 6.509 C 6.776 6.509 5.597 7.007 4.69 7.906 C 4.568 8.034 4.374 8.031 4.255 7.899 L 3.095 6.615 C 3.034 6.548 2.999 6.457 3 6.362 C 3.001 6.267 3.036 6.176 3.099 6.11 Z M 0.095 3.193 C 4.235 -1.064 10.765 -1.064 14.905 3.193 C 14.965 3.257 15 3.343 15 3.434 C 15 3.524 14.967 3.611 14.908 3.675 L 13.772 4.904 C 13.655 5.03 13.466 5.031 13.348 4.907 C 11.77 3.298 9.676 2.401 7.5 2.4 C 5.324 2.401 3.231 3.298 1.653 4.907 C 1.535 5.032 1.344 5.031 1.228 4.904 L 0.092 3.675 C 0.033 3.611 0 3.524 0 3.434 C 0.001 3.343 0.035 3.257 0.095 3.193 Z';
-const String _p1 =
-    'M 2 7 C 2.552 7 3 7.448 3 8 L 3 10 C 3 10.552 2.552 11 2 11 L 1 11 C 0.448 11 0 10.552 0 10 L 0 8 C 0 7.448 0.448 7 1 7 L 2 7 Z M 6 5 C 6.552 5 7 5.448 7 6 L 7 10 C 7 10.552 6.552 11 6 11 L 5 11 C 4.448 11 4 10.552 4 10 L 4 6 C 4 5.448 4.448 5 5 5 L 6 5 Z M 11 2 C 11.552 2 12 2.484 12 3.08 L 12 9.92 C 12 10.516 11.552 11 11 11 L 10 11 C 9.448 11 9 10.516 9 9.92 L 9 3.08 C 9 2.484 9.448 2 10 2 L 11 2 Z M 15 0 C 15.552 0 16 0.462 16 1.031 L 16 9.969 C 16 10.538 15.552 11 15 11 L 14 11 C 13.448 11 13 10.538 13 9.969 L 13 1.031 C 13 0.462 13.448 0 14 0 L 15 0 Z';
-const String _p2 =
-    'M 0 0 L 0 4 C 0.606 3.661 1 2.873 1 2 C 1 1.127 0.606 0.339 0 0';
-const String _p3 =
-    'M 0 6 C 0 2.686 2.686 0 6 0 L 42 0 C 45.314 0 48 2.686 48 6 L 48 42 C 48 45.314 45.314 48 42 48 L 6 48 C 2.686 48 0 45.314 0 42 L 0 6 Z';
 const String _p4 =
     'M 0 2 L -0.232 1.557 C -0.397 1.643 -0.5 1.814 -0.5 2 L 0 2 Z M 0 10 L -0.5 10 C -0.5 10.175 -0.409 10.337 -0.259 10.428 C -0.109 10.518 0.077 10.524 0.232 10.443 L 0 10 Z M 3.818 8 L 4.027 7.545 C 3.886 7.481 3.723 7.485 3.586 7.557 L 3.818 8 Z M 8.182 10 L 7.973 10.455 C 8.114 10.519 8.277 10.515 8.414 10.443 L 8.182 10 Z M 12 8 L 12.232 8.443 C 12.397 8.357 12.5 8.186 12.5 8 L 12 8 Z M 12 0 L 12.5 0 C 12.5 -0.175 12.409 -0.337 12.259 -0.428 C 12.109 -0.518 11.923 -0.524 11.768 -0.443 L 12 0 Z M 8.182 2 L 7.973 2.455 C 8.114 2.519 8.277 2.515 8.414 2.443 L 8.182 2 Z M 3.818 0 L 4.027 -0.455 C 3.886 -0.519 3.723 -0.515 3.586 -0.443 L 3.818 0 Z M 0 2 L -0.5 2 L -0.5 10 L 0 10 L 0.5 10 L 0.5 2 L 0 2 Z M 0 10 L 0.232 10.443 L 4.05 8.443 L 3.818 8 L 3.586 7.557 L -0.232 9.557 L 0 10 Z M 3.818 8 L 3.61 8.455 L 7.973 10.455 L 8.182 10 L 8.39 9.545 L 4.027 7.545 L 3.818 8 Z M 8.182 10 L 8.414 10.443 L 12.232 8.443 L 12 8 L 11.768 7.557 L 7.95 9.557 L 8.182 10 Z M 12 8 L 12.5 8 L 12.5 0 L 12 0 L 11.5 0 L 11.5 8 L 12 8 Z M 12 0 L 11.768 -0.443 L 7.95 1.557 L 8.182 2 L 8.414 2.443 L 12.232 0.443 L 12 0 Z M 8.182 2 L 8.39 1.545 L 4.027 -0.455 L 3.818 0 L 3.61 0.455 L 7.973 2.455 L 8.182 2 Z M 3.818 0 L 3.586 -0.443 L -0.232 1.557 L 0 2 L 0.232 2.443 L 4.05 0.443 L 3.818 0 Z';
 const String _p5 =

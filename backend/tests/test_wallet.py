@@ -120,7 +120,8 @@ def test_spend_more_than_balance_raises(wallet: Wallet) -> None:
             wallet=wallet, amount=-780, kind=WalletEntryKind.SPEND, label="Продвижение"
         )
 
-    assert exc.value.extra_details == {"required": 780, "available": 300}
+    # shortfall считается сервером: приложению не нужно вычитать самому.
+    assert exc.value.extra_details == {"required": 780, "available": 300, "shortfall": 480}
 
     wallet.refresh_from_db()
     assert wallet.balance == 300
@@ -319,6 +320,6 @@ def test_insufficient_funds_http_envelope() -> None:
         "error": {
             "code": "insufficient_funds",
             "message": "Недостаточно кирпичей на балансе",
-            "details": {"required": 780, "available": 300},
+            "details": {"required": 780, "available": 300, "shortfall": 480},
         }
     }

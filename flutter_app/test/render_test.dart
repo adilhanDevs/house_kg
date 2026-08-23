@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:house_kgz/fig/fig.dart';
 import 'package:house_kgz/fig/tab_bar.dart';
 import 'package:house_kgz/main.dart';
 import 'package:house_kgz/prototype.dart';
@@ -126,6 +127,46 @@ void main() {
       });
       expect(clamped, isEmpty, reason: 'screen ${screen.number} ${screen.title}');
     }
+  });
+
+  // CSS never breaks inside a word: a word wider than its block hangs out of
+  // it. Flutter's default is to break between characters, which turned
+  // «Кыргызстан» in its 67pt box into «Кыргызста / н».
+  testWidgets('a word wider than its box is not broken up', (tester) async {
+    final style = figStyle(fontSize: 12.0, height: 1.0);
+    const narrow = ValueKey('narrow');
+    const wide = ValueKey('wide');
+    await tester.pumpWidget(MaterialApp(
+      home: Align(
+        alignment: Alignment.topLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FigText(
+              key: narrow,
+              width: 67,
+              align: TextAlign.center,
+              span: TextSpan(text: 'Кыргызстан', style: style),
+            ),
+            FigText(
+              key: wide,
+              width: 400,
+              span: TextSpan(text: 'Кыргызстан', style: style),
+            ),
+          ],
+        ),
+      ),
+    ));
+
+    Size paragraph(Key key) => tester.getSize(
+        find.descendant(of: find.byKey(key), matching: find.byType(RichText)));
+
+    // коробка остаётся шириной с макет, а слово — целым: одна строка, как у
+    // того же слова там, где места хватает, и шире своей коробки
+    expect(tester.getSize(find.byKey(narrow)).width, 67);
+    expect(paragraph(narrow).height, paragraph(wide).height);
+    expect(paragraph(narrow).width, greaterThan(67));
   });
 
   // The tab bar is the prototype's, not the mockup's: it lives outside the

@@ -1,0 +1,102 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  lint:
+    name: Линт и типы
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Установка зависимостей
+        run: pip install -e ".[dev]"
+      - name: ruff check (включая правила безопасности S/bandit)
+        run: ruff check .
+      - name: ruff format
+        run: ruff format --check .
+
+  security:
+    name: Аудит зависимостей
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Установка зависимостей
+        run: pip install -e ".[dev]"
+      - name: pip-audit
+        # Известная уязвимость в зависимости — повод не выкатывать релиз,
+        # поэтому шаг блокирующий, а не информационный.
+        # --skip-editable пропускает сам проект (его нет на PyPI).
+        run: pip-audit --desc --skip-editable
+
+  tests:
+    name: Тесты (PostgreSQL + Redis)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: house
+          POSTGRES_PASSWORD: house
+          POSTGRES_DB: house_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DJANGO_SECRET_KEY: ci-secret-key-not-for-production-use-32
+      DATABASE_URL: postgres://house:house@localhost:5432/house_test
+      REDIS_URL: redis://localhost:6379/1
+      # Ключ шифрования ИИН: тесты проверяют, что в БД лежит шифротекст.
+      FIELD_ENCRYPTION_KEY: 9iXo8pPdpL3VWoyZlLUGWu517hQbs80SdWVC6m3e4aY=
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Системные зависимости
+        # libmagic — определение типа файла по содержимому,
+        # ffmpeg — длительность видео и кадр-превью.
+        run: sudo apt-get update && sudo apt-get install -y libmagic1 ffmpeg
+      - name: Установка зависимостей
+        run: pip install -e ".[dev]"
+      - name: Миграции применяются без ошибок
+        run: python manage.py makemigrations --check --dry-run
+      - name: Тесты с порогом покрытия 80 %
+        run: pytest --cov-fail-under=80
+      - name: Покрытие биллинга не ниже 95 %
+        run: |
+          pytest tests -o addopts="" --strict-markers \
+            --cov=apps/billing --cov-report=term-missing --cov-fail-under=95
+      - name: Тесты гонок (на PostgreSQL они не пропускаются)
+        run: pytest tests/test_concurrency.py --no-cov -rs
+      - name: Контракт OpenAPI
+        run: pytest tests/test_openapi_contract.py --no-cov

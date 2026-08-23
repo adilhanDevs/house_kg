@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Нужен доступ к галерее, чтобы приложить фотографии и видео к объявлению.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Нужен доступ к камере, чтобы снять фотографию или видео для объявления.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Нужен доступ к микрофону, чтобы записать видеообзор со звуком.</string>
 </dict>
 </plist>

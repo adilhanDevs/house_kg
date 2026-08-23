@@ -218,17 +218,36 @@ class SupportTicket(TimeStampedModel):
 
 
 class AuditLog(models.Model):
-    """Журнал доступа к чувствительным данным.
+    """Журнал действий с чувствительными данными и деньгами.
 
-    Пишется, например, при каждой выдаче подписанной ссылки на документ KYC.
-    Ни имён файлов, ни ссылок здесь нет — только кто, к чьим данным и когда
-    обращался.
+    Пишется явными вызовами `apps.common.audit.audit(...)`, а не сигналами:
+    сигнал не знает, кто именно инициировал изменение и из какого запроса,
+    а без актора и IP запись аудита бесполезна.
+
+    Ни имён файлов, ни подписанных ссылок, ни паролей здесь нет — только
+    кто, что, над чем и с какими изменениями.
     """
 
     class Action(models.TextChoices):
+        # Доступ к документам верификации.
         KYC_URL_ISSUED = "kyc.url_issued", "Выдана ссылка на документ"
         KYC_FILE_DOWNLOADED = "kyc.file_downloaded", "Документ скачан"
         KYC_REVIEWED = "kyc.reviewed", "Решение по заявке"
+        # Деньги.
+        WALLET_TRANSACTION = "wallet.transaction", "Операция по кошельку"
+        PAYMENT_CREDITED = "wallet.payment_credited", "Платёж зачислен"
+        # Модерация.
+        MODERATION_APPROVED = "moderation.approved", "Модерация: одобрено"
+        MODERATION_REJECTED = "moderation.rejected", "Модерация: отклонено"
+        SELLER_VERIFIED = "moderation.seller_verified", "Решение по продавцу"
+        # Права и учётные записи.
+        USER_FLAGS_CHANGED = "user.flags_changed", "Изменены права пользователя"
+        USER_DELETED = "user.deleted", "Аккаунт удалён"
+        PASSWORD_LOGIN = "auth.password_login", "Вход по паролю"
+        DATA_EXPORTED = "user.data_exported", "Выгрузка персональных данных"
+        CONSENT_GRANTED = "user.consent_granted", "Дано согласие на обработку ПДн"
+        # Каталог.
+        LISTING_PRICE_CHANGED = "listing.price_changed", "Изменена цена объявления"
 
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -246,13 +265,18 @@ class AuditLog(models.Model):
         blank=True,
         null=True,
     )
-    action = models.CharField("Действие", max_length=64, choices=Action.choices, db_index=True)
-    object_type = models.CharField("Тип объекта", max_length=64, blank=True)
-    object_id = models.CharField("ID объекта", max_length=64, blank=True)
+    # choices не задаём: список действий пополняется, а старые записи должны
+    # оставаться читаемыми и после переименования константы.
+    action = models.CharField("Действие", max_length=64, db_index=True)
+    target_type = models.CharField("Тип объекта", max_length=64, blank=True)
+    target_id = models.CharField("ID объекта", max_length=64, blank=True)
+    # Что изменилось: {"поле": {"before": ..., "after": ...}}.
+    changes = models.JSONField("Изменения", default=dict, blank=True)
     ip_address = models.GenericIPAddressField("IP", blank=True, null=True)
     user_agent = models.CharField("User-Agent", max_length=256, blank=True)
-    # Только безопасные подробности: имя поля, причина отказа и т.п.
+    # Дополнительный контекст: сумма операции, причина отклонения и т.п.
     extra = models.JSONField("Подробности", default=dict, blank=True)
+    request_id = models.CharField("ID запроса", max_length=64, blank=True, db_index=True)
     created_at = models.DateTimeField("Когда", auto_now_add=True, db_index=True)
 
     class Meta:
@@ -265,4 +289,13 @@ class AuditLog(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.get_action_display()} · {self.created_at:%d.%m.%Y %H:%M}"
+        return f"{self.action} · {self.created_at:%d.%m.%Y %H:%M}"
+
+    @property
+    def object_type(self) -> str:
+        """Прежнее имя поля — на него ссылается уже написанный код KYC."""
+        return self.target_type
+
+    @property
+    def object_id(self) -> str:
+        return self.target_id

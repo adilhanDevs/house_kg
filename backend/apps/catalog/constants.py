@@ -7,6 +7,10 @@
 MAX_PHOTOS_PER_LISTING = 20
 MAX_VIDEOS_PER_LISTING = 20
 
+# Сколько файлов принимается за один запрос. Больше, чем свободных слотов,
+# всё равно не влезет, а неограниченная пачка — это 20×200 МБ в одном POST.
+MAX_FILES_PER_REQUEST = 20
+
 # Длина случайного хвоста в слаге объявления.
 SLUG_SUFFIX_LENGTH = 8
 SLUG_MAX_LENGTH = 140

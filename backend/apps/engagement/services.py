@@ -13,6 +13,7 @@ from apps.catalog.enums import ListingStatus
 from apps.catalog.filters import ListingFilterSet
 from apps.catalog.models import Listing
 from apps.catalog.services import decrement_favourites, increment_favourites, listing_queryset
+from apps.catalog.stats import bump_stat
 from apps.common.dates import local_day, relative_day_keys, start_of_day
 from apps.common.exceptions import ApiValidationError, ConflictError
 from apps.engagement.models import Favourite, SavedFilter, ViewHistory
@@ -131,6 +132,7 @@ def add_favourite(user: Any, listing: Listing) -> tuple[bool, int]:
     )
     if created:
         increment_favourites(listing.pk)
+        bump_stat(listing.pk, "favourites")
 
     return True, current_favourites_count(listing)
 

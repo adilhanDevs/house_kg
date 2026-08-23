@@ -44,6 +44,37 @@ class MediaKind(models.TextChoices):
     VIDEO = "video", "video"
 
 
+class MediaStatus(models.TextChoices):
+    """Стадия обработки файла.
+
+    Клиент показывает файл сразу после загрузки: пока статус не `ready`,
+    отдаётся URL оригинала, а экран не ждёт конвертации.
+    """
+
+    UPLOADING = "uploading", "Загружается"
+    PROCESSING = "processing", "Обрабатывается"
+    READY = "ready", "Готово"
+    FAILED = "failed", "Ошибка обработки"
+
+
+class ModerationStatus(models.TextChoices):
+    """Состояние задачи модерации."""
+
+    OPEN = "open", "В очереди"
+    APPROVED = "approved", "Одобрено"
+    REJECTED = "rejected", "Отклонено"
+
+
+class ReportReason(models.TextChoices):
+    """За что пользователь жалуется на объявление."""
+
+    FRAUD = "fraud", "Мошенничество"
+    SOLD = "sold", "Объект уже продан"
+    WRONG_INFO = "wrong_info", "Недостоверная информация"
+    DUPLICATE = "duplicate", "Дубликат"
+    SPAM = "spam", "Спам"
+
+
 class Currency(models.TextChoices):
     USD = "USD", "USD"
     KGS = "KGS", "KGS"

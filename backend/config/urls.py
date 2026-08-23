@@ -40,9 +40,14 @@ handler404 = "apps.common.views.json_404"
 handler500 = "apps.common.views.json_500"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # Путь админки — из окружения: /admin/ сканируют боты по умолчанию.
+    # Доступ дополнительно ограничен по IP (AdminIpRestrictionMiddleware).
+    path(settings.ADMIN_URL_PATH, admin.site.urls),
     # Версия зашита в путь: URLPathVersioning + DEFAULT_VERSION="v1".
     path("api/v1/", include(api_v1_patterns)),
+    # Метрики Prometheus. Наружу не выставляются: InternalOnlyMiddleware
+    # пускает сюда только из внутренней сети.
+    path("", include("django_prometheus.urls")),
 ]
 
 if settings.DEBUG:

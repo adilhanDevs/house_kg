@@ -4,10 +4,12 @@ from typing import Any
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
 from apps.catalog.enums import SellerKind
+from apps.common.fields import EncryptedCharField
 from apps.common.models import TimeStampedModel
 from apps.common.storages import private_storage
 from apps.users.phone import is_deleted_phone, normalize_phone
@@ -62,10 +64,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=SellerKind.choices,
         blank=True,
     )
-    # Персональные данные: наружу отдаётся маскированным, в логи не попадает.
-    iin = models.CharField(
+    # Персональные данные: в БД хранится зашифрованным, наружу отдаётся
+    # маскированным, в логи не попадает вовсе. По ИИН нельзя искать —
+    # это осознанная плата за шифрование, искать людей по нему и не нужно.
+    iin = EncryptedCharField(
         "ИИН",
-        max_length=14,
+        max_length=255,
         blank=True,
         validators=[validate_iin],
         help_text="Заполняется только при pro-регистрации, 14 цифр.",
@@ -82,6 +86,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField("Активен", default=True)
     is_staff = models.BooleanField("Доступ в админку", default=False)
+    is_trusted = models.BooleanField(
+        "Доверенный",
+        default=False,
+        help_text="Объявления публикуются сразу, минуя модерацию.",
+    )
     date_joined = models.DateTimeField("Дата регистрации", default=timezone.now)
     updated_at = models.DateTimeField("Обновлён", auto_now=True)
 
@@ -189,6 +198,23 @@ class SellerProfile(TimeStampedModel):
     company_name = models.CharField("Название компании", max_length=150, blank=True)
     logo = models.ImageField("Логотип", upload_to="sellers/%Y/%m/", blank=True, null=True)
     about = models.TextField("О себе", blank=True)
+    experience_years = models.PositiveSmallIntegerField("Опыт, лет", default=0)
+    work_districts = models.ManyToManyField(
+        "catalog.District",
+        verbose_name="Районы работы",
+        related_name="sellers",
+        blank=True,
+    )
+
+    whatsapp = models.CharField("WhatsApp", max_length=32, blank=True)
+    telegram = models.CharField("Telegram", max_length=64, blank=True)
+    instagram = models.CharField("Instagram", max_length=64, blank=True)
+    # {"mon": ["09:00", "18:00"], ...}; пустой список — выходной.
+    working_hours = models.JSONField("Часы работы", default=dict, blank=True)
+
+    # Денормализация: агрегат по опубликованным отзывам. Меняется только
+    # через recalc_seller_rating, чтобы карточка продавца не считала Avg
+    # на каждый показ.
     rating = models.DecimalField("Рейтинг", max_digits=3, decimal_places=2, default=0)
     reviews_count = models.PositiveIntegerField("Отзывов", default=0)
     is_verified = models.BooleanField("Личность подтверждена", default=False)
@@ -201,6 +227,85 @@ class SellerProfile(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.company_name or str(self.user)
+
+
+class ReviewStatus(models.TextChoices):
+    """Состояние отзыва."""
+
+    PENDING = "pending", "На модерации"
+    PUBLISHED = "published", "Опубликован"
+    REJECTED = "rejected", "Отклонён"
+
+
+class Review(TimeStampedModel):
+    """Отзыв о продавце.
+
+    В публичную выдачу и в рейтинг попадают только опубликованные: отзыв —
+    это текст от постороннего человека на чужой странице, он проходит
+    модерацию.
+    """
+
+    seller = models.ForeignKey(
+        "users.User",
+        verbose_name="Продавец",
+        on_delete=models.CASCADE,
+        related_name="reviews_received",
+    )
+    author = models.ForeignKey(
+        "users.User",
+        verbose_name="Автор",
+        on_delete=models.CASCADE,
+        related_name="reviews_written",
+    )
+    listing = models.ForeignKey(
+        "catalog.Listing",
+        verbose_name="Объявление",
+        # Объявление могут снять, а отзыв о продавце остаётся.
+        on_delete=models.SET_NULL,
+        related_name="reviews",
+        blank=True,
+        null=True,
+    )
+    rating = models.PositiveSmallIntegerField(
+        "Оценка",
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    text = models.TextField("Текст", blank=True)
+    status = models.CharField(
+        "Статус",
+        max_length=16,
+        choices=ReviewStatus.choices,
+        default=ReviewStatus.PENDING,
+        db_index=True,
+    )
+    moderator_comment = models.TextField("Комментарий модератора", blank=True)
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+        ordering = ["-created_at"]
+        constraints = [
+            # Один отзыв на продавца от пользователя: иначе рейтинг
+            # накручивается одним человеком.
+            models.UniqueConstraint(
+                fields=["seller", "author"],
+                name="review_unique_author_per_seller",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1) & models.Q(rating__lte=5),
+                name="review_rating_range",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["seller", "status", "-created_at"], name="review_seller_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.rating}★ о {self.seller_id} от {self.author_id}"
+
+    @property
+    def is_published(self) -> bool:
+        return self.status == ReviewStatus.PUBLISHED
 
 
 class DocumentType(models.TextChoices):
@@ -306,3 +411,188 @@ class IdentityVerification(TimeStampedModel):
     def can_resubmit(self) -> bool:
         """Подать заново можно, пока заявка не на проверке и не одобрена."""
         return self.status in (VerificationStatus.REJECTED, VerificationStatus.EXPIRED)
+
+
+class SellerVerification(TimeStampedModel):
+    """Заявка на подтверждение агентства.
+
+    Это не KYC: здесь документы юрлица (свидетельство, лицензия), а не
+    паспорт. Они не так чувствительны, поэтому лежат в обычном хранилище,
+    но всё равно видны только модератору.
+    """
+
+    seller = models.ForeignKey(
+        "users.User",
+        verbose_name="Продавец",
+        on_delete=models.CASCADE,
+        related_name="seller_verifications",
+    )
+    # Список путей загруженных файлов: [{"name": ..., "url": ...}, ...]
+    documents = models.JSONField("Документы", default=list, blank=True)
+    status = models.CharField(
+        "Статус",
+        max_length=16,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.PENDING,
+        db_index=True,
+    )
+    comment = models.TextField("Комментарий", blank=True)
+    reviewed_by = models.ForeignKey(
+        "users.User",
+        verbose_name="Кто проверил",
+        on_delete=models.SET_NULL,
+        related_name="seller_verifications_reviewed",
+        blank=True,
+        null=True,
+    )
+    reviewed_at = models.DateTimeField("Когда проверено", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Заявка на подтверждение продавца"
+        verbose_name_plural = "Заявки на подтверждение продавцов"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "-created_at"], name="seller_verif_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Проверка продавца {self.seller_id} ({self.get_status_display()})"
+
+
+class ContactEvent(models.Model):
+    """Раскрытие телефона продавца — след для антифрода.
+
+    Массовый обход каталога с выгрузкой номеров выглядит именно так: один
+    пользователь, десятки объявлений, минуты между событиями.
+    """
+
+    listing = models.ForeignKey(
+        "catalog.Listing",
+        verbose_name="Объявление",
+        on_delete=models.CASCADE,
+        related_name="contact_events",
+    )
+    user = models.ForeignKey(
+        "users.User",
+        verbose_name="Кто смотрел",
+        on_delete=models.CASCADE,
+        related_name="contact_events",
+    )
+    ip_address = models.GenericIPAddressField("IP", blank=True, null=True)
+    created_at = models.DateTimeField("Когда", auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Раскрытие контакта"
+        verbose_name_plural = "Раскрытия контактов"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"], name="contact_user_recent_idx"),
+            models.Index(fields=["listing", "-created_at"], name="contact_listing_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} -> {self.listing_id}"
+
+
+class ConsentType(models.TextChoices):
+    """На что даётся согласие."""
+
+    PERSONAL_DATA = "personal_data", "Обработка персональных данных"
+    MARKETING = "marketing", "Рекламные рассылки"
+    COOKIES = "cookies", "Аналитика и cookies"
+
+
+class UserConsent(models.Model):
+    """Согласие пользователя, привязанное к версии документа.
+
+    Хранится историей, а не флагом: закон требует уметь показать, **какую
+    именно** редакцию документа человек принял, когда и с какого адреса.
+    Новая версия соглашения — новая запись, старая остаётся.
+    """
+
+    user = models.ForeignKey(
+        "users.User",
+        verbose_name="Пользователь",
+        on_delete=models.CASCADE,
+        related_name="consents",
+    )
+    consent_type = models.CharField(
+        "Тип согласия",
+        max_length=32,
+        choices=ConsentType.choices,
+        default=ConsentType.PERSONAL_DATA,
+    )
+    document_version = models.CharField("Версия документа", max_length=32)
+    granted = models.BooleanField("Дано", default=True)
+    ip_address = models.GenericIPAddressField("IP", blank=True, null=True)
+    user_agent = models.CharField("User-Agent", max_length=256, blank=True)
+    created_at = models.DateTimeField("Когда", auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Согласие пользователя"
+        verbose_name_plural = "Согласия пользователей"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["user", "consent_type", "-created_at"],
+                name="consent_user_type_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        state = "дано" if self.granted else "отозвано"
+        return f"{self.get_consent_type_display()} v{self.document_version}: {state}"
+
+
+class DataExportStatus(models.TextChoices):
+    PENDING = "pending", "Готовится"
+    READY = "ready", "Готово"
+    FAILED = "failed", "Ошибка"
+    EXPIRED = "expired", "Ссылка истекла"
+
+
+class DataExport(models.Model):
+    """Выгрузка персональных данных по запросу пользователя.
+
+    Файл лежит в приватном хранилище и отдаётся только по подписанной
+    ссылке с коротким сроком жизни: выгрузка — это всё, что мы знаем о
+    человеке, одним файлом.
+    """
+
+    user = models.ForeignKey(
+        "users.User",
+        verbose_name="Пользователь",
+        on_delete=models.CASCADE,
+        related_name="data_exports",
+    )
+    status = models.CharField(
+        "Статус",
+        max_length=16,
+        choices=DataExportStatus.choices,
+        default=DataExportStatus.PENDING,
+        db_index=True,
+    )
+    file = models.FileField(
+        "Файл",
+        storage=private_storage,
+        upload_to="exports/%Y/%m/",
+        blank=True,
+        null=True,
+    )
+    size_bytes = models.PositiveBigIntegerField("Размер", blank=True, null=True)
+    error = models.CharField("Ошибка", max_length=255, blank=True)
+    expires_at = models.DateTimeField("Ссылка истекает", blank=True, null=True)
+    created_at = models.DateTimeField("Создана", auto_now_add=True, db_index=True)
+    completed_at = models.DateTimeField("Готова", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Выгрузка данных"
+        verbose_name_plural = "Выгрузки данных"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Выгрузка {self.user_id} ({self.get_status_display()})"
+
+    @property
+    def is_ready(self) -> bool:
+        return self.status == DataExportStatus.READY and bool(self.file)
