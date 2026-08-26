@@ -2,6 +2,7 @@
 // Do not edit by hand; regenerate with tool/generate_screens.js.
 import 'package:flutter/material.dart';
 
+import '../app/routes.dart';
 import '../fig/fig.dart';
 
 /// Объект · полная — 375.0×1899.0
@@ -301,10 +302,9 @@ class Screen19ObjectFull extends StatelessWidget {
                               ,
                             ),
                             FigBox(
-                              width: 406.0,
-                              child: FigOverflow(
-                                freeWidth: true,
-                                alignment: const Alignment(-1.0, 0.0),
+                              width: 325.0,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -390,10 +390,8 @@ class Screen19ObjectFull extends StatelessWidget {
                                       ,
                                     ),
                                   ],
-                                )
-                                ,
-                              )
-                              ,
+                                ),
+                              ),
                             ),
                           ],
                         )
@@ -758,7 +756,7 @@ class Screen19ObjectFull extends StatelessWidget {
             )
           ),
           Positioned(
-            left: 25.0, top: 1239.0,
+            left: 25.0, top: 1255.0,
             child: FigText(
               noWrap: true,
               width: 148.0,
@@ -791,7 +789,7 @@ class Screen19ObjectFull extends StatelessWidget {
             )
           ),
           Positioned(
-            left: 25.0, top: 1269.0,
+            left: 25.0, top: 1285.0,
             child: FigBox(
               child: FigOverflow(
                 freeWidth: true,
@@ -866,7 +864,7 @@ class Screen19ObjectFull extends StatelessWidget {
             )
           ),
           Positioned(
-            left: 25.0, top: 1326.0,
+            left: 25.0, top: 1340.0,
             child: FigBox(
               width: 144.0,
               child: FigOverflow(
@@ -882,7 +880,7 @@ class Screen19ObjectFull extends StatelessWidget {
                       ,
                     ),
                     FigText(
-                      width: 144.0,
+                      noWrap: true,
                       span: 
                         TextSpan(text: 'Можно сторговаться', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
                       ,
@@ -895,189 +893,24 @@ class Screen19ObjectFull extends StatelessWidget {
             )
           ),
           Positioned(
-            left: 25.0, top: 1454.0,
-            child: FigBox(
-              width: 140.0,
-              child: FigOverflow(
-                alignment: const Alignment(-1.0, -1.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 4.0,
-                  children: [
-                    FigBox(
-                      width: 140.0,
-                      height: 200.0,
-                      radius: 8.0,
-                      bgImage: const FigBgImage('assets/figma/92b0d143df96c511.jpg'),
-                      overlays: const [LinearGradient(begin: Alignment(0.018, 1.009), end: Alignment(-0.018, -1.009), colors: [Color(0x26000000), Color(0x00666666)], stops: [0.243, 0.943])],
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 60.0, top: 90.0,
-                            child: FigBox(
-                              width: 20.283,
-                              height: 19.932,
-                              clip: true,
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Positioned(
-                                    left: 0.0, top: 0.0,
-                                    child: Opacity(
-                                      opacity: 0.0,
-                                      child: FigSvg(
-                                        width: 20.283, height: 19.932,
-                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 20.283, vbHeight: 19.932,
-                                        shapes: const [FigShape(d: _p7, fill: Color(0xff000000))],
-                                      ),
-                                    )
-                                  ),
-                                  Positioned(
-                                    left: 0.0, top: 0.0,
-                                    child: FigSvg(
-                                      width: 19.922, height: 19.922,
-                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 19.922, vbHeight: 19.922,
-                                      shapes: const [FigShape(d: _p8, fill: Color(0xd9ffffff))],
-                                    )
-                                  ),
-                                  Positioned(
-                                    left: 7.158, top: 6.045,
-                                    child: FigSvg(
-                                      width: 6.837, height: 7.853,
-                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 6.837, vbHeight: 7.853,
-                                      shapes: const [FigShape(d: _p9, fill: Color(0xd9ffffff))],
-                                    )
-                                  ),
-                                ],
-                              )
-                              ,
-                            )
-                          ),
-                        ],
-                      )
-                      ,
-                    ),
-                    FigText(
-                      width: 140.0,
-                      span: 
-                        TextSpan(text: 'Обзор квартиры', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
-                      ,
-                    ),
-                  ],
-                )
-                ,
-              )
-              ,
-            )
-          ),
-          Positioned(
-            left: 180.0, top: 1454.0,
-            child: FigBox(
-              width: 140.0,
-              child: FigOverflow(
-                alignment: const Alignment(-1.0, -1.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 4.0,
-                  children: [
-                    FigBox(
-                      width: 140.0,
-                      height: 200.0,
-                      radius: 8.0,
-                      bgImage: const FigBgImage('assets/figma/92b0d143df96c511.jpg'),
-                      overlays: const [LinearGradient(begin: Alignment(0.018, 1.009), end: Alignment(-0.018, -1.009), colors: [Color(0x26000000), Color(0x00666666)], stops: [0.243, 0.943])],
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 60.0, top: 90.0,
-                            child: FigBox(
-                              width: 20.283,
-                              height: 19.932,
-                              clip: true,
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Positioned(
-                                    left: 0.0, top: 0.0,
-                                    child: Opacity(
-                                      opacity: 0.0,
-                                      child: FigSvg(
-                                        width: 20.283, height: 19.932,
-                                        vbLeft: 0.0, vbTop: 0.0, vbWidth: 20.283, vbHeight: 19.932,
-                                        shapes: const [FigShape(d: _p7, fill: Color(0xff000000))],
-                                      ),
-                                    )
-                                  ),
-                                  Positioned(
-                                    left: 0.0, top: 0.0,
-                                    child: FigSvg(
-                                      width: 19.922, height: 19.922,
-                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 19.922, vbHeight: 19.922,
-                                      shapes: const [FigShape(d: _p8, fill: Color(0xd9ffffff))],
-                                    )
-                                  ),
-                                  Positioned(
-                                    left: 7.158, top: 6.045,
-                                    child: FigSvg(
-                                      width: 6.837, height: 7.853,
-                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 6.837, vbHeight: 7.853,
-                                      shapes: const [FigShape(d: _p9, fill: Color(0xd9ffffff))],
-                                    )
-                                  ),
-                                ],
-                              )
-                              ,
-                            )
-                          ),
-                        ],
-                      )
-                      ,
-                    ),
-                    FigText(
-                      width: 140.0,
-                      span: 
-                        TextSpan(text: 'Обзор местности', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
-                      ,
-                    ),
-                  ],
-                )
-                ,
-              )
-              ,
-            )
-          ),
-          Positioned(
-            left: 335.0, top: 1454.0,
-            child: FigBox(
-              width: 140.0,
-              child: FigOverflow(
-                alignment: const Alignment(-1.0, -1.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 4.0,
-                  children: [
-                    FigSvg(
-                      width: 140.0, height: 200.0,
-                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 140.0, vbHeight: 200.0,
-                      shapes: const [FigShape(d: _p10, fill: Color(0xffffffff))],
-                    ),
-                    FigText(
-                      width: 140.0,
-                      span: 
-                        TextSpan(text: 'Обзор местности', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
-                      ,
-                    ),
-                  ],
-                )
-                ,
-              )
-              ,
-            )
+            left: 0.0,
+            right: 0.0,
+            top: 1454.0,
+            height: 235.0,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 15.0,
+                children: [
+                  _buildVideoCard(context, 'Обзор квартиры'),
+                  _buildVideoCard(context, 'Обзор местности'),
+                  _buildVideoCard(context, 'Инфраструктура района'),
+                ],
+              ),
+            ),
           ),
           Positioned(
             left: 0.0, top: 402.0,
@@ -1253,6 +1086,95 @@ class Screen19ObjectFull extends StatelessWidget {
         ],
       )
       ,
+    );
+  }
+
+  Widget _buildVideoCard(BuildContext context, String title) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pushNamed(Routes.listingVideo),
+      child: SizedBox(
+        width: 140.0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 4.0,
+          children: [
+            FigBox(
+              width: 140.0,
+              height: 200.0,
+              radius: 8.0,
+              bgImage: const FigBgImage('assets/figma/92b0d143df96c511.jpg'),
+              overlays: const [
+                LinearGradient(
+                  begin: Alignment(0.018, 1.009),
+                  end: Alignment(-0.018, -1.009),
+                  colors: [Color(0x26000000), Color(0x00666666)],
+                  stops: [0.243, 0.943],
+                ),
+              ],
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: 60.0,
+                    top: 90.0,
+                    child: FigBox(
+                      width: 20.283,
+                      height: 19.932,
+                      clip: true,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: 0.0,
+                            top: 0.0,
+                            child: FigSvg(
+                              width: 19.922,
+                              height: 19.922,
+                              vbLeft: 0.0,
+                              vbTop: 0.0,
+                              vbWidth: 19.922,
+                              vbHeight: 19.922,
+                              shapes: const [FigShape(d: _p8, fill: Color(0xd9ffffff))],
+                            ),
+                          ),
+                          Positioned(
+                            left: 7.158,
+                            top: 6.045,
+                            child: FigSvg(
+                              width: 6.837,
+                              height: 7.853,
+                              vbLeft: 0.0,
+                              vbTop: 0.0,
+                              vbWidth: 6.837,
+                              vbHeight: 7.853,
+                              shapes: const [FigShape(d: _p9, fill: Color(0xd9ffffff))],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            FigText(
+              width: 140.0,
+              span: TextSpan(
+                text: title,
+                style: figStyle(
+                  fontSize: 15.0,
+                  family: FigFont.display,
+                  weight: 500,
+                  height: 1.333,
+                  color: const Color(0xff7d7d7d),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

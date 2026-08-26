@@ -49,7 +49,7 @@ class _ProPhotoConfirmPageState extends State<ProPhotoConfirmPage> {
             behavior: HitTestBehavior.opaque,
             onTap: () {
               setState(() => _faceUploaded = !_faceUploaded);
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                 SnackBar(
                   content: Text(_faceUploaded ? 'Фото с лицом загружено!' : 'Фото с лицом удалено'),
                   duration: const Duration(seconds: 1),
@@ -90,7 +90,7 @@ class _ProPhotoConfirmPageState extends State<ProPhotoConfirmPage> {
             behavior: HitTestBehavior.opaque,
             onTap: () {
               setState(() => _passportUploaded = !_passportUploaded);
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                 SnackBar(
                   content: Text(_passportUploaded ? 'Фото с паспортом загружено!' : 'Фото с паспортом удалено'),
                   duration: const Duration(seconds: 1),

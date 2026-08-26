@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../../fig/fig.dart';
 import '../fig_controls.dart';
 
 class AdPromoPage extends StatefulWidget {
@@ -30,83 +30,248 @@ class _AdPromoPageState extends State<AdPromoPage> {
   }
 
   void _onNext() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Объявление успешно опубликовано!'),
-        duration: Duration(seconds: 2),
-        backgroundColor: Color(0xffea812e),
-      ),
-    );
-    Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+    if (!_useBricks) {
+      // Режим «Пополнение кошелька» — переход на страницу пополнения кирпичей
+      Navigator.of(context).pushNamed(Routes.topup);
+    } else {
+      // Режим «Списать кирпичи» — публикация объявления
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Объявление успешно опубликовано!'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xffea812e),
+        ),
+      );
+      Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     const orangeColor = Color(0xffea812e);
 
+    final sumText = _sumController.text.trim().replaceAll(' ', '');
+    final int sumValue = int.tryParse(sumText) ?? 0;
+
     return FigStage(
-      frame: frame('50'),
+      frame: frame(_useBricks ? '51' : '50'),
       background: const Color(0xffffffff),
       overlays: [
-        // Кнопка [ Пополнение кошелька ] -> ведёт на /wallet/topup
+        // 1. Белая маска под вкладками бюджетирования (Y=226..416)
+        const Positioned(
+          left: 0.0,
+          right: 0.0,
+          top: 226.0,
+          height: 190.0,
+          child: ColoredBox(color: Color(0xffffffff)),
+        ),
+
+        // 2. Вкладки бюджетирования (Y=224)
         Positioned(
-          left: 25.0,
-          top: 235.0,
-          width: 155.0,
-          height: 40.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.topup),
+          left: 20.0,
+          top: 224.0,
+          width: 335.0,
+          height: 38.0,
+          child: Row(
+            children: [
+              // Левая кнопка «Списать кирпичи»
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _useBricks = true);
+                  },
+                  child: Container(
+                    height: 38.0,
+                    decoration: BoxDecoration(
+                      color: _useBricks ? orangeColor : const Color(0xffffffff),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: _useBricks ? null : Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const FigBox(
+                          width: 24.0,
+                          height: 16.0,
+                          bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
+                        ),
+                        const SizedBox(width: 4.0),
+                        Text(
+                          'Списать кирпичи',
+                          style: TextStyle(
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w500,
+                            color: _useBricks ? const Color(0xffffffff) : const Color(0xff7d7d7d),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              // Правая кнопка «Пополнение кошелька»
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _useBricks = false);
+                  },
+                  child: Container(
+                    height: 38.0,
+                    decoration: BoxDecoration(
+                      color: !_useBricks ? orangeColor : const Color(0xffffffff),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: !_useBricks ? null : Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Пополнение кошелька',
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        fontWeight: FontWeight.w500,
+                        color: !_useBricks ? const Color(0xffffffff) : const Color(0xff7d7d7d),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
 
-        // Кнопка [ Списать кирпичи ]
+        // 3. Разделительная линия под кнопками (Y=274)
         Positioned(
-          left: 190.0,
-          top: 235.0,
-          width: 155.0,
-          height: 40.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(() => _useBricks = !_useBricks),
-          ),
+          left: 20.0,
+          top: 274.0,
+          width: 335.0,
+          height: 1.0,
+          child: Container(color: const Color(0xffe5e5ea)),
         ),
 
-        // Интерактивное поле «Введите сумму»
-        Positioned(
-          left: 23.0,
-          top: 304.0,
-          width: 139.0,
-          height: 34.0,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xffffffff),
-              borderRadius: BorderRadius.circular(8.0),
-              border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+        // 4. Блок баланса / суммы (Y=286)
+        if (!_useBricks)
+          // Пополнение кошелька: [Введите сумму] + [+X Кирпичей]
+          Positioned(
+            left: 20.0,
+            top: 286.0,
+            width: 335.0,
+            height: 36.0,
+            child: Row(
+              children: [
+                Container(
+                  width: 140.0,
+                  height: 36.0,
+                  decoration: BoxDecoration(
+                    color: const Color(0xffffffff),
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  alignment: Alignment.centerLeft,
+                  child: TextField(
+                    controller: _sumController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                    style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color(0xff000000)),
+                    decoration: const InputDecoration(
+                      hintText: 'Введите сумму',
+                      hintStyle: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Container(
+                  height: 36.0,
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffe8f6e4),
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(color: const Color(0xffc5e8bc), width: 1.0),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const FigBox(
+                        width: 24.0,
+                        height: 16.0,
+                        bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
+                      ),
+                      const SizedBox(width: 6.0),
+                      Text(
+                        '+$sumValue Кирпичей',
+                        style: const TextStyle(
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xff4dba17),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 10.0),
-            alignment: Alignment.centerLeft,
-            child: TextField(
-              controller: _sumController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color(0xff000000)),
-              decoration: const InputDecoration(
-                hintText: 'Введите сумму',
-                hintStyle: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
+          )
+        else
+          // Списать кирпичи: [Ваш баланс: 8938 кирпичей]
+          Positioned(
+            left: 20.0,
+            top: 286.0,
+            height: 36.0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14.0),
+              decoration: BoxDecoration(
+                color: const Color(0xffe8f6e4),
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: const Color(0xffc5e8bc), width: 1.0),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const FigBox(
+                    width: 24.0,
+                    height: 16.0,
+                    bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
+                  ),
+                  const SizedBox(width: 6.0),
+                  const Text(
+                    'Ваш баланс: 8938 кирпичей',
+                    style: TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xff4dba17),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+
+        // 5. Заголовок «Количество дней» (Y=338)
+        const Positioned(
+          left: 20.0,
+          top: 338.0,
+          child: Text(
+            'Количество дней',
+            style: TextStyle(
+              fontSize: 16.0,
+              fontWeight: FontWeight.bold,
+              color: Color(0xff000000),
+            ),
+          ),
         ),
 
-        // Интерактивные чипы дней и поле «Введите значение»
+        // 6. Интерактивные чипы дней и поле «Введите значение» (Y=368)
         Positioned(
-          left: 23.0,
-          top: 375.0,
-          width: 325.0,
-          height: 32.0,
+          left: 20.0,
+          top: 368.0,
+          width: 335.0,
+          height: 34.0,
           child: Row(
             children: [
               ...List.generate(5, (i) {

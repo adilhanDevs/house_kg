@@ -148,46 +148,10 @@ class FigTabBar extends StatelessWidget {
                                     children: [
                                       Positioned(
                                         left: 1.0, top: 2.0,
-                                        child: Opacity(
-                                          opacity: 0.0,
-                                          child: FigSvg(
-                                            width: 21.548, height: 20.0,
-                                            vbLeft: 0.0, vbTop: 0.0, vbWidth: 21.548, vbHeight: 20.0,
-                                            shapes: const [FigShape(d: _p1, fill: Color(0xffea812e))],
-                                          ),
-                                        )
-                                      ),
-                                      Positioned(
-                                        left: 2.5, top: 2.0,
-                                        child: FigBox(
-                                          width: 19.443,
-                                          height: 19.268,
-                                          clip: true,
-                                          child: Stack(
-                                            clipBehavior: Clip.none,
-                                            children: [
-                                              Positioned(
-                                                left: 0.0, top: 0.0,
-                                                child: Opacity(
-                                                  opacity: 0.0,
-                                                  child: FigSvg(
-                                                    width: 19.443, height: 19.268,
-                                                    vbLeft: 0.0, vbTop: 0.0, vbWidth: 19.443, vbHeight: 19.268,
-                                                    shapes: const [FigShape(d: _p2, fill: Color(0xffea812e))],
-                                                  ),
-                                                )
-                                              ),
-                                              Positioned(
-                                                left: 0.0, top: 0.0,
-                                                child: FigSvg(
-                                                  width: 19.082, height: 19.268,
-                                                  vbLeft: 0.0, vbTop: 0.0, vbWidth: 19.082, vbHeight: 19.268,
-                                                  shapes: const [FigShape(d: _p3, fill: Color(0xffea812e))],
-                                                )
-                                              ),
-                                            ],
-                                          )
-                                          ,
+                                        child: FigSvg(
+                                          width: 20.0, height: 20.0,
+                                          vbLeft: 0.0, vbTop: 0.0, vbWidth: 20.0, vbHeight: 20.0,
+                                          shapes: const [FigShape(d: _p3, fill: Color(0xffea812e))],
                                         )
                                       ),
                                     ],
@@ -201,6 +165,7 @@ class FigTabBar extends StatelessWidget {
                                 weight: _weight(1),
                                 child: FigText(
                                   noWrap: true,
+                                  width: 39.0,
                                   span: 
                                     TextSpan(text: 'Поиск', style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xffea812e)))
                                   ,
@@ -328,7 +293,7 @@ class FigTabBar extends StatelessWidget {
                     ),
                     _tab(3,
                       FigBox(
-                        width: 39.0,
+                        width: 52.0,
                         child: FigOverflow(
                           alignment: const Alignment(0.0, -1.0),
                           child: Column(
@@ -363,7 +328,7 @@ class FigTabBar extends StatelessWidget {
                                 weight: _weight(3),
                                 child: FigText(
                                   noWrap: true,
-                                  width: 39.0,
+                                  width: 52.0,
                                   span: 
                                     TextSpan(text: 'Избранное', style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
                                   ,

@@ -74,6 +74,7 @@ class AppState extends ChangeNotifier {
   String _query = '';
   final Set<PropertyKind> _kinds = {};
   final Set<int> _rooms = {};
+  int? _customRooms;
   final Set<AreaRange> _areas = {};
   AreaRange? _customArea;
   final Set<SellerKind> _sellers = {};
@@ -85,6 +86,7 @@ class AppState extends ChangeNotifier {
   String get query => _query;
   Set<PropertyKind> get kinds => Set.unmodifiable(_kinds);
   Set<int> get rooms => Set.unmodifiable(_rooms);
+  int? get customRooms => _customRooms;
   Set<AreaRange> get areas => Set.unmodifiable(_areas);
   AreaRange? get customArea => _customArea;
   Set<SellerKind> get sellers => Set.unmodifiable(_sellers);
@@ -134,6 +136,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCustomRooms(int? count) {
+    if (_customRooms == count) return;
+    if (_customRooms != null) {
+      _rooms.remove(_customRooms);
+    }
+    _customRooms = count;
+    if (count != null && count > 0) {
+      _rooms.add(count);
+    }
+    notifyListeners();
+  }
+
   void toggleArea(AreaRange range) {
     _areas.contains(range) ? _areas.remove(range) : _areas.add(range);
     notifyListeners();
@@ -174,6 +188,7 @@ class AppState extends ChangeNotifier {
   void resetFilter() {
     _kinds.clear();
     _rooms.clear();
+    _customRooms = null;
     _areas.clear();
     _sellers.clear();
     _customArea = null;

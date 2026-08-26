@@ -20,6 +20,7 @@ class FigSearchField extends StatelessWidget {
   const FigSearchField({
     super.key,
     required this.width,
+    this.fieldHeight = 40.0,
     required this.controller,
     required this.hint,
     this.onChanged,
@@ -27,6 +28,7 @@ class FigSearchField extends StatelessWidget {
   });
 
   final double width;
+  final double fieldHeight;
   final TextEditingController controller;
   final String hint;
   final ValueChanged<String>? onChanged;
@@ -46,7 +48,7 @@ class FigSearchField extends StatelessWidget {
     );
     return FigBox(
       width: width,
-      height: height,
+      height: fieldHeight,
       color: const Color(0xffffffff),
       radius: 10.0,
       padding: const EdgeInsets.fromLTRB(15.0, 15.0, 15.0, 15.0),

@@ -23,12 +23,16 @@ abstract final class Routes {
   static const viewHistory = '/history/views';
   static const favourites = '/favourites';
   static const profile = '/profile';
+  static const account = '/account';
+  static const support = '/support';
 
   static const collection = '/collection';
+  static const category = '/category';
   static const filter = '/filter';
   static const savedFilters = '/filters/saved';
   static const listing = '/listing';
   static const listingPhotos = '/listing/photos';
+  static const listingVideo = '/listing/video';
   static const listingPhoto = '/listing/photo';
   static const agentListings = '/agent/listings';
   static const agent = '/agent';

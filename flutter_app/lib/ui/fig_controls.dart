@@ -8,11 +8,9 @@ import 'package:flutter/material.dart';
 
 import '../fig/fig.dart';
 
-const Color _accentFill = Color(0x33ea812e);
 const Color _accentText = Color(0xe0ea812e);
 const Color _mutedText = Color(0xe07d7d7d);
 const Color _mutedBorder = Color(0x807d7d7d);
-const Color _page = Color(0xfffefefe);
 
 /// Заливка и обводка поля ввода — как на кадрах «Вход» и «Регистрация».
 const Color _fieldFill = Color(0x1f787880);
@@ -144,6 +142,7 @@ class FigChipInput extends StatefulWidget {
     required this.hint,
     this.keyboardType,
     this.onChanged,
+    this.onTap,
   });
 
   final double width;
@@ -152,6 +151,7 @@ class FigChipInput extends StatefulWidget {
   final String hint;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final VoidCallback? onTap;
 
   @override
   State<FigChipInput> createState() => _FigChipInputState();
@@ -159,6 +159,28 @@ class FigChipInput extends StatefulWidget {
 
 class _FigChipInputState extends State<FigChipInput> {
   late final TextEditingController _ctrl;
+  FocusNode? _focusNode;
+
+  FocusNode get _effectiveFocusNode => _focusNode ??= FocusNode()..addListener(_handleFocusChange);
+
+  void _handleFocusChange() {
+    if (_effectiveFocusNode.hasFocus) {
+      _scrollToSelf();
+    }
+  }
+
+  void _scrollToSelf() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          alignment: 1.0,
+        );
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -176,6 +198,8 @@ class _FigChipInputState extends State<FigChipInput> {
 
   @override
   void dispose() {
+    _focusNode?.removeListener(_handleFocusChange);
+    _focusNode?.dispose();
     if (widget.controller == null) {
       _ctrl.dispose();
     }
@@ -206,6 +230,7 @@ class _FigChipInputState extends State<FigChipInput> {
         child: Center(
           child: TextField(
             controller: _ctrl,
+            focusNode: _effectiveFocusNode,
             style: style,
             keyboardType: widget.keyboardType,
             cursorColor: _accentText,
@@ -213,6 +238,10 @@ class _FigChipInputState extends State<FigChipInput> {
             maxLines: 1,
             decoration: InputDecoration.collapsed(hintText: widget.hint, hintStyle: style),
             onChanged: widget.onChanged,
+            onTap: () {
+              _scrollToSelf();
+              widget.onTap?.call();
+            },
           ),
         ),
       ),
@@ -220,7 +249,7 @@ class _FigChipInputState extends State<FigChipInput> {
   }
 }
 
-/// Тумблер: в макете 38×22, радиус 11.
+/// Тумблер: в макете 30×16, радиус 8 (по высоте текста).
 class FigToggle extends StatelessWidget {
   const FigToggle({
     super.key,
@@ -233,8 +262,8 @@ class FigToggle extends StatelessWidget {
   final ValueChanged<bool>? onChanged;
   final String? label;
 
-  static const double width = 38.0;
-  static const double height = 22.0;
+  static const double width = 30.0;
+  static const double height = 16.0;
 
   @override
   Widget build(BuildContext context) {
@@ -244,37 +273,41 @@ class FigToggle extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onChanged == null ? null : () => onChanged!(!value),
-        child: Container(
+        child: _Cover(
           width: width,
           height: height,
-          decoration: BoxDecoration(
-            color: value ? const Color(0xffea812e) : const Color(0xffe5e5ea),
-            borderRadius: BorderRadius.circular(11.0),
-          ),
-          child: Stack(
-            children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOut,
-                left: value ? 18.0 : 2.0,
-                top: 2.0,
-                child: Container(
-                  width: 18.0,
-                  height: 18.0,
-                  decoration: const BoxDecoration(
-                    color: Color(0xffffffff),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x26000000),
-                        blurRadius: 3.0,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
+          child: Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              color: value ? const Color(0xffea812e) : const Color(0xffe5e5ea),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 160),
+                  curve: Curves.easeOut,
+                  left: value ? 16.0 : 2.0,
+                  top: 2.0,
+                  child: Container(
+                    width: 12.0,
+                    height: 12.0,
+                    decoration: const BoxDecoration(
+                      color: Color(0xffffffff),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x26000000),
+                          blurRadius: 2.0,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

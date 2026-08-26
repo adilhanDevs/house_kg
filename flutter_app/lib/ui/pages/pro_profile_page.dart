@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
+import 'profile_page.dart';
+
+import '../../data/listings.dart';
+import 'category_page.dart';
 
 class ProProfilePage extends StatefulWidget {
   const ProProfilePage({super.key});
@@ -13,8 +18,6 @@ class ProProfilePage extends StatefulWidget {
 }
 
 class _ProProfilePageState extends State<ProProfilePage> {
-  String _selectedLang = 'ru';
-
   @override
   void initState() {
     super.initState();
@@ -61,6 +64,46 @@ class _ProProfilePageState extends State<ProProfilePage> {
       bottomBar: const AppTabBar(active: 4),
       background: const Color(0xfffefefe),
       overlays: [
+        // Табы категорий (Y=318): Новостройки, Комната, Коммерция
+        Positioned(
+          left: 25.0,
+          top: 318.0,
+          width: 110.0,
+          height: 30.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(
+              Routes.category,
+              arguments: const CategoryPageArgs(PropertyKind.newBuilding),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 143.0,
+          top: 318.0,
+          width: 82.0,
+          height: 30.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(
+              Routes.category,
+              arguments: const CategoryPageArgs(PropertyKind.room),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 233.0,
+          top: 318.0,
+          width: 101.0,
+          height: 30.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(
+              Routes.category,
+              arguments: const CategoryPageArgs(PropertyKind.commercial),
+            ),
+          ),
+        ),
         // Клик по баннеру «Добавить объявление» (Y=371)
         Positioned(
           left: 25.0,
@@ -145,29 +188,101 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
 
-        // Кнопка «Выйти из аккаунта» в свободном белом поле под всеми настройками (Y=1190)
+        // Клик по настройке «Аккаунт»
         Positioned(
-          left: 87.0,
-          top: 1190.0,
-          width: 200.0,
-          height: 38.0,
+          left: 25.0,
+          top: 1004.0,
+          width: 325.0,
+          height: 40.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(Routes.account),
+          ),
+        ),
+
+        // Клик по настройке «Служба поддержки»
+        Positioned(
+          left: 25.0,
+          top: 1048.0,
+          width: 325.0,
+          height: 40.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(Routes.support),
+          ),
+        ),
+
+        // Клик по настройке «История пополнения и трат»
+        Positioned(
+          left: 25.0,
+          top: 1092.0,
+          width: 325.0,
+          height: 40.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(Routes.history),
+          ),
+        ),
+
+        // Маска для закрашивания статичной плашки макета и линии (Y=1130)
+        const Positioned(
+          left: 150.0,
+          top: 1130.0,
+          width: 225.0,
+          height: 48.0,
+          child: ColoredBox(color: Color(0xffffffff)),
+        ),
+
+        // Полноценная пересверстанная кнопка-переключатель языка (Y=1140)
+        const Positioned(
+          left: 175.0,
+          top: 1140.0,
+          child: LanguageToggleWidget(),
+        ),
+
+        // Строка «Выйти из аккаунта» у собственника (Y=1180)
+        Positioned(
+          left: 25.0,
+          top: 1180.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _confirmLogOut(context),
             child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xffffffff),
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: dangerColor, width: 1.0),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                'Выйти из аккаунта',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.bold,
-                  color: dangerColor,
-                ),
+              width: 325.0,
+              height: 44.0,
+              color: const Color(0xffffffff),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24.0,
+                    height: 24.0,
+                    decoration: BoxDecoration(
+                      color: const Color(0xfffde8e8),
+                      borderRadius: BorderRadius.circular(6.0),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.logout,
+                      size: 16.0,
+                      color: dangerColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12.0),
+                  const Text(
+                    'Выйти из аккаунта',
+                    style: TextStyle(
+                      fontSize: 15.0,
+                      fontWeight: FontWeight.w500,
+                      color: dangerColor,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14.0,
+                    color: Color(0xffc7c7cc),
+                  ),
+                ],
               ),
             ),
           ),

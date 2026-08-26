@@ -27,9 +27,14 @@ const Rect _logOut = Rect.fromLTWH(101, 652, 185.3, 30);
 
 const Color _danger = Color(0xffd93025);
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
   Future<void> _confirmLogOut(BuildContext context) async {
     final state = AppScope.read(context);
     final navigator = Navigator.of(context);
@@ -77,6 +82,32 @@ class ProfilePage extends StatelessWidget {
           _rowLeft, 425, _rowWidth, _rowHeight,
           label: 'Уведомление',
           onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
+        ),
+        FigZone(
+          _rowLeft, 469, _rowWidth, _rowHeight,
+          label: 'Аккаунт',
+          onTap: () => Navigator.of(context).pushNamed(Routes.account),
+        ),
+        FigZone(
+          _rowLeft, 513, _rowWidth, _rowHeight,
+          label: 'Служба поддержки',
+          onTap: () => Navigator.of(context).pushNamed(Routes.support),
+        ),
+
+        // Маска для закрашивания статичной плашки макета и линии (Y=550)
+        const Positioned(
+          left: 150.0,
+          top: 550.0,
+          width: 225.0,
+          height: 48.0,
+          child: ColoredBox(color: Color(0xffffffff)),
+        ),
+
+        // Полноценная пересверстанная кнопка-переключатель языка (Y=561)
+        const Positioned(
+          left: 175.0,
+          top: 561.0,
+          child: LanguageToggleWidget(),
         ),
         // Клик по кнопке макета «Продать недвижимость» (Y=652)
         FigZone(
@@ -133,6 +164,97 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class LanguageToggleWidget extends StatefulWidget {
+  final String initialLang;
+  final ValueChanged<String>? onChanged;
+
+  const LanguageToggleWidget({
+    super.key,
+    this.initialLang = 'ru',
+    this.onChanged,
+  });
+
+  @override
+  State<LanguageToggleWidget> createState() => _LanguageToggleWidgetState();
+}
+
+class _LanguageToggleWidgetState extends State<LanguageToggleWidget> {
+  late String _selectedLang;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedLang = widget.initialLang;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 170.0,
+      height: 28.0,
+      padding: const EdgeInsets.all(2.0),
+      decoration: BoxDecoration(
+        color: const Color(0xffe3e3e8),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                setState(() => _selectedLang = 'ru');
+                widget.onChanged?.call('ru');
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: _selectedLang == 'ru' ? const Color(0xff78787c) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6.0),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Русский',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: _selectedLang == 'ru' ? FontWeight.bold : FontWeight.w500,
+                    color: _selectedLang == 'ru' ? Colors.white : const Color(0xff7d7d7d),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                setState(() => _selectedLang = 'kg');
+                widget.onChanged?.call('kg');
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: _selectedLang == 'kg' ? const Color(0xff78787c) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6.0),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Кыргызский',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: _selectedLang == 'kg' ? FontWeight.bold : FontWeight.w500,
+                    color: _selectedLang == 'kg' ? Colors.white : const Color(0xff7d7d7d),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

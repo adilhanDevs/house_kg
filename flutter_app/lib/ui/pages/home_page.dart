@@ -12,6 +12,7 @@ import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
 import '../listing_grid.dart';
+import '../search_field.dart';
 
 /// Колокол уведомлений.
 const Rect _bell = Rect.fromLTWH(320, 44, 30, 30);
@@ -64,6 +65,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   PropertyKind _tab = PropertyKind.apartment;
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: AppScope.read(context).query);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _openCatalog(BuildContext context, {PropertyKind? kind}) {
     final state = AppScope.read(context);
@@ -78,6 +92,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = AppScope.of(context);
     final selection = kListings.where((l) => l.kind == _tab).take(4).toList();
     final strip = kListings.take(_stripX.length).toList();
 
@@ -91,10 +106,22 @@ class _HomePageState extends State<HomePage> {
           label: 'Уведомления',
           onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
         ),
-        FigZone(
-          _search.left, _search.top, _search.width, _search.height,
-          label: 'Поиск',
-          onTap: () => _openCatalog(context),
+        Positioned(
+          left: _search.left,
+          top: _search.top,
+          child: FigSearchField(
+            width: _search.width,
+            fieldHeight: _search.height,
+            controller: _searchController,
+            hint: 'Что ищете?',
+            onChanged: (text) {
+              state.setQuery(text);
+            },
+            onSubmitted: (text) {
+              state.setQuery(text);
+              Navigator.of(context).pushNamed(Routes.catalog);
+            },
+          ),
         ),
         for (var i = 0; i < strip.length; i++)
           FigZone(

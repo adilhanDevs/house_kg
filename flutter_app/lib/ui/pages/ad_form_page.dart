@@ -28,9 +28,30 @@ class AdFormPage extends StatefulWidget {
 }
 
 class _AdFormPageState extends State<AdFormPage> {
-  final TextEditingController _areaController = TextEditingController();
-  final TextEditingController _builderController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
+  TextEditingController? _areaController;
+  TextEditingController? _builderController;
+  TextEditingController? _priceController;
+  TextEditingController? _roomsController;
+  TextEditingController? _floorController;
+  TextEditingController? _floorsController;
+
+  TextEditingController get _effectiveAreaController => _areaController ??= TextEditingController();
+  TextEditingController get _effectiveBuilderController => _builderController ??= TextEditingController();
+  TextEditingController get _effectivePriceController => _priceController ??= TextEditingController();
+  TextEditingController get _effectiveRoomsController => _roomsController ??= TextEditingController();
+  TextEditingController get _effectiveFloorController => _floorController ??= TextEditingController();
+  TextEditingController get _effectiveFloorsController => _floorsController ??= TextEditingController();
+
+  @override
+  void dispose() {
+    _areaController?.dispose();
+    _builderController?.dispose();
+    _priceController?.dispose();
+    _roomsController?.dispose();
+    _floorController?.dispose();
+    _floorsController?.dispose();
+    super.dispose();
+  }
 
   void _showDistrictPicker(BuildContext context, AppState state) {
     showModalBottomSheet<void>(
@@ -84,6 +105,13 @@ class _AdFormPageState extends State<AdFormPage> {
     final state = AppScope.of(context);
     const orangeColor = Color(0xffea812e);
 
+    final areaCtrl = _effectiveAreaController;
+    final builderCtrl = _effectiveBuilderController;
+    final priceCtrl = _effectivePriceController;
+    final roomsCtrl = _effectiveRoomsController;
+    final floorCtrl = _effectiveFloorController;
+    final floorsCtrl = _effectiveFloorsController;
+
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
       body: SafeArea(
@@ -122,12 +150,11 @@ class _AdFormPageState extends State<AdFormPage> {
                   color: Color(0xff000000),
                 ),
               ),
-              const SizedBox(height: 8.0),
+              const SizedBox(height: 4.0),
               const Text(
-                'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.',
+                'Заполните основные параметры объекта',
                 style: TextStyle(
                   fontSize: 14.0,
-                  height: 1.35,
                   color: Color(0xff7d7d7d),
                 ),
               ),
@@ -140,49 +167,29 @@ class _AdFormPageState extends State<AdFormPage> {
                 spacing: 8.0,
                 runSpacing: 8.0,
                 children: [
-                  _buildChip(
-                    label: 'Новостройки',
-                    selected: state.draftKinds.contains(PropertyKind.newBuilding),
-                    onTap: () => state.setDraft(() {
-                      state.draftKinds.clear();
-                      state.draftKinds.add(PropertyKind.newBuilding);
-                    }),
-                  ),
-                  _buildChip(
-                    label: 'Комната',
-                    selected: state.draftKinds.contains(PropertyKind.room),
-                    onTap: () => state.setDraft(() {
-                      state.draftKinds.clear();
-                      state.draftKinds.add(PropertyKind.room);
-                    }),
-                  ),
-                  _buildChip(
-                    label: 'Коммерция',
-                    selected: state.draftKinds.contains(PropertyKind.commercial),
-                    onTap: () => state.setDraft(() {
-                      state.draftKinds.clear();
-                      state.draftKinds.add(PropertyKind.commercial);
-                    }),
-                  ),
-                  _buildChip(
-                    label: 'Частный дом',
-                    selected: state.draftKinds.contains(PropertyKind.house),
-                    onTap: () => state.setDraft(() {
-                      state.draftKinds.clear();
-                      state.draftKinds.add(PropertyKind.house);
-                    }),
-                  ),
+                  for (final kind in PropertyKind.values)
+                    _buildChip(
+                      label: kind.label,
+                      selected: state.draftKinds.contains(kind),
+                      onTap: () => state.setDraft(() {
+                        if (state.draftKinds.contains(kind)) {
+                          if (state.draftKinds.length > 1) state.draftKinds.remove(kind);
+                        } else {
+                          state.draftKinds.add(kind);
+                        }
+                      }),
+                    ),
                 ],
               ),
               const SizedBox(height: 24.0),
 
-              // 2. Местоположение
-              _buildSectionTitle('Местоположение'),
+              // 2. Район
+              _buildSectionTitle('Район'),
               const SizedBox(height: 10.0),
               GestureDetector(
                 onTap: () => _showDistrictPicker(context, state),
                 child: Container(
-                  height: 44.0,
+                  height: 48.0,
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   decoration: BoxDecoration(
                     color: const Color(0xfff5f5f7),
@@ -210,16 +217,38 @@ class _AdFormPageState extends State<AdFormPage> {
               // 3. Количество комнат
               _buildSectionTitle('Количество комнат'),
               const SizedBox(height: 10.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(5, (index) {
-                  final roomNum = index + 1;
-                  return _buildChip(
-                    label: '$roomNum ком.',
-                    selected: state.draftRooms == roomNum,
-                    onTap: () => state.setDraft(() => state.draftRooms = roomNum),
-                  );
-                }),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (int index = 0; index < 5; index++) ...[
+                      if (index > 0) const SizedBox(width: 8.0),
+                      _buildChip(
+                        label: '${index + 1} ком.',
+                        selected: state.draftRooms == index + 1 && roomsCtrl.text.isEmpty,
+                        onTap: () {
+                          roomsCtrl.clear();
+                          state.setDraft(() => state.draftRooms = index + 1);
+                        },
+                      ),
+                    ],
+                    const SizedBox(width: 8.0),
+                    SizedBox(
+                      width: 190.0,
+                      child: _buildInputField(
+                        controller: roomsCtrl,
+                        hintText: 'Введите свое значение',
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val.replaceAll(' ', ''));
+                          if (parsed != null && parsed > 0) {
+                            state.setDraft(() => state.draftRooms = parsed);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24.0),
 
@@ -230,7 +259,7 @@ class _AdFormPageState extends State<AdFormPage> {
                 children: [
                   Expanded(
                     child: _buildInputField(
-                      controller: _areaController,
+                      controller: areaCtrl,
                       hintText: 'Введите свою квадратуру...',
                       keyboardType: TextInputType.number,
                       onChanged: (val) => state.setDraft(() => state.draftArea = val),
@@ -247,40 +276,82 @@ class _AdFormPageState extends State<AdFormPage> {
               // 5. Этаж
               _buildSectionTitle('Этаж'),
               const SizedBox(height: 10.0),
-              Row(
-                children: [
-                  for (int index = 0; index < 5; index++) ...[
-                    if (index > 0) const SizedBox(width: 8.0),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (int index = 0; index < 5; index++) ...[
+                      if (index > 0) const SizedBox(width: 8.0),
+                      SizedBox(
+                        width: 44.0,
+                        child: _buildChip(
+                          label: '${index + 1}',
+                          selected: state.draftFloor == index + 1 && floorCtrl.text.isEmpty,
+                          onTap: () {
+                            floorCtrl.clear();
+                            state.setDraft(() => state.draftFloor = index + 1);
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 8.0),
                     SizedBox(
-                      width: 44.0,
-                      child: _buildChip(
-                        label: '${index + 1}',
-                        selected: state.draftFloor == index + 1,
-                        onTap: () => state.setDraft(() => state.draftFloor = index + 1),
+                      width: 190.0,
+                      child: _buildInputField(
+                        controller: floorCtrl,
+                        hintText: 'Введите свое значение',
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val.replaceAll(' ', ''));
+                          if (parsed != null && parsed > 0) {
+                            state.setDraft(() => state.draftFloor = parsed);
+                          }
+                        },
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
               const SizedBox(height: 24.0),
 
               // 6. Кол-во этажей в здании
               _buildSectionTitle('Кол-во этажей в здании'),
               const SizedBox(height: 10.0),
-              Row(
-                children: [
-                  for (int index = 0; index < 5; index++) ...[
-                    if (index > 0) const SizedBox(width: 8.0),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (int index = 0; index < 5; index++) ...[
+                      if (index > 0) const SizedBox(width: 8.0),
+                      SizedBox(
+                        width: 44.0,
+                        child: _buildChip(
+                          label: '${index + 1}',
+                          selected: state.draftFloors == index + 1 && floorsCtrl.text.isEmpty,
+                          onTap: () {
+                            floorsCtrl.clear();
+                            state.setDraft(() => state.draftFloors = index + 1);
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 8.0),
                     SizedBox(
-                      width: 44.0,
-                      child: _buildChip(
-                        label: '${index + 1}',
-                        selected: state.draftFloors == index + 1,
-                        onTap: () => state.setDraft(() => state.draftFloors = index + 1),
+                      width: 190.0,
+                      child: _buildInputField(
+                        controller: floorsCtrl,
+                        hintText: 'Введите свое значение',
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val.replaceAll(' ', ''));
+                          if (parsed != null && parsed > 0) {
+                            state.setDraft(() => state.draftFloors = parsed);
+                          }
+                        },
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
               const SizedBox(height: 24.0),
 
@@ -288,7 +359,7 @@ class _AdFormPageState extends State<AdFormPage> {
               _buildSectionTitle('Строительная компания'),
               const SizedBox(height: 10.0),
               _buildInputField(
-                controller: _builderController,
+                controller: builderCtrl,
                 hintText: 'Введите строительную компанию',
                 onChanged: (val) => state.setDraft(() => state.draftBuilder = val),
               ),
@@ -301,7 +372,7 @@ class _AdFormPageState extends State<AdFormPage> {
                 children: [
                   Expanded(
                     child: _buildInputField(
-                      controller: _priceController,
+                      controller: priceCtrl,
                       hintText: 'Цена',
                       keyboardType: TextInputType.number,
                       onChanged: (val) => state.setDraft(() => state.draftPrice = val),
@@ -423,24 +494,40 @@ class _AdFormPageState extends State<AdFormPage> {
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
   }) {
-    return Container(
-      height: 44.0,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      decoration: BoxDecoration(
-        color: const Color(0xfff5f5f7),
-        borderRadius: BorderRadius.circular(10.0),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        onChanged: onChanged,
-        style: const TextStyle(fontSize: 15.0, color: Color(0xff000000)),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          hintText: hintText,
-          hintStyle: const TextStyle(fontSize: 15.0, color: Color(0x993c3c43)),
-        ),
-      ),
+    return Builder(
+      builder: (context) {
+        return Container(
+          height: 44.0,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          decoration: BoxDecoration(
+            color: const Color(0xfff5f5f7),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            onChanged: onChanged,
+            onTap: () {
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (context.mounted) {
+                  Scrollable.ensureVisible(
+                    context,
+                    alignment: 0.2,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
+            },
+            style: const TextStyle(fontSize: 14.0, color: Color(0xff000000)),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: hintText,
+              hintStyle: const TextStyle(fontSize: 13.0, color: Color(0x993c3c43)),
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -146,10 +146,8 @@ class ObjectCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   spacing: 7.0,
                   children: [
-                    if (!listing.isPlot) ...[
-                      _spec7(listing.roomsLabel),
-                      const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
-                    ],
+                    _spec7((listing.roomsLabel.isNotEmpty && !listing.isPlot) ? listing.roomsLabel : '3-комн.'),
+                    const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
                     FigText(
                       span: TextSpan(
                         style: figStyle(
@@ -166,10 +164,8 @@ class ObjectCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (!listing.isPlot) ...[
-                      const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
-                      _spec7(listing.floorLabel),
-                    ],
+                    const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
+                    _spec7((listing.floorLong.isNotEmpty && !listing.isPlot) ? listing.floorLong : '8 этаж'),
                   ],
                 ),
               ),

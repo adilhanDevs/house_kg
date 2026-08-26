@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../app/stage.dart';
-import '../../data/listings.dart';
 import '../app_tab_bar.dart';
 
 class NotificationsPage extends StatelessWidget {
@@ -18,9 +17,6 @@ class NotificationsPage extends StatelessWidget {
       // профиля, поэтому в меню ничего не подсвечено.
       bottomBar: const AppTabBar(active: null),
       overlays: [
-        // Слева от заголовка места нет — стрелка встаёт справа от него, как на
-        // «Фильтре».
-        const FigBackButton(left: 330, top: 62),
         // Card 1 (Технопарк)
         Positioned(
           left: 25.0,

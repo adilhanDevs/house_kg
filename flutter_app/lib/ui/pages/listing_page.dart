@@ -209,64 +209,70 @@ class _ListingPageState extends State<ListingPage> {
             ),
           ),
         ),
-        // Прямая покупка chip
+        // Способы покупки: закрываем нарисованные в макете чипы белой плашкой, чтобы не было наложения
         Positioned(
-          left: _directChip.left,
-          top: _directChip.top,
-          width: _directChip.width,
-          height: _directChip.height,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(() => _useMortgage = false),
-            child: Container(
-              decoration: BoxDecoration(
-                color: !_useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(
-                  color: !_useMortgage ? const Color(0xffea812e) : const Color(0xffe5e5ea),
-                  width: 1.0,
+          left: 20,
+          top: 1283,
+          right: 20,
+          height: 36,
+          child: ColoredBox(
+            color: _page,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 5),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _useMortgage = false),
+                  child: Container(
+                    width: _directChip.width,
+                    height: _directChip.height,
+                    decoration: BoxDecoration(
+                      color: !_useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        color: !_useMortgage ? const Color(0x00000000) : const Color(0xffe5e5ea),
+                        width: 1.0,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Прямая покупка',
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        fontWeight: !_useMortgage ? FontWeight.w600 : FontWeight.w400,
+                        color: !_useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Прямая покупка',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  fontWeight: !_useMortgage ? FontWeight.w600 : FontWeight.w400,
-                  color: !_useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _useMortgage = true),
+                  child: Container(
+                    width: _mortgageChip.width,
+                    height: _mortgageChip.height,
+                    decoration: BoxDecoration(
+                      color: _useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        color: _useMortgage ? const Color(0x00000000) : const Color(0xffe5e5ea),
+                        width: 1.0,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Ипотека',
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        fontWeight: _useMortgage ? FontWeight.w600 : FontWeight.w400,
+                        color: _useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-        ),
-
-        // Ипотека chip
-        Positioned(
-          left: _mortgageChip.left,
-          top: _mortgageChip.top,
-          width: _mortgageChip.width,
-          height: _mortgageChip.height,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(() => _useMortgage = true),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(
-                  color: _useMortgage ? const Color(0xffea812e) : const Color(0xffe5e5ea),
-                  width: 1.0,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Ипотека',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  fontWeight: _useMortgage ? FontWeight.w600 : FontWeight.w400,
-                  color: _useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
-                ),
-              ),
+              ],
             ),
           ),
         ),
@@ -328,28 +334,33 @@ class _Specs extends StatelessWidget {
       letterSpacing: -0.13,
       color: _spec,
     );
+
+    final String rooms = (listing.roomsLabel.isNotEmpty && !listing.isPlot)
+        ? listing.roomsLabel
+        : '3-комн.';
+    final String area = listing.areaLabel;
+    final String floor = (listing.floorLong.isNotEmpty && !listing.isPlot)
+        ? listing.floorLong
+        : '8 этаж';
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       spacing: 7,
       children: [
-        if (!listing.isPlot) ...[
-          FigText(noWrap: true, span: TextSpan(text: listing.roomsLabel, style: style)),
-          const _Dot(),
-        ],
+        FigText(noWrap: true, span: TextSpan(text: rooms, style: style)),
+        const _Dot(),
         FigText(
           span: TextSpan(
             style: style,
             children: [
-              TextSpan(text: listing.areaLabel, style: style),
+              TextSpan(text: area, style: style),
               figSuper('2', figStyle(fontSize: 9.36, color: _spec), 13.0),
             ],
           ),
         ),
-        if (!listing.isPlot) ...[
-          const _Dot(),
-          FigText(noWrap: true, span: TextSpan(text: listing.floorLong, style: style)),
-        ],
+        const _Dot(),
+        FigText(noWrap: true, span: TextSpan(text: floor, style: style)),
       ],
     );
   }

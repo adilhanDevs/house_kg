@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
-import '../../ui/app_tab_bar.dart';
 
 class WalletHistoryPage extends StatefulWidget {
   const WalletHistoryPage({super.key});
@@ -36,13 +35,15 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Back button
+                    // Кнопка назад
                     GestureDetector(
                       onTap: () {
+                        final state = AppScope.read(context);
+                        final profileRoute = state.pro ? Routes.pro : Routes.profile;
                         if (Navigator.canPop(context)) {
                           Navigator.pop(context);
                         } else {
-                          Navigator.pushNamed(context, Routes.home);
+                          Navigator.pushNamedAndRemoveUntil(context, profileRoute, (r) => false);
                         }
                       },
                       child: const Padding(
@@ -51,7 +52,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                       ),
                     ),
 
-                    // Header Title
+                    // Заголовок
                     const Text(
                       'История пополнения',
                       style: TextStyle(
@@ -72,7 +73,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     ),
                     const SizedBox(height: 16.0),
 
-                    // Filter chips
+                    // Фильтры-чипы
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -112,52 +113,14 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     ),
                     const SizedBox(height: 24.0),
 
-                    // 21 августа section
-                    if (_selectedFilter == 0 || _selectedFilter == 1 || _selectedFilter == 2 || _selectedFilter == 3) ...[
-                      const Text(
-                        '21 августа',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff000000),
-                        ),
-                      ),
-                      const SizedBox(height: 10.0),
-                      if (_selectedFilter == 0 || _selectedFilter == 1)
-                        _buildTransactionRow('+12 000 сом (12 000 кирпичей)', Colors.green, isBonus: false),
-                      if (_selectedFilter == 0 || _selectedFilter == 1 || _selectedFilter == 3)
-                        _buildTransactionRow('+1 200 кирпичей (бонус за пополнение)', Colors.green, isBonus: true),
-                      if (_selectedFilter == 0 || _selectedFilter == 2)
-                        _buildTransactionRow('-500 кирпичей', Colors.red, isBonus: true),
-                      const SizedBox(height: 12.0),
-                      const Divider(color: Color(0xffe5e5ea), height: 1),
-                      const SizedBox(height: 16.0),
-                    ],
-
-                    // 20 августа section
-                    if (_selectedFilter == 0 || _selectedFilter == 1 || _selectedFilter == 2) ...[
-                      const Text(
-                        '20 августа',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff000000),
-                        ),
-                      ),
-                      const SizedBox(height: 10.0),
-                      if (_selectedFilter == 0 || _selectedFilter == 1)
-                        _buildTransactionRow('+12 000 сом (12 000 кирпичей)', Colors.green, isBonus: false),
-                      if (_selectedFilter == 0 || _selectedFilter == 2)
-                        _buildTransactionRow('-500 кирпичей', Colors.red, isBonus: true),
-                      const SizedBox(height: 12.0),
-                      const Divider(color: Color(0xffe5e5ea), height: 1),
-                    ],
+                    // Контент в зависимости от фильтра
+                    ..._buildFilterContent(),
                   ],
                 ),
               ),
             ),
 
-            // Fixed Bottom Button "Далее"
+            // Фирменная оранжевая кнопка «Далее»
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: SizedBox(
@@ -190,34 +153,138 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
           ],
         ),
       ),
-      // Без SafeArea: полоса под жест уже заложена в самом таб-баре макета.
-      bottomNavigationBar: const AppTabBar(active: 4),
     );
   }
 
-  Widget _buildTransactionRow(String text, Color color, {required bool isBonus}) {
+  List<Widget> _buildFilterContent() {
+    switch (_selectedFilter) {
+      case 1: // Пополнение
+        return [
+          _buildDateHeader('21 августа'),
+          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
+          _buildBrickRow('+1 200 кирпичей (бонус за пополнение)', isPositive: true),
+          const SizedBox(height: 16.0),
+          const Divider(color: Color(0xffe5e5ea), height: 1),
+          const SizedBox(height: 20.0),
+          _buildDateHeader('20 августа'),
+          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
+          const SizedBox(height: 16.0),
+          const Divider(color: Color(0xffe5e5ea), height: 1),
+        ];
+
+      case 2: // Списание
+        return [
+          _buildDateHeader('21 августа'),
+          _buildBrickRow('-500 кирпичей', isPositive: false),
+          const SizedBox(height: 16.0),
+          const Divider(color: Color(0xffe5e5ea), height: 1),
+        ];
+
+      case 3: // Бонусы
+        return [
+          _buildDateHeader('21 августа'),
+          _buildBrickRow('+1 200 кирпичей (бонус за пополнение)', isPositive: true),
+          _buildBrickRow('+300 кирпичей (бонус за квест)', isPositive: true),
+          const SizedBox(height: 16.0),
+          const Divider(color: Color(0xffe5e5ea), height: 1),
+        ];
+
+      case 0: // Все операции
+      default:
+        return [
+          _buildDateHeader('21 августа'),
+          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
+          _buildBrickRow('+1 200 кирпичей (бонус за пополнение)', isPositive: true),
+          _buildBrickRow('-500 кирпичей', isPositive: false),
+          const SizedBox(height: 16.0),
+          const Divider(color: Color(0xffe5e5ea), height: 1),
+          const SizedBox(height: 20.0),
+          _buildDateHeader('20 августа'),
+          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
+          _buildBrickRow('-500 кирпичей', isPositive: false),
+          const SizedBox(height: 16.0),
+          const Divider(color: Color(0xffe5e5ea), height: 1),
+        ];
+    }
+  }
+
+  Widget _buildDateHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 17.0,
+          fontWeight: FontWeight.bold,
+          color: Color(0xff000000),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoinRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (isBonus) ...[
-            Container(
-              width: 20.0,
-              height: 14.0,
-              decoration: BoxDecoration(
-                color: const Color(0xffb83227),
-                borderRadius: BorderRadius.circular(2.0),
+          SizedBox(
+            width: 50.0,
+            height: 34.0,
+            child: Center(
+              child: Image.asset(
+                'assets/figma/c9723efccfaf2ac1.png',
+                width: 24.0,
+                height: 24.0,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.monetization_on,
+                  size: 20.0,
+                  color: Color(0xff8e8e93),
+                ),
               ),
             ),
-            const SizedBox(width: 8.0),
-          ],
+          ),
+          const SizedBox(width: 10.0),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 15.0,
+                fontWeight: FontWeight.w600,
+                color: Color(0xff34c759),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBrickRow(String text, {required bool isPositive}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 50.0,
+            height: 34.0,
+            child: Image.asset(
+              'assets/figma/7d929ed14946ddce.png',
+              width: 50.0,
+              height: 34.0,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 10.0),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
-                fontSize: 14.0,
+                fontSize: 15.0,
                 fontWeight: FontWeight.w600,
-                color: color,
+                color: isPositive ? const Color(0xff34c759) : const Color(0xffff3b30),
               ),
             ),
           ),

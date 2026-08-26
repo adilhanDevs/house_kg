@@ -9,11 +9,13 @@ import 'package:flutter/material.dart';
 
 import '../ui/app_tab_bar.dart';
 import '../ui/fig_cta.dart';
+import '../ui/pages/account_page.dart';
 import '../ui/pages/ad_form_page.dart';
 import '../ui/pages/ad_photos_page.dart';
 import '../ui/pages/ad_promo_page.dart';
 import '../ui/pages/ad_video_page.dart';
 import '../ui/pages/catalog_page.dart';
+import '../ui/pages/category_page.dart';
 import '../ui/pages/code_page.dart';
 import '../ui/pages/favourites_page.dart';
 import '../ui/pages/filter_page.dart';
@@ -27,8 +29,10 @@ import '../ui/pages/pro_profile_page.dart';
 import '../ui/pages/pro_signup_page.dart';
 import '../ui/pages/profile_page.dart';
 import '../ui/pages/splash_page.dart';
+import '../ui/pages/support_page.dart';
 import '../ui/pages/topup_page.dart';
 import '../ui/pages/view_history_page.dart';
+import '../ui/pages/video_page.dart';
 import '../ui/pages/wallet_history_page.dart';
 import '../ui/pages/welcome_page.dart';
 import '../data/ad_media.dart';
@@ -100,7 +104,8 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
 
   Route<dynamic> _route(RouteSettings settings) {
     final name = settings.name ?? Routes.catalog;
-    final id = (settings.arguments as ListingArgs?)?.id ?? kListings.first.id;
+    final rawArgs = settings.arguments;
+    final id = (rawArgs is ListingArgs) ? rawArgs.id : kListings.first.id;
     return MaterialPageRoute(
       settings: settings,
       builder: (context) => switch (name) {
@@ -124,9 +129,19 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
                   ? const ProProfilePage()
                   : const ProfilePage(),
             ),
+        Routes.account => const AccountPage(),
+        Routes.support => const SupportPage(),
         Routes.filter => const FilterPage(),
+        Routes.category => Builder(
+              builder: (context) {
+                final args = ModalRoute.of(context)?.settings.arguments;
+                final kind = args is CategoryPageArgs ? args.kind : PropertyKind.newBuilding;
+                return CategoryPage(kind: kind);
+              },
+            ),
         Routes.listing => ListingPage(id: id),
         Routes.listingPhotos => PhotosPage(id: id),
+        Routes.listingVideo => VideoPage(id: id),
         Routes.ad => const AdFormPage(),
         Routes.adForm => const AdFormPage(),
         Routes.adPhotos => const AdPhotosPage(),
