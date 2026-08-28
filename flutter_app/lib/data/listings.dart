@@ -94,7 +94,26 @@ class Listing {
   /// Остальные фотографии «Фотообзора» — первой идёт [photo].
   final List<String> more;
 
-  List<String> get photos => [photo, ...more];
+  List<String> get photos {
+    final list = [photo, ...more];
+    const pool = [
+      ListingPhotos.livingRoom,
+      ListingPhotos.bedroom,
+      ListingPhotos.hall,
+      ListingPhotos.villa,
+      ListingPhotos.terrace,
+      ListingPhotos.night,
+      ListingPhotos.asanbay,
+      ListingPhotos.technopark,
+    ];
+    for (final p in pool) {
+      if (!list.contains(p)) {
+        list.add(p);
+      }
+      if (list.length >= 8) break;
+    }
+    return list;
+  }
 
   bool get owner => seller == SellerKind.owner;
 

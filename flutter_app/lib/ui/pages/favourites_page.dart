@@ -42,7 +42,7 @@ class FavouritesPage extends StatelessWidget {
               ),
               empty: const _NoFavourites(),
               onOpen: (listing) => Navigator.of(context)
-                  .pushNamed(Routes.listing, arguments: ListingArgs(listing.id)),
+                  .pushNamed(Routes.listingVideo, arguments: ListingArgs(listing.id)),
             ),
           ),
         ),

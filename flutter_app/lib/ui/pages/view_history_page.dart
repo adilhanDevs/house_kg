@@ -95,7 +95,7 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
       return;
     }
     Navigator.of(context)
-        .pushNamed(Routes.listing, arguments: ListingArgs(entry.id));
+        .pushNamed(Routes.listingVideo, arguments: ListingArgs(entry.id));
   }
 
   void _remove(AppState state) {

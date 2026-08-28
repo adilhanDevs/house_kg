@@ -655,7 +655,7 @@ class Screen17Notifications extends StatelessWidget {
                                             FigBox(
                                               width: 61.0,
                                               height: 16.0,
-                                              clip: true,
+                                              clip: false,
                                               child: Stack(
                                                 clipBehavior: Clip.none,
                                                 children: [
@@ -670,9 +670,9 @@ class Screen17Notifications extends StatelessWidget {
                                                     )
                                                   ),
                                                   Positioned(
-                                                    left: 0.0, top: 0.0,
+                                                    left: -2.0, top: 0.0,
                                                     child: Transform(
-                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 15.0, 0.0, 1.0),
+                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 11.5, 0.0, 1.0),
                                                       child: FigSvg(
                                                         width: 58.052, height: 1.0,
                                                         vbLeft: 0.0, vbTop: -0.5, vbWidth: 58.052, vbHeight: 1.0,
@@ -884,7 +884,7 @@ class Screen17Notifications extends StatelessWidget {
                                             FigBox(
                                               width: 61.0,
                                               height: 16.0,
-                                              clip: true,
+                                              clip: false,
                                               child: Stack(
                                                 clipBehavior: Clip.none,
                                                 children: [
@@ -899,9 +899,9 @@ class Screen17Notifications extends StatelessWidget {
                                                     )
                                                   ),
                                                   Positioned(
-                                                    left: 0.0, top: 0.0,
+                                                    left: -2.0, top: 0.0,
                                                     child: Transform(
-                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 15.0, 0.0, 1.0),
+                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 11.5, 0.0, 1.0),
                                                       child: FigSvg(
                                                         width: 58.052, height: 1.0,
                                                         vbLeft: 0.0, vbTop: -0.5, vbWidth: 58.052, vbHeight: 1.0,
@@ -1113,7 +1113,7 @@ class Screen17Notifications extends StatelessWidget {
                                             FigBox(
                                               width: 61.0,
                                               height: 16.0,
-                                              clip: true,
+                                              clip: false,
                                               child: Stack(
                                                 clipBehavior: Clip.none,
                                                 children: [
@@ -1128,9 +1128,9 @@ class Screen17Notifications extends StatelessWidget {
                                                     )
                                                   ),
                                                   Positioned(
-                                                    left: 0.0, top: 0.0,
+                                                    left: -2.0, top: 0.0,
                                                     child: Transform(
-                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 15.0, 0.0, 1.0),
+                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 11.5, 0.0, 1.0),
                                                       child: FigSvg(
                                                         width: 58.052, height: 1.0,
                                                         vbLeft: 0.0, vbTop: -0.5, vbWidth: 58.052, vbHeight: 1.0,
@@ -1342,7 +1342,7 @@ class Screen17Notifications extends StatelessWidget {
                                             FigBox(
                                               width: 61.0,
                                               height: 16.0,
-                                              clip: true,
+                                              clip: false,
                                               child: Stack(
                                                 clipBehavior: Clip.none,
                                                 children: [
@@ -1357,9 +1357,9 @@ class Screen17Notifications extends StatelessWidget {
                                                     )
                                                   ),
                                                   Positioned(
-                                                    left: 0.0, top: 0.0,
+                                                    left: -2.0, top: 0.0,
                                                     child: Transform(
-                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 15.0, 0.0, 1.0),
+                                                      transform: Matrix4(0.982, -0.189, 0.0, 0.0, 0.189, 0.982, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 11.5, 0.0, 1.0),
                                                       child: FigSvg(
                                                         width: 58.052, height: 1.0,
                                                         vbLeft: 0.0, vbTop: -0.5, vbWidth: 58.052, vbHeight: 1.0,

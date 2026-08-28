@@ -437,14 +437,61 @@ class FigBox extends StatelessWidget {
       core = SizedBox(width: width, height: height, child: core);
     }
     if (shadows.isNotEmpty) {
-      core = DecoratedBox(
-        decoration: BoxDecoration(borderRadius: _radius, boxShadow: shadows),
-        child: core,
-      );
+      core = CustomPaint(painter: _FigShadowPainter(_radius, shadows), child: core);
     }
     if (opacity != null) core = Opacity(opacity: opacity!, child: core);
     return core;
   }
+}
+
+/// `box-shadow` as CSS paints it: outside the border box only.
+///
+/// Flutter's [BoxDecoration] draws the whole blurred silhouette behind the
+/// box, so a box without a fill — and the design has plenty, the colour is on
+/// the page under it — shows the shadow through its own middle. The design's
+/// bell in the header of «Главная» is 30×30 with no fill and two 4 % shadows;
+/// stacked they tinted its middle to #eaeaea instead of leaving the page's
+/// white. CSS is explicit here: the shadow is cast as if the border box were
+/// opaque, and is clipped away inside that box.
+class _FigShadowPainter extends CustomPainter {
+  const _FigShadowPainter(this.radius, this.shadows);
+
+  final BorderRadius radius;
+  final List<BoxShadow> shadows;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+
+    // всё, куда может дотянуться самая размашистая тень
+    var reach = 0.0;
+    for (final shadow in shadows) {
+      reach = math.max(
+        reach,
+        shadow.spreadRadius +
+            shadow.blurRadius * 3 +
+            math.max(shadow.offset.dx.abs(), shadow.offset.dy.abs()),
+      );
+    }
+
+    final outside = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(rect.inflate(reach + 1)),
+      Path()..addRRect(radius.toRRect(rect)),
+    );
+
+    canvas.save();
+    canvas.clipPath(outside);
+    for (final shadow in shadows) {
+      final bounds = rect.shift(shadow.offset).inflate(shadow.spreadRadius);
+      canvas.drawRRect(radius.toRRect(bounds), shadow.toPaint());
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _FigShadowPainter oldDelegate) =>
+      oldDelegate.radius != radius || oldDelegate.shadows != shadows;
 }
 
 /// Lays its child out with one axis unconstrained, then takes the parent's

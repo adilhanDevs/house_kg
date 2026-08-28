@@ -276,11 +276,55 @@ class _ListingPageState extends State<ListingPage> {
             ),
           ),
         ),
-        FigZone(
-          25, _thumbsTop, 375 - 25, _thumbSize,
-          label: 'Фотообзор',
-          onTap: () => Navigator.of(context)
-                .pushNamed(Routes.listingPhotos, arguments: ListingArgs(listing.id)),
+        // Лента «Фотообзора»: закрываем нарисованные в макете 4 фото белой плашкой и выводим динамический горизонтальный скролл со всеми фото
+        Positioned(
+          left: 0,
+          top: _thumbsTop - 4,
+          right: 0,
+          height: _thumbSize + 8,
+          child: ColoredBox(
+            color: _page,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              itemCount: listing.photos.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final photo = listing.photos[index];
+                final isFirst = index == 0;
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Navigator.of(context).pushNamed(
+                      Routes.listingPhotos,
+                      arguments: ListingArgs(listing.id),
+                    );
+                  },
+                  child: Container(
+                    width: _thumbSize,
+                    height: _thumbSize,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        color: isFirst ? const Color(0xffea812e) : const Color(0xffdcdcdc),
+                        width: isFirst ? 2.0 : 1.0,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6.0),
+                      child: Image.asset(
+                        photo,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, _, _) => const ColoredBox(
+                          color: Color(0xffe5e5ea),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ],
     );

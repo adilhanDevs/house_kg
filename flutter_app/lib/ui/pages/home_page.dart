@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openListing(BuildContext context, Listing listing) => Navigator.of(context)
-      .pushNamed(Routes.listing, arguments: ListingArgs(listing.id));
+      .pushNamed(Routes.listingVideo, arguments: ListingArgs(listing.id));
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +101,9 @@ class _HomePageState extends State<HomePage> {
       background: _page,
       bottomBar: const AppTabBar(active: 0),
       overlays: [
+        // Колокол кадр рисует сам — 30×30 с волосяным кольцом #ffac6a 0.962
+        // и иконкой 13×14.4 внутри. Сверху нужна только зона нажатия, ровно
+        // по его коробке: своя отрисовка макет не повторяет.
         FigZone(
           _bell.left, _bell.top, _bell.width, _bell.height,
           label: 'Уведомления',
@@ -123,12 +126,53 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ),
-        for (var i = 0; i < strip.length; i++)
-          FigZone(
-            _stripX[i], _stripTop, _stripSize, _stripSize,
-            label: strip[i].district,
-            onTap: () => _openListing(context, strip[i]),
+        // Динамическая лента фотографий с горизонтальным скроллом (закрывает нарисованные в макете 4 фото)
+        Positioned(
+          left: 0,
+          top: _stripTop,
+          right: 0,
+          height: _stripSize,
+          child: ColoredBox(
+            color: _page,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              itemCount: kListings.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final listing = kListings[index];
+                final isFirst = index == 0;
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _openListing(context, listing),
+                  child: SizedBox(
+                    width: _stripSize,
+                    height: _stripSize,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
+                        border: Border.all(
+                          color: isFirst ? const Color(0xffea812e) : const Color(0xffdcdcdc),
+                          width: isFirst ? 2.0 : 1.0,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6.0),
+                        child: Image.asset(
+                          listing.photo,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, _, _) => const ColoredBox(
+                            color: Color(0xffe5e5ea),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
+        ),
         for (final (kind, x, w) in _categories)
           FigZone(
             x, _categoryTop, w, _categoryBottom - _categoryTop,

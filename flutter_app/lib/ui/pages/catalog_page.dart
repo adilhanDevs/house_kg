@@ -83,7 +83,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 bottom: 16,
               ),
               onOpen: (listing) => Navigator.of(context)
-                  .pushNamed(Routes.listing, arguments: ListingArgs(listing.id)),
+                  .pushNamed(Routes.listingVideo, arguments: ListingArgs(listing.id)),
             ),
           ),
         ),

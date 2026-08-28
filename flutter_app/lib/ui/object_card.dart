@@ -138,35 +138,34 @@ class ObjectCard extends StatelessWidget {
             Positioned(
               left: 0,
               top: 186.7,
-              child: FigOverflow(
-                freeWidth: true,
-                alignment: const Alignment(-1.0, 0.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  spacing: 7.0,
-                  children: [
-                    _spec7((listing.roomsLabel.isNotEmpty && !listing.isPlot) ? listing.roomsLabel : '3-комн.'),
-                    const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
-                    FigText(
-                      span: TextSpan(
-                        style: figStyle(
-                          fontSize: 13.0,
-                          family: FigFont.display,
-                          weight: 600,
-                          height: 1.0,
-                          letterSpacing: -0.13,
-                          color: _spec,
-                        ),
-                        children: [
-                          TextSpan(text: listing.areaLabel, style: figStyle(fontSize: 13.0, color: _spec)),
-                          figSuper('2', figStyle(fontSize: 9.36, color: _spec), 13.0),
+              width: kCardWidth,
+              child: SizedBox(
+                width: kCardWidth,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    spacing: 7.0,
+                    children: [
+                      if (listing.isPlot) ...[
+                        _spec7('Участок'),
+                        const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
+                        _areaWidget(listing.areaLabel),
+                      ] else ...[
+                        if (listing.rooms > 0) ...[
+                          _spec7(listing.roomsLabel),
+                          const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
                         ],
-                      ),
-                    ),
-                    const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
-                    _spec7((listing.floorLong.isNotEmpty && !listing.isPlot) ? listing.floorLong : '8 этаж'),
-                  ],
+                        _areaWidget(listing.areaLabel),
+                        if (listing.floor > 0) ...[
+                          const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
+                          _spec7(listing.floorLong.isNotEmpty ? listing.floorLong : '${listing.floor} этаж'),
+                        ],
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -188,6 +187,23 @@ class ObjectCard extends StatelessWidget {
             letterSpacing: -0.13,
             color: _spec,
           ),
+        ),
+      );
+
+  static Widget _areaWidget(String areaLabel) => FigText(
+        span: TextSpan(
+          style: figStyle(
+            fontSize: 13.0,
+            family: FigFont.display,
+            weight: 600,
+            height: 1.0,
+            letterSpacing: -0.13,
+            color: _spec,
+          ),
+          children: [
+            TextSpan(text: areaLabel, style: figStyle(fontSize: 13.0, color: _spec)),
+            figSuper('2', figStyle(fontSize: 9.36, color: _spec), 13.0),
+          ],
         ),
       );
 }
