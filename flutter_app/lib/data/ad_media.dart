@@ -15,6 +15,9 @@ class AdMedia {
     this.asset,
     this.bytes,
     this.video = false,
+    this.id,
+    this.title,
+    this.description,
   });
 
   /// Демонстрационный снимок из макета — их приложение показывает с самого
@@ -33,6 +36,27 @@ class AdMedia {
   final Uint8List? bytes;
 
   final bool video;
+
+  // Added for metadata editing
+  final int? id;
+  final String? title;
+  final String? description;
+
+  AdMedia copyWith({
+    int? id,
+    String? title,
+    String? description,
+  }) {
+    return AdMedia(
+      name: name,
+      asset: asset,
+      bytes: bytes,
+      video: video,
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+    );
+  }
 }
 
 /// Откуда приложение берёт файлы. За этим стоит системный выбор из галереи и

@@ -112,7 +112,7 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
         Routes.splash => const SplashPage(),
         Routes.welcome => const FramePage(route: Routes.welcome),
         Routes.onboarding => const OnboardingPage(),
-        Routes.code => const CodePage(),
+        Routes.code => CodePage(phone: ModalRoute.of(context)?.settings.arguments as String?),
         Routes.proSignup => const FramePage(route: Routes.proSignup),
         Routes.proCode => const FramePage(route: Routes.proCode),
         Routes.proPhoto1 => const FramePage(route: Routes.proPhoto1),
@@ -168,7 +168,10 @@ class FramePage extends StatelessWidget {
       return const ProSignupPage();
     }
     if (route == Routes.proCode) {
-      return const CodePage(nextRoute: Routes.proPhoto1);
+      return CodePage(
+        nextRoute: Routes.proPhoto1,
+        phone: ModalRoute.of(context)?.settings.arguments as String?,
+      );
     }
     if (route == Routes.proPhoto1 || route == Routes.proPhoto2) {
       return const ProPhotoConfirmPage();

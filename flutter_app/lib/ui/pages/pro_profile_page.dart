@@ -10,6 +10,9 @@ import 'profile_page.dart';
 import '../../data/listings.dart';
 import 'category_page.dart';
 
+import '../../data/listing_repository.dart';
+import '../object_card.dart';
+
 class ProProfilePage extends StatefulWidget {
   const ProProfilePage({super.key});
 
@@ -18,14 +21,35 @@ class ProProfilePage extends StatefulWidget {
 }
 
 class _ProProfilePageState extends State<ProProfilePage> {
+  late final ListingRepository _repository;
+  List<Listing> _listings = [];
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
+    final state = AppScope.read(context);
+    _repository = ListingRepository(state.apiClient);
+    _loadListings();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         AppScope.read(context).pro = true;
       }
     });
+  }
+
+  Future<void> _loadListings() async {
+    try {
+      final response = await _repository.getListings();
+      if (mounted) {
+        setState(() {
+          _listings = response.results;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _confirmLogOut(BuildContext context) async {
@@ -58,12 +82,90 @@ class _ProProfilePageState extends State<ProProfilePage> {
   @override
   Widget build(BuildContext context) {
     const dangerColor = Color(0xffd93025);
+    final state = AppScope.of(context);
 
     return FigStage(
       frame: frame('38'),
       bottomBar: const AppTabBar(active: 4),
       background: const Color(0xfffefefe),
       overlays: [
+        // Динамический заголовок продавца поверх статичного макета (Y=140..250)
+        Positioned(
+          left: 20.0,
+          top: 140.0,
+          width: 335.0,
+          height: 105.0,
+          child: Container(
+            color: const Color(0xfffefefe),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 60.0,
+                  height: 60.0,
+                  decoration: BoxDecoration(
+                    color: const Color(0xfffff0e6),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    (state.userName != null && state.userName!.isNotEmpty)
+                        ? state.userName!.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join()
+                        : '🏠',
+                    style: const TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xffea812e),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14.0),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state.userName ?? 'Адилхан Сатымкулов',
+                        style: const TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff000000),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        state.userPhone ?? '+996555444333',
+                        style: const TextStyle(
+                          fontSize: 14.0,
+                          color: Color(0xff7d7d7d),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xfffff0e6),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: const Text(
+                    'Продавец',
+                    style: TextStyle(
+                      fontSize: 13.0,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xffea812e),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
         // Табы категорий (Y=318): Новостройки, Комната, Коммерция
         Positioned(
           left: 25.0,
@@ -116,28 +218,34 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
 
-        // Клик по карточке объекта 1 («Технопарк») (Y=480)
+        // Карточки объектов продавца (Y=480)
         Positioned(
-          left: 25.0,
+          left: 0,
           top: 480.0,
-          width: 160.0,
-          height: 210.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.listing),
-          ),
-        ),
-
-        // Клик по карточке объекта 2 («Асанбай») (Y=480)
-        Positioned(
-          left: 195.0,
-          top: 480.0,
-          width: 160.0,
-          height: 210.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.listing),
-          ),
+          right: 0,
+          height: 220.0,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: Color(0xffea812e)))
+              : (_listings.isEmpty
+                  ? const Center(child: Text('Нет активных объектов', style: TextStyle(color: Color(0xff7d7d7d))))
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                      child: Row(
+                        children: _listings.map((l) => Padding(
+                          padding: const EdgeInsets.only(right: 15.0),
+                          child: ObjectCard(
+                            listing: l,
+                            favourite: state.isFavourite(l.id),
+                            onTap: () => Navigator.of(context).pushNamed(
+                              Routes.listingVideo,
+                              arguments: ListingArgs(l.id),
+                            ),
+                            onFavourite: () => state.toggleFavourite(l.id),
+                          ),
+                        )).toList(),
+                      ),
+                    )),
         ),
 
         // Клик по кнопке «Пополнить» на панели баланса (Y=725)
@@ -152,7 +260,16 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
 
-        // Клик по тексту баланса «16.700 кирпичей Баланс» -> на историю пополнений (Y=725)
+        // Белая маска поверх баланса на макете
+        Positioned(
+          left: 25.0,
+          top: 725.0,
+          width: 200.0,
+          height: 55.0,
+          child: ColoredBox(color: const Color(0xffffffff)),
+        ),
+
+        // Настоящий баланс кошелька
         Positioned(
           left: 25.0,
           top: 725.0,
@@ -161,6 +278,29 @@ class _ProProfilePageState extends State<ProProfilePage> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).pushNamed(Routes.history),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${state.walletBalance} кирпичей',
+                  style: const TextStyle(
+                    fontSize: 22.0,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xffea812e),
+                    height: 1.2,
+                  ),
+                ),
+                const Text(
+                  'Баланс',
+                  style: TextStyle(
+                    fontSize: 13.0,
+                    color: Color(0x993c3c43),
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
 

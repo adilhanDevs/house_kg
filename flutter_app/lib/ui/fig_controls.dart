@@ -81,15 +81,15 @@ class FigChip extends StatelessWidget {
   const FigChip({
     super.key,
     required this.label,
-    required this.width,
+    this.width,
     required this.selected,
     this.onTap,
   });
 
   final String label;
 
-  /// Ширина из макета — чтобы чип встал ровно на нарисованный.
-  final double width;
+  /// Ширина из макета — если задана, чип фиксированной ширины.
+  final double? width;
   final bool selected;
   final VoidCallback? onTap;
 
@@ -97,37 +97,38 @@ class FigChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xfffdf1e8) : const Color(0xffffffff),
-            borderRadius: BorderRadius.circular(8.0),
-            border: Border.all(
-              color: selected ? const Color(0xfffdf1e8) : const Color(0xffe5e5ea),
-              width: 1.0,
-            ),
+    final content = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: width,
+        height: height,
+        padding: width == null ? const EdgeInsets.symmetric(horizontal: 12) : null,
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xfffdf1e8) : const Color(0xffffffff),
+          border: Border.all(
+            color: selected ? const Color(0x00000000) : _mutedBorder,
+            width: 1.0,
           ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 13.0,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              color: selected ? const Color(0xffea812e) : const Color(0x993c3c43),
-            ),
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.0,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+            color: selected ? _accentText : _mutedText,
           ),
         ),
       ),
+    );
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: width != null ? _Cover(width: width!, height: height, child: content) : content,
     );
   }
 }

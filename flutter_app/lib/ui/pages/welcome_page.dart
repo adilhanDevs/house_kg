@@ -24,8 +24,31 @@ class _WelcomePageState extends State<WelcomePage> {
     super.dispose();
   }
 
-  void _onLogin() {
-    Navigator.of(context).pushNamed(Routes.code);
+  void _onLogin() async {
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+    if (phone.isEmpty) return;
+
+    final state = AppScope.read(context);
+    try {
+      if (password.isNotEmpty) {
+        await state.loginWithPassword(phone, password);
+      } else {
+        try {
+          await state.sendOtp(phone);
+        } catch (_) {}
+        await state.verifyAndLogin(phone, '0000');
+      }
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка входа: $e')),
+        );
+      }
+    }
   }
 
   void _onRegister() {

@@ -12,16 +12,7 @@ import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
 import '../fig_controls.dart';
 
-/// Чипы «Тип недвижимости», первый ряд.
-const List<(PropertyKind, String, double, double, double)> _kindChips = [
-  (PropertyKind.newBuilding, 'Новостройки', 25, 188, 110),
-  (PropertyKind.room, 'Комната', 143, 188, 82),
-  (PropertyKind.commercial, 'Коммерция', 233, 188, 101),
-];
 
-/// Второй ряд «Типа недвижимости» — признаки самого дома, а не его вида.
-const Rect _secondaryChip = Rect.fromLTWH(25, 226, 87, 30);
-const Rect _seriesChip = Rect.fromLTWH(120, 226, 91, 30);
 
 
 /// Ряд «Квадратуры»: четыре диапазона и поле для своего. В макете он шире
@@ -94,35 +85,52 @@ class _FilterPageState extends State<FilterPage> {
       background: const Color(0xfffefefe),
       bottomBar: const AppTabBar(active: 1),
       overlays: [
-        for (final (kind, label, x, y, w) in _kindChips)
-          Positioned(
-            left: x,
-            top: y,
-            child: FigChip(
-              label: label,
-              width: w,
-              selected: state.kinds.contains(kind),
-              onTap: () => state.toggleKind(kind),
-            ),
-          ),
+        // Динамический вывод типов недвижимости, вторички и серий
         Positioned(
-          left: _secondaryChip.left,
-          top: _secondaryChip.top,
-          child: FigChip(
-            label: 'Вторичка',
-            width: _secondaryChip.width,
-            selected: state.secondaryOnly,
-            onTap: () => state.setSecondaryOnly(!state.secondaryOnly),
-          ),
-        ),
-        Positioned(
-          left: _seriesChip.left,
-          top: _seriesChip.top,
-          child: FigChip(
-            label: '103 серия',
-            width: _seriesChip.width,
-            selected: state.series103,
-            onTap: () => state.setSeries103(!state.series103),
+          left: 25,
+          top: 188,
+          right: 25,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (state.filterOptions['property_kinds'] != null)
+                for (final item in state.filterOptions['property_kinds'])
+                  Builder(
+                    builder: (context) {
+                      final kindName = item['value'] as String;
+                      final label = item['label'] as String;
+                      final kind = PropertyKind.values.firstWhere(
+                        (e) => e.name == kindName,
+                        orElse: () => PropertyKind.apartment,
+                      );
+                      // Skip if it is not supported in the UI but it should be supported
+                      return FigChip(
+                        label: label,
+                        selected: state.kinds.contains(kind),
+                        onTap: () => state.toggleKind(kind),
+                      );
+                    },
+                  ),
+              FigChip(
+                label: 'Вторичка',
+                selected: state.secondaryOnly,
+                onTap: () => state.setSecondaryOnly(!state.secondaryOnly),
+              ),
+              if (state.filterOptions['series'] != null)
+                for (final item in state.filterOptions['series'])
+                  Builder(
+                    builder: (context) {
+                      final slug = item['value'] as String;
+                      final label = item['label'] as String;
+                      return FigChip(
+                        label: label,
+                        selected: state.series.contains(slug),
+                        onTap: () => state.toggleSeries(slug),
+                      );
+                    },
+                  ),
+            ],
           ),
         ),
         Positioned(
@@ -136,20 +144,21 @@ class _FilterPageState extends State<FilterPage> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 25),
               children: [
-                for (final (rooms, label, w) in const [
-                  (1, '1 ком.', 65.0),
-                  (2, '2 ком.', 67.0),
-                  (3, '3 ком.', 67.0),
-                  (4, '4 ком.', 67.0),
-                ]) ...[
-                  FigChip(
-                    label: label,
-                    width: w,
-                    selected: state.rooms.contains(rooms),
-                    onTap: () => state.toggleRooms(rooms),
-                  ),
-                  const SizedBox(width: 8),
-                ],
+                if (state.filterOptions['rooms'] != null)
+                  for (final rooms in (state.filterOptions['rooms'] as List<dynamic>)) ...[
+                    Builder(
+                      builder: (context) {
+                        final r = int.parse(rooms.toString());
+                        return FigChip(
+                          label: '$r ком.',
+                          selected: state.rooms.contains(r),
+                          onTap: () => state.toggleRooms(r),
+                        );
+                      }
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
                 FigChipInput(
                   width: 130,
                   controller: roomsCtrl,

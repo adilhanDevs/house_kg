@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
@@ -66,11 +67,42 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   PropertyKind _tab = PropertyKind.apartment;
   late final TextEditingController _searchController;
+  late final ListingRepository _repository;
+  List<Listing> _listings = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController(text: AppScope.read(context).query);
+    final state = AppScope.read(context);
+    _searchController = TextEditingController(text: state.query);
+    _repository = ListingRepository(state.apiClient);
+    _loadListings();
+  }
+
+  Future<void> _loadListings() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final response = await _repository.getListings(filters: {
+        'kind': _tab == PropertyKind.newBuilding ? 'new_building' : _tab.name,
+      });
+      if (mounted) {
+        AppScope.read(context).syncFavourites(response.results);
+        setState(() {
+          _listings = response.results.take(4).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
   }
 
   @override
@@ -93,7 +125,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final selection = kListings.where((l) => l.kind == _tab).take(4).toList();
     final strip = kListings.take(_stripX.length).toList();
 
     return FigStage(
@@ -188,24 +219,38 @@ class _HomePageState extends State<HomePage> {
               label: label,
               width: w,
               selected: kind == _tab,
-              onTap: () => setState(() => _tab = kind),
+              onTap: () {
+                if (_tab != kind) {
+                  setState(() => _tab = kind);
+                  _loadListings();
+                }
+              },
             ),
           ),
         // карточки вместо нарисованных
-        Positioned(
-          left: 0,
-          top: _cardsTop,
-          right: 0,
-          height: _cardsBottom - _cardsTop,
-          child: ColoredBox(
-            color: _page,
-            child: ListingGrid(
-              listings: selection,
-              scrollable: false,
-              onOpen: (listing) => _openListing(context, listing),
+        if (_isLoading)
+          Positioned(
+            left: 0,
+            top: _cardsTop,
+            right: 0,
+            height: _cardsBottom - _cardsTop,
+            child: const Center(child: CircularProgressIndicator()),
+          )
+        else
+          Positioned(
+            left: 0,
+            top: _cardsTop,
+            right: 0,
+            height: _cardsBottom - _cardsTop,
+            child: ColoredBox(
+              color: _page,
+              child: ListingGrid(
+                listings: _listings,
+                scrollable: false,
+                onOpen: (listing) => _openListing(context, listing),
+              ),
             ),
           ),
-        ),
         FigZone(
           _seeAll.left, _seeAll.top, _seeAll.width, _seeAll.height,
           label: 'Посмотреть все',

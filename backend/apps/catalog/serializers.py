@@ -143,6 +143,8 @@ class ListingMediaSerializer(serializers.ModelSerializer):
             "id",
             "kind",
             "status",
+            "title",
+            "description",
             "url",
             "thumbnail_url",
             "url_thumb",
@@ -206,6 +208,15 @@ class MediaUploadSerializer(serializers.Serializer):
         help_text="Несколько файлов одним запросом — пользователь выбирает их скопом.",
     )
     kind = serializers.ChoiceField(choices=MediaKind.choices, default=MediaKind.PHOTO)
+    title = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    description = serializers.CharField(required=False, allow_blank=True)
+
+class ListingMediaUpdateSerializer(serializers.ModelSerializer):
+    """Обновление метаданных медиафайла."""
+
+    class Meta:
+        model = ListingMedia
+        fields = ["title", "description"]
 
 
 class RejectedFileSerializer(serializers.Serializer):
@@ -306,6 +317,16 @@ class ListingListSerializer(serializers.ModelSerializer):
     def get_is_available(self, obj: Listing) -> bool:
         """В избранном и истории объявление могло уже уйти из публикации."""
         return obj.status == ListingStatus.ACTIVE
+
+
+class ListingReelsSerializer(ListingListSerializer):
+    """Карточка объявления в ленте видеообзоров (Reels)."""
+
+    videos = ListingMediaSerializer(source="processed_videos", many=True, read_only=True)
+
+    class Meta(ListingListSerializer.Meta):
+        fields = ListingListSerializer.Meta.fields + ["videos"]
+        read_only_fields = fields
 
 
 class ListingDetailSerializer(ListingListSerializer):

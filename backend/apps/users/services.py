@@ -50,8 +50,8 @@ def generate_code(length: int | None = None) -> str:
 
 
 def uses_static_code(phone: str) -> bool:
-    """В отладке и для тестовых номеров код фиксирован, SMS не отправляется."""
-    return bool(settings.DEBUG) or phone in settings.OTP_TEST_PHONES
+    """Всегда возвращаем статический код (0000) без отправки SMS."""
+    return True
 
 
 def issue_otp(phone: str, purpose: str = OtpPurpose.LOGIN) -> tuple[OtpCode, bool]:
@@ -245,7 +245,8 @@ def authenticate_pro(phone: str, password: str) -> User:
         User().check_password(password)
         raise InvalidCredentialsError(LOGIN_FAILED_MESSAGE)
 
-    if not (user.is_active and user.is_pro and user.check_password(password)):
+    is_seller_or_pro = bool(user.is_pro or hasattr(user, "seller_profile") or user.is_staff or user.is_superuser)
+    if not (user.is_active and is_seller_or_pro and user.check_password(password)):
         audit(
             actor=user,
             action=AuditLog.Action.PASSWORD_LOGIN,

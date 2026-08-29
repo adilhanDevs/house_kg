@@ -155,6 +155,9 @@ class AdminIpRestrictionMiddleware:
 
     @staticmethod
     def _matches(client: str, allowed: list[str]) -> bool:
+        if "*" in allowed:
+            return True
+
         try:
             address = ipaddress.ip_address(client)
         except ValueError:

@@ -111,8 +111,8 @@ def upload(django_capture_on_commit_callbacks):
     коммита не происходит — задачу запускает capture-фикстура.
     """
 
-    def _upload(client, listing, files, kind=MediaKind.PHOTO):
-        payload: dict = {"files": files, "kind": kind}
+    def _upload(client, listing, files, kind=MediaKind.PHOTO, **kwargs):
+        payload: dict = {"files": files, "kind": kind, **kwargs}
         with django_capture_on_commit_callbacks(execute=True):
             return client.post(media_url(listing), payload, format="multipart")
 
@@ -261,13 +261,20 @@ def test_short_video_is_accepted_and_gets_poster(owner_client, upload):
         listing,
         [upload_file(make_video(5), "clip.mp4", "video/mp4")],
         MediaKind.VIDEO,
+        title="Обзор квартиры",
+        description="Краткое описание обзора",
     )
 
     assert response.status_code == 201, response.data
+    assert response.data["media"][0]["title"] == "Обзор квартиры"
+    assert response.data["media"][0]["description"] == "Краткое описание обзора"
+
     media = ListingMedia.objects.get(pk=response.data["media"][0]["id"])
     assert media.status == MediaStatus.READY
     assert media.duration_seconds == 5
     assert media.thumbnail, "кадр-превью не сохранён"
+    assert media.title == "Обзор квартиры"
+    assert media.description == "Краткое описание обзора"
 
 
 # -- обработка ---------------------------------------------------------------

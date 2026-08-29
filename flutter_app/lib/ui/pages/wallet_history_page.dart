@@ -20,6 +20,101 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
     'Бонусы',
   ];
 
+  final ScrollController _scrollController = ScrollController();
+  List<dynamic> _transactions = [];
+  bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _nextCursor;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadTransactions(refresh: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 100) {
+      _loadTransactions();
+    }
+  }
+
+  String? _getKind() {
+    switch (_selectedFilter) {
+      case 1:
+        return 'topup';
+      case 2:
+        return 'spend';
+      case 3:
+        return 'bonus';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _loadTransactions({bool refresh = false}) async {
+    if (refresh) {
+      _hasMore = true;
+      _nextCursor = null;
+    }
+    
+    if (!_hasMore || (_isLoadingMore && !refresh)) return;
+
+    if (refresh) {
+      setState(() => _isLoading = true);
+    } else {
+      setState(() => _isLoadingMore = true);
+    }
+
+    try {
+      final state = AppScope.read(context);
+      final response = await state.apiClient.getWalletTransactions(
+        kind: _getKind(),
+        cursor: _nextCursor,
+      );
+      
+      if (mounted) {
+        setState(() {
+          final results = response['results'] as List<dynamic>? ?? [];
+          if (refresh) {
+            _transactions = results;
+          } else {
+            _transactions.addAll(results);
+          }
+          _nextCursor = response['next'] as String?;
+          _hasMore = _nextCursor != null;
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  void _onFilterChanged(int index) {
+    if (_selectedFilter == index) return;
+    setState(() {
+      _selectedFilter = index;
+    });
+    _loadTransactions(refresh: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     const orangeColor = Color(0xffea812e);
@@ -82,11 +177,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
                             child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedFilter = index;
-                                });
-                              },
+                              onTap: () => _onFilterChanged(index),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
                                 decoration: BoxDecoration(
@@ -113,8 +204,28 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     ),
                     const SizedBox(height: 24.0),
 
-                    // Контент в зависимости от фильтра
-                    ..._buildFilterContent(),
+                    // Список транзакций
+                    _isLoading
+                        ? const Padding(
+                            padding: EdgeInsets.only(top: 40.0),
+                            child: Center(child: CircularProgressIndicator(color: orangeColor)),
+                          )
+                        : _transactions.isEmpty
+                            ? const Padding(
+                                padding: EdgeInsets.only(top: 40.0),
+                                child: Center(child: Text('Нет операций')),
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ..._buildTransactionList(),
+                                  if (_isLoadingMore)
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                                      child: Center(child: CircularProgressIndicator(color: orangeColor)),
+                                    ),
+                                ],
+                              ),
                   ],
                 ),
               ),
@@ -156,55 +267,58 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
     );
   }
 
-  List<Widget> _buildFilterContent() {
-    switch (_selectedFilter) {
-      case 1: // Пополнение
-        return [
-          _buildDateHeader('21 августа'),
-          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
-          _buildBrickRow('+1 200 кирпичей (бонус за пополнение)', isPositive: true),
-          const SizedBox(height: 16.0),
-          const Divider(color: Color(0xffe5e5ea), height: 1),
-          const SizedBox(height: 20.0),
-          _buildDateHeader('20 августа'),
-          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
-          const SizedBox(height: 16.0),
-          const Divider(color: Color(0xffe5e5ea), height: 1),
-        ];
+  List<Widget> _buildTransactionList() {
+    final widgets = <Widget>[];
+    String? currentDate;
 
-      case 2: // Списание
-        return [
-          _buildDateHeader('21 августа'),
-          _buildBrickRow('-500 кирпичей', isPositive: false),
-          const SizedBox(height: 16.0),
-          const Divider(color: Color(0xffe5e5ea), height: 1),
-        ];
+    for (final tx in _transactions) {
+      // Пытаемся извлечь дату или используем заглушку
+      final rawDate = tx['created_at'] as String?;
+      final displayDate = rawDate != null ? _formatDate(rawDate) : 'Неизвестно';
 
-      case 3: // Бонусы
-        return [
-          _buildDateHeader('21 августа'),
-          _buildBrickRow('+1 200 кирпичей (бонус за пополнение)', isPositive: true),
-          _buildBrickRow('+300 кирпичей (бонус за квест)', isPositive: true),
-          const SizedBox(height: 16.0),
-          const Divider(color: Color(0xffe5e5ea), height: 1),
-        ];
+      if (currentDate != displayDate) {
+        if (currentDate != null) {
+          widgets.add(const SizedBox(height: 16.0));
+          widgets.add(const Divider(color: Color(0xffe5e5ea), height: 1));
+          widgets.add(const SizedBox(height: 20.0));
+        }
+        widgets.add(_buildDateHeader(displayDate));
+        currentDate = displayDate;
+      }
 
-      case 0: // Все операции
-      default:
-        return [
-          _buildDateHeader('21 августа'),
-          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
-          _buildBrickRow('+1 200 кирпичей (бонус за пополнение)', isPositive: true),
-          _buildBrickRow('-500 кирпичей', isPositive: false),
-          const SizedBox(height: 16.0),
-          const Divider(color: Color(0xffe5e5ea), height: 1),
-          const SizedBox(height: 20.0),
-          _buildDateHeader('20 августа'),
-          _buildCoinRow('+12 000 сом (12 000 кирпичей)'),
-          _buildBrickRow('-500 кирпичей', isPositive: false),
-          const SizedBox(height: 16.0),
-          const Divider(color: Color(0xffe5e5ea), height: 1),
-        ];
+      final amount = tx['amount'] as int? ?? 0;
+      final kind = tx['kind'] as String? ?? '';
+      final desc = tx['description'] as String? ?? '';
+      
+      final isPositive = amount > 0;
+      final amountStr = isPositive ? '+$amount' : '$amount';
+      final text = '$amountStr кирпичей ($desc)';
+
+      if (kind == 'topup') {
+        widgets.add(_buildCoinRow(text));
+      } else {
+        widgets.add(_buildBrickRow(text, isPositive: isPositive));
+      }
+    }
+    
+    if (widgets.isNotEmpty) {
+      widgets.add(const SizedBox(height: 16.0));
+      widgets.add(const Divider(color: Color(0xffe5e5ea), height: 1));
+    }
+
+    return widgets;
+  }
+
+  String _formatDate(String isoString) {
+    try {
+      final date = DateTime.parse(isoString).toLocal();
+      const months = [
+        'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+      ];
+      return '${date.day} ${months[date.month - 1]}';
+    } catch (e) {
+      return isoString;
     }
   }
 

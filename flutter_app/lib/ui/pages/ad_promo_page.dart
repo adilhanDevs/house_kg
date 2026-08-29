@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:uuid/uuid.dart';
+
+import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../fig/fig.dart';
@@ -21,6 +24,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
   int _selectedDay = 1;
   final TextEditingController _sumController = TextEditingController();
   final TextEditingController _daysController = TextEditingController();
+  
+  late final String _idempotencyKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _idempotencyKey = const Uuid().v4();
+  }
 
   @override
   void dispose() {
@@ -29,20 +40,42 @@ class _AdPromoPageState extends State<AdPromoPage> {
     super.dispose();
   }
 
-  void _onNext() {
+  bool _isPublishing = false;
+
+  Future<void> _onNext() async {
     if (!_useBricks) {
       // Режим «Пополнение кошелька» — переход на страницу пополнения кирпичей
       Navigator.of(context).pushNamed(Routes.topup);
     } else {
-      // Режим «Списать кирпичи» — публикация объявления
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Объявление успешно опубликовано!'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Color(0xffea812e),
-        ),
-      );
-      Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+      setState(() => _isPublishing = true);
+      final state = AppScope.read(context);
+      final slug = state.draftSlug ?? 'draft-slug';
+      try {
+        final days = int.tryParse(_daysController.text.trim()) ?? _selectedDay;
+        await state.apiClient.promoteListing(slug, days, _idempotencyKey);
+        await state.apiClient.publishListing(slug);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Объявление успешно опубликовано и продвинуто!'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Color(0xffea812e),
+            ),
+          );
+          Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка продвижения/публикации: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isPublishing = false);
+        }
+      }
     }
   }
 
@@ -376,13 +409,31 @@ class _AdPromoPageState extends State<AdPromoPage> {
         ),
 
         // Кнопка «Далее» (Завершить создание и опубликовать)
-        FigZone(
-          25.0,
-          720.0,
-          325.0,
-          48.0,
-          label: 'Далее',
-          onTap: _onNext,
+        Positioned(
+          left: 25.0,
+          top: 720.0,
+          width: 325.0,
+          height: 48.0,
+          child: ElevatedButton(
+            onPressed: _isPublishing ? null : _onNext,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: orangeColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+            ),
+            child: _isPublishing
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text(
+                    'Далее',
+                    style: TextStyle(
+                      fontSize: 17.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+          ),
         ),
       ],
     );

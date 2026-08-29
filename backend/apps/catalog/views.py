@@ -62,6 +62,8 @@ from apps.catalog.serializers import (
     ListingDraftSerializer,
     ListingListSerializer,
     ListingMediaSerializer,
+    ListingMediaUpdateSerializer,
+    ListingReelsSerializer,
     ListingReportSerializer,
     ListingUpdateSerializer,
     ListingViewResponseSerializer,
@@ -269,6 +271,7 @@ class ListingListView(ListAPIView):
             buffer_impressions([item.pk for item in page])
         return page
 
+
     @extend_schema(
         operation_id="listings_list",
         summary="Каталог объявлений",
@@ -290,6 +293,49 @@ class ListingListView(ListAPIView):
     )
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return super().get(request, *args, **kwargs)
+
+
+class ListingReelsView(ListAPIView):
+    """GET /api/v1/listings/reels/ — лента видеообзоров (Reels)."""
+
+    permission_classes = [AllowAny]
+    serializer_class = ListingReelsSerializer
+    pagination_class = ListingCursorPagination
+
+    @extend_schema(
+        operation_id="listings_reels",
+        summary="Лента видеообзоров (Reels)",
+        description=(
+            "Возвращает бесконечную ленту опубликованных объявлений, у которых есть обработанные "
+            "видеообзоры. Сортировка по убыванию даты публикации."
+        ),
+        responses={200: ListingReelsSerializer(many=True)},
+    )
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        return super().get(request, *args, **kwargs)
+
+    def get_ordering(self, request: Request) -> str:
+        return "-published_at"
+
+    def get_queryset(self) -> QuerySet[Listing]:
+        from django.db.models import Prefetch
+        from apps.catalog.enums import MediaKind, MediaStatus
+        from apps.catalog.models import ListingMedia
+
+        qs = listing_queryset(self.request.user)
+
+        video_prefetch = Prefetch(
+            "media",
+            queryset=ListingMedia.objects.filter(kind=MediaKind.VIDEO, status=MediaStatus.READY),
+            to_attr="processed_videos",
+        )
+
+        return (
+            qs.filter(media__kind=MediaKind.VIDEO, media__status=MediaStatus.READY)
+            .distinct()
+            .prefetch_related(video_prefetch)
+            .order_by("-published_at", "-id")
+        )
 
 
 class ListingCountView(GenericAPIView):
@@ -718,6 +764,8 @@ class ListingMediaUploadView(ListingOwnerActionView):
             listing,
             form.validated_data["files"],
             form.validated_data["kind"],
+            title=form.validated_data.get("title", ""),
+            description=form.validated_data.get("description", ""),
         )
         payload = MediaUploadResultSerializer(result, context={"request": request}).data
         return Response(payload, status=status.HTTP_201_CREATED)
@@ -780,6 +828,26 @@ class ListingMediaItemView(ListingMediaObjectView):
         listing = self.get_listing(slug)
         delete_listing_media(listing, self.get_media(listing, media_id))
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(
+        operation_id="listings_media_update",
+        summary="Обновить метаданные файла",
+        description="Позволяет изменить заголовок и описание видеообзора.",
+        request=ListingMediaUpdateSerializer,
+        responses={
+            status.HTTP_200_OK: ListingMediaSerializer,
+            status.HTTP_400_BAD_REQUEST: ErrorSerializer,
+            status.HTTP_403_FORBIDDEN: ErrorSerializer,
+            status.HTTP_404_NOT_FOUND: ErrorSerializer,
+        },
+    )
+    def patch(self, request: Request, slug: str, media_id: int) -> Response:
+        listing = self.get_listing(slug)
+        media = self.get_media(listing, media_id)
+        serializer = ListingMediaUpdateSerializer(media, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(ListingMediaSerializer(media, context={"request": request}).data)
 
 
 class ListingMediaCoverView(ListingMediaObjectView):

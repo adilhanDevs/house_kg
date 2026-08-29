@@ -5,7 +5,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/api_client.dart';
 import '../data/ad_media.dart';
 import '../data/listings.dart';
 
@@ -52,25 +54,216 @@ class ViewEntry {
 }
 
 class AppState extends ChangeNotifier {
-  AppState({MediaSource media = const DeviceMedia()}) : _media = media;
+  AppState({MediaSource media = const DeviceMedia()}) : _media = media {
+    _initAuth();
+  }
 
   /// Откуда берутся файлы для объявления — галерея и камера устройства.
   final MediaSource _media;
 
-  // ---------------------------------------------------------------- избранное
-  final Set<String> _favourites = {'technopark'};
+  // ---------------------------------------------------------------- авторизация и API
+  String? _accessToken;
+  String? _refreshToken;
+  
+  String? userName;
+  String? userPhone;
+  int walletBalance = 0;
+  bool isPro = false;
+  
+  final ListingApiClient apiClient = ListingApiClient(baseUrl: 'https://adilhan1234.pythonanywhere.com');
 
-  Set<String> get favourites => Set.unmodifiable(_favourites);
-  bool isFavourite(String id) => _favourites.contains(id);
-  List<Listing> get favouriteListings =>
-      kListings.where((l) => _favourites.contains(l.id)).toList();
+  bool get isAuthenticated => _accessToken != null;
 
-  void toggleFavourite(String id) {
-    _favourites.contains(id) ? _favourites.remove(id) : _favourites.add(id);
+  Future<void> _initAuth() async {
+    final prefs = await SharedPreferences.getInstance();
+    _accessToken = prefs.getString('access_token');
+    _refreshToken = prefs.getString('refresh_token');
+    if (_accessToken != null) {
+      apiClient.setToken(_accessToken);
+      await fetchProfile();
+    }
+    await fetchFilterOptions('Бишкек');
     notifyListeners();
   }
 
+  Future<void> fetchFilterOptions(String city) async {
+    try {
+      filterOptions = await apiClient.getFilterOptions(city: city);
+      notifyListeners();
+    } catch (e) {
+      print('Failed to fetch filter options: $e');
+    }
+  }
+
+  Future<void> fetchProfile() async {
+    try {
+      final profile = await apiClient.getMe();
+      userName = profile['name'] as String?;
+      userPhone = profile['phone'] as String?;
+      if (profile['wallet_balance'] is Map) {
+        walletBalance = profile['wallet_balance']['balance'] as int? ?? 0;
+      } else {
+        walletBalance = profile['wallet_balance'] as int? ?? 0;
+      }
+      isPro = profile['is_pro'] as bool? ?? false;
+      final hasSellerProfile = profile['has_seller_profile'] as bool? ?? false;
+      final sellerKind = profile['seller_kind'] as String?;
+      if (isPro || hasSellerProfile || (sellerKind != null && sellerKind.isNotEmpty)) {
+        _pro = true;
+      }
+      notifyListeners();
+    } catch (e) {
+      print('Failed to fetch profile: $e');
+    }
+  }
+
+  Future<void> fetchWalletBalance() async {
+    try {
+      final response = await apiClient.getWalletBalance();
+      walletBalance = response['balance'] as int? ?? 0;
+      notifyListeners();
+    } catch (e) {
+      print('Failed to fetch wallet balance: $e');
+    }
+  }
+
+  Future<void> logout() async {
+    if (_refreshToken != null) {
+      try {
+        await apiClient.logout(_refreshToken!);
+      } catch (e) {
+        print('Logout request failed: $e');
+      }
+    }
+    _accessToken = null;
+    _refreshToken = null;
+    userName = null;
+    userPhone = null;
+    walletBalance = 0;
+    isPro = false;
+    
+    _favourites.clear();
+    _viewed.clear();
+    _query = '';
+    _pro = false;
+
+    apiClient.setToken(null);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
+    notifyListeners();
+  }
+
+  Future<void> sendOtp(String phone) async {
+    await apiClient.requestOtp(phone);
+  }
+
+  Future<void> verifyAndLogin(String phone, String code, {String? name}) async {
+    final response = await apiClient.verifyOtp(phone, code, name: name);
+    await _saveTokens(response);
+  }
+
+  Future<void> loginWithPassword(String phone, String password) async {
+    final response = await apiClient.loginWithPassword(phone, password);
+    await _saveTokens(response);
+  }
+
+  Future<void> registerPro(String phone, String name, String password, String iin) async {
+    final response = await apiClient.registerPro(phone, name, password, iin);
+    // If the server returns tokens immediately:
+    if (response.containsKey('access')) {
+      await _saveTokens(response);
+    }
+  }
+
+  Future<void> _saveTokens(Map<String, dynamic> response) async {
+    if (response.containsKey('access')) {
+      _accessToken = response['access'];
+      apiClient.setToken(_accessToken);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', _accessToken!);
+    }
+    if (response.containsKey('refresh')) {
+      _refreshToken = response['refresh'];
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('refresh_token', _refreshToken!);
+    }
+    if (response.containsKey('user') && response['user'] is Map) {
+      final user = response['user'] as Map<String, dynamic>;
+      userName = user['name'] as String?;
+      userPhone = user['phone'] as String?;
+      isPro = user['is_pro'] as bool? ?? false;
+      final hasSeller = user['has_seller_profile'] as bool? ?? false;
+      final sellerKind = user['seller_kind'] as String?;
+      if (isPro || hasSeller || (sellerKind != null && sellerKind.isNotEmpty)) {
+        _pro = true;
+      }
+    }
+    await fetchProfile();
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------- избранное
+  final Set<String> _favourites = {};
+
+  Set<String> get favourites => Set.unmodifiable(_favourites);
+  bool isFavourite(String id) => _favourites.contains(id);
+
+  void syncFavourites(List<Listing> listings) {
+    bool changed = false;
+    for (final listing in listings) {
+      if (listing.isFavourite && !_favourites.contains(listing.id)) {
+        _favourites.add(listing.id);
+        changed = true;
+      } else if (!listing.isFavourite && _favourites.contains(listing.id)) {
+        _favourites.remove(listing.id);
+        changed = true;
+      }
+    }
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  Future<void> toggleFavourite(String id) async {
+    final wasFavourited = _favourites.contains(id);
+    
+    // Optimistic UI update
+    if (wasFavourited) {
+      _favourites.remove(id);
+    } else {
+      _favourites.add(id);
+    }
+    notifyListeners();
+
+    try {
+      final response = await apiClient.toggleFavourite(id);
+      final isFavourited = response['is_favourited'] == true;
+      
+      // Re-sync with actual response just in case
+      bool changed = false;
+      if (isFavourited && !_favourites.contains(id)) {
+        _favourites.add(id);
+        changed = true;
+      } else if (!isFavourited && _favourites.contains(id)) {
+        _favourites.remove(id);
+        changed = true;
+      }
+      if (changed) notifyListeners();
+    } catch (e) {
+      // Revert on error
+      if (wasFavourited) {
+        _favourites.add(id);
+      } else {
+        _favourites.remove(id);
+      }
+      notifyListeners();
+      print('Failed to toggle favourite: $e');
+    }
+  }
+
   // ------------------------------------------------------------------ фильтр
+  Map<String, dynamic> filterOptions = {};
   String _query = '';
   final Set<PropertyKind> _kinds = {};
   final Set<int> _rooms = {};
@@ -80,6 +273,7 @@ class AppState extends ChangeNotifier {
   final Set<SellerKind> _sellers = {};
   bool _secondaryOnly = false;
   bool _series103 = false;
+  final Set<String> _series = {};
   int? _priceFrom;
   int? _priceTo;
 
@@ -91,7 +285,7 @@ class AppState extends ChangeNotifier {
   AreaRange? get customArea => _customArea;
   Set<SellerKind> get sellers => Set.unmodifiable(_sellers);
   bool get secondaryOnly => _secondaryOnly;
-  bool get series103 => _series103;
+  Set<String> get series => Set.unmodifiable(_series);
   int? get priceFrom => _priceFrom;
   int? get priceTo => _priceTo;
   bool get ownerOnly => _sellers.contains(SellerKind.owner);
@@ -106,7 +300,7 @@ class AppState extends ChangeNotifier {
       areaFilter.isNotEmpty ||
       _sellers.isNotEmpty ||
       _secondaryOnly ||
-      _series103 ||
+      _series.isNotEmpty ||
       _priceFrom != null ||
       _priceTo != null;
 
@@ -117,13 +311,32 @@ class AppState extends ChangeNotifier {
       areaFilter.length +
       _sellers.length +
       (_secondaryOnly ? 1 : 0) +
-      (_series103 ? 1 : 0) +
+      _series.length +
       (_priceFrom != null || _priceTo != null ? 1 : 0);
+
+  void toggleSeries(String slug) {
+    _series.contains(slug) ? _series.remove(slug) : _series.add(slug);
+    notifyListeners();
+  }
 
   void setQuery(String value) {
     if (_query == value) return;
     _query = value;
     notifyListeners();
+  }
+
+  Map<String, dynamic> get filterParams {
+    final params = <String, dynamic>{};
+    if (_query.isNotEmpty) params['search'] = _query;
+    if (_kinds.isNotEmpty) params['kind'] = _kinds.map((k) => k.name).join(',');
+    if (_rooms.isNotEmpty) params['rooms'] = _rooms.join(',');
+    if (areaFilter.isNotEmpty) params['area_ranges'] = areaFilter.map((a) => a.label).join(',');
+    if (_sellers.isNotEmpty) params['seller_kind'] = _sellers.map((s) => s.name).join(',');
+    if (_secondaryOnly) params['is_secondary'] = 'true';
+    if (_series.isNotEmpty) params['series'] = _series.join(',');
+    if (_priceFrom != null) params['price_min'] = _priceFrom.toString();
+    if (_priceTo != null) params['price_max'] = _priceTo.toString();
+    return params;
   }
 
   void toggleKind(PropertyKind kind) {
@@ -169,10 +382,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSeries103(bool value) {
-    _series103 = value;
-    notifyListeners();
-  }
 
   void setPrice({int? from, int? to}) {
     _priceFrom = from;
@@ -319,11 +528,17 @@ class AppState extends ChangeNotifier {
   /// поиск с фильтром и режим исполнителя. Кошелёк и черновик привязаны к
   /// аккаунту, а не к устройству, поэтому их тоже сбрасывать нечестно: их
   /// подтянет следующий вход.
-  void logOut() {
+  void logOut() async {
     _favourites.clear();
     _viewed.clear();
     _query = '';
     _pro = false;
+    _accessToken = null;
+    _refreshToken = null;
+    apiClient.setToken(null);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
     resetFilter();
   }
 
@@ -340,6 +555,7 @@ class AppState extends ChangeNotifier {
   bool draftOwner = true;
   bool draftAllowDownload = true;
   bool draftUseAdInfo = true;
+  String? draftSlug;
 
   /// Сколько файлов принимает объявление — столько же обещает и подпись под
   /// кнопкой «Добавить».

@@ -7,6 +7,8 @@ import 'package:video_player/video_player.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../../data/api_client.dart';
+import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 
@@ -146,15 +148,43 @@ class _VideoPageState extends State<VideoPage> {
 
   final GlobalKey<_VideoPlayerItemState> _playerKey = GlobalKey<_VideoPlayerItemState>();
 
+  final List<_ListingFeedItem> _feed = [];
+  bool _isLoading = false;
+  String? _nextCursor;
+  bool _hasMore = true;
+  late final ListingRepository _repository;
+
   @override
   void initState() {
     super.initState();
-    final initialIdx = kVideoListings.indexWhere((v) => v.listing.id == widget.id);
-    if (initialIdx != -1) {
-      _listingIndex = initialIdx;
-      _verticalPages = PageController(initialPage: initialIdx);
-    } else {
-      _verticalPages = PageController();
+    _repository = ListingRepository(ListingApiClient(baseUrl: 'https://adilhan1234.pythonanywhere.com'));
+    _verticalPages = PageController();
+    _loadNextPage();
+  }
+
+  Future<void> _loadNextPage() async {
+    if (_isLoading || !_hasMore) return;
+    setState(() => _isLoading = true);
+    try {
+      final response = await _repository.getReelsFeed(cursor: _nextCursor);
+      final newItems = response.results.map((l) => _ListingFeedItem(
+        listing: l,
+        videos: l.videos.map((v) => _SubVideo(
+          asset: v.url, 
+          title: v.title ?? 'Обзор', 
+          description: v.description ?? l.description,
+        )).toList(),
+      )).toList();
+
+      setState(() {
+        _feed.addAll(newItems);
+        _nextCursor = response.nextCursor;
+        _hasMore = response.nextCursor != null;
+      });
+    } catch (e) {
+      debugPrint('Error loading reels: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -177,7 +207,8 @@ class _VideoPageState extends State<VideoPage> {
   int _getSubIndex(int listingIdx) => _subVideoIndices[listingIdx] ?? 0;
 
   void _goSubVideo(int step) {
-    final currentListing = kVideoListings[_listingIndex];
+    if (_feed.isEmpty || _listingIndex >= _feed.length) return;
+    final currentListing = _feed[_listingIndex];
     if (currentListing.videos.isEmpty) return;
     final currentSubIdx = _getSubIndex(_listingIndex);
     final count = currentListing.videos.length;
@@ -214,11 +245,22 @@ class _VideoPageState extends State<VideoPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_feed.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Color(0xff1c1b19),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xffea812e)),
+        ),
+      );
+    }
+
     final state = AppScope.of(context);
-    final currentListingItem = kVideoListings[_listingIndex];
+    final currentListingItem = _feed[_listingIndex];
     final listing = currentListingItem.listing;
     final subIndex = _getSubIndex(_listingIndex);
-    final currentSubVideo = currentListingItem.videos[subIndex % currentListingItem.videos.length];
+    final currentSubVideo = currentListingItem.videos.isNotEmpty 
+        ? currentListingItem.videos[subIndex % currentListingItem.videos.length]
+        : const _SubVideo(asset: '', title: '', description: '');
     final favourite = state.isFavourite(listing.id);
 
     return Scaffold(
@@ -230,14 +272,25 @@ class _VideoPageState extends State<VideoPage> {
             child: PageView.builder(
               controller: _verticalPages,
               scrollDirection: Axis.vertical,
-              itemCount: kVideoListings.length,
+              itemCount: _feed.length + (_hasMore ? 1 : 0),
               onPageChanged: (i) {
-                setState(() {
-                  _listingIndex = i;
-                });
+                if (i < _feed.length) {
+                  setState(() {
+                    _listingIndex = i;
+                  });
+                }
+                if (i >= _feed.length - 2) {
+                  _loadNextPage();
+                }
               },
               itemBuilder: (context, i) {
-                final listingItem = kVideoListings[i];
+                if (i >= _feed.length) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xffea812e)),
+                  );
+                }
+                
+                final listingItem = _feed[i];
                 final horizontalCtrl = _getHorizontalController(i);
 
                 return PageView.builder(
@@ -579,9 +632,12 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   Future<void> _initController() async {
     VideoPlayerController controller;
     try {
-      if (kIsWeb) {
-        final uri = Uri.base.resolve('assets/${widget.asset}');
+      final uri = Uri.tryParse(widget.asset);
+      if (uri != null && (uri.isScheme('http') || uri.isScheme('https'))) {
         controller = VideoPlayerController.networkUrl(uri);
+      } else if (kIsWeb) {
+        final webUri = Uri.base.resolve('assets/${widget.asset}');
+        controller = VideoPlayerController.networkUrl(webUri);
       } else {
         controller = VideoPlayerController.asset(widget.asset);
       }

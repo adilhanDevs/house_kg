@@ -5,6 +5,7 @@
 // остальное на экране остаётся ровно тем, что нарисовал макет.
 import 'package:flutter/material.dart';
 
+import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
@@ -31,17 +32,89 @@ class CatalogPage extends StatefulWidget {
 
 class _CatalogPageState extends State<CatalogPage> {
   late final TextEditingController _search;
+  late final ListingRepository _repository;
+  final ScrollController _scrollController = ScrollController();
+  
+  List<Listing> _listings = [];
+  bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _nextCursor;
+  late AppState _appState;
 
   @override
   void initState() {
     super.initState();
-    _search = TextEditingController(text: AppScope.read(context).query);
+    _appState = AppScope.read(context);
+    _search = TextEditingController(text: _appState.query);
+    _repository = ListingRepository(_appState.apiClient);
+    _scrollController.addListener(_onScroll);
+    _appState.addListener(_onFilterChanged);
+    _loadListings(refresh: true);
   }
 
   @override
   void dispose() {
     _search.dispose();
+    _scrollController.dispose();
+    _appState.removeListener(_onFilterChanged);
     super.dispose();
+  }
+
+  void _onFilterChanged() {
+    // Reload when filters change
+    _loadListings(refresh: true);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      _loadListings();
+    }
+  }
+
+  Future<void> _loadListings({bool refresh = false}) async {
+    if (refresh) {
+      _hasMore = true;
+      _nextCursor = null;
+    }
+    
+    if (!_hasMore || (_isLoadingMore && !refresh)) return;
+
+    if (refresh) {
+      setState(() => _isLoading = true);
+    } else {
+      setState(() => _isLoadingMore = true);
+    }
+
+    try {
+      final response = await _repository.getListings(
+        filters: _appState.filterParams,
+        cursor: _nextCursor,
+      );
+      
+      if (mounted) {
+        setState(() {
+          if (refresh) {
+            _listings = response.results;
+          } else {
+            _listings.addAll(response.results);
+          }
+          _appState.syncFavourites(response.results);
+          _nextCursor = response.nextCursor;
+          _hasMore = _nextCursor != null;
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
   }
 
   String _searchHint(AppState state) {
@@ -61,7 +134,6 @@ class _CatalogPageState extends State<CatalogPage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final results = state.results;
 
     return FigStage(
       frame: frame('11'),
@@ -76,15 +148,35 @@ class _CatalogPageState extends State<CatalogPage> {
           height: _tabBarTop - _gridTop,
           child: ColoredBox(
             color: const Color(0xfffefefe),
-            child: ListingGrid(
-              listings: results,
-              padding: const EdgeInsets.only(
-                top: _gridFirstCard - _gridTop,
-                bottom: 16,
-              ),
-              onOpen: (listing) => Navigator.of(context)
-                  .pushNamed(Routes.listingVideo, arguments: ListingArgs(listing.id)),
-            ),
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator()) 
+              : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(
+                    top: _gridFirstCard - _gridTop,
+                    bottom: 16,
+                  ),
+                  itemCount: _listings.length + (_isLoadingMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _listings.length) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    
+                    return ListingGrid(
+                      listings: [_listings[index]],
+                      scrollable: false,
+                      onOpen: (listing) => Navigator.of(context).pushNamed(
+                        Routes.listingVideo, 
+                        arguments: ListingArgs(listing.id),
+                      ),
+                    );
+                  },
+                ),
           ),
         ),
         // живой поиск поверх нарисованной плашки

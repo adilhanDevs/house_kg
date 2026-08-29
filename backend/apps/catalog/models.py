@@ -373,6 +373,9 @@ class ListingMedia(TimeStampedModel):
     order = models.PositiveSmallIntegerField("Порядок", default=0)
     is_cover = models.BooleanField("Обложка", default=False)
 
+    title = models.CharField("Заголовок", max_length=100, blank=True)
+    description = models.TextField("Описание", blank=True)
+
     width = models.PositiveIntegerField("Ширина", blank=True, null=True)
     height = models.PositiveIntegerField("Высота", blank=True, null=True)
     duration_seconds = models.PositiveIntegerField("Длительность, с", blank=True, null=True)

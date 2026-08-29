@@ -265,7 +265,13 @@ def _limit_message(kind: str, free_slots: int) -> str:
     return f"Можно добавить ещё {free_slots} {word}"
 
 
-def upload_listing_media(listing: Listing, files: list[Any], kind: str) -> dict[str, Any]:
+def upload_listing_media(
+    listing: Listing,
+    files: list[Any],
+    kind: str,
+    title: str = "",
+    description: str = "",
+) -> dict[str, Any]:
     """Принимает пачку файлов — пользователь выбирает их в галерее скопом.
 
     Логика повторяет `AppState._append` во Flutter: сколько влезает в лимит,
@@ -290,7 +296,7 @@ def upload_listing_media(listing: Listing, files: list[Any], kind: str) -> dict[
             continue
 
         try:
-            accepted.append(_store_upload(listing, upload, kind))
+            accepted.append(_store_upload(listing, upload, kind, title, description))
         except DjangoValidationError as exc:
             message = "; ".join(exc.messages)
             reason = reason or message
@@ -323,7 +329,13 @@ def upload_listing_media(listing: Listing, files: list[Any], kind: str) -> dict[
     }
 
 
-def _store_upload(listing: Listing, upload: Any, kind: str) -> ListingMedia:
+def _store_upload(
+    listing: Listing,
+    upload: Any,
+    kind: str,
+    title: str = "",
+    description: str = "",
+) -> ListingMedia:
     """Проверяет один файл и кладёт его в хранилище со статусом `processing`.
 
     Проверка идёт по содержимому файла до записи в бакет: 200-мегабайтное
@@ -342,7 +354,11 @@ def _store_upload(listing: Listing, upload: Any, kind: str) -> ListingMedia:
     data = upload.read()
     upload.seek(0)
 
-    extra: dict[str, Any] = {"size_bytes": len(data)}
+    extra: dict[str, Any] = {
+        "size_bytes": len(data),
+        "title": title,
+        "description": description,
+    }
 
     if kind == MediaKind.PHOTO:
         width, height = validate_photo(data)

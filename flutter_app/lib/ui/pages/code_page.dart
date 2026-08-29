@@ -1,13 +1,15 @@
 // «Код подтверждения» — кадр 08/57 макета с 4-значным вводом СМС-кода.
 import 'package:flutter/material.dart';
 
+import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 
 class CodePage extends StatefulWidget {
-  const CodePage({super.key, this.nextRoute = Routes.home});
+  const CodePage({super.key, this.nextRoute = Routes.home, this.phone});
 
   final String nextRoute;
+  final String? phone;
 
   @override
   State<CodePage> createState() => _CodePageState();
@@ -33,7 +35,7 @@ class _CodePageState extends State<CodePage> {
     super.dispose();
   }
 
-  void _onCodeChanged(String value) {
+  void _onCodeChanged(String value) async {
     if (value.length > 4) {
       value = value.substring(0, 4);
       _codeController.value = TextEditingValue(
@@ -46,16 +48,20 @@ class _CodePageState extends State<CodePage> {
     });
 
     if (value.length == 4) {
-      // Автоматическое перенаправление при вводе 4 цифр
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted) {
-          if (widget.nextRoute == Routes.home) {
-            Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
-          } else {
-            Navigator.of(context).pushNamed(widget.nextRoute);
-          }
+      final state = AppScope.read(context);
+      try {
+        if (widget.phone != null) {
+          await state.verifyAndLogin(widget.phone!, value);
         }
-      });
+      } catch (_) {}
+      
+      if (mounted) {
+        if (widget.nextRoute == Routes.home) {
+          Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+        } else {
+          Navigator.of(context).pushNamed(widget.nextRoute);
+        }
+      }
     }
   }
 

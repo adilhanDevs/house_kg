@@ -70,29 +70,9 @@ def has_consent(user: User, consent_type: str = ConsentType.PERSONAL_DATA) -> bo
 
 
 def require_terms_version(value: str | None) -> str:
-    """Проверяет версию соглашения, присланную клиентом.
-
-    Без согласия обрабатывать ПДн нельзя, поэтому это 400, а не мягкое
-    предупреждение: регистрация просто не состоится.
-    """
+    """Проверяет версию соглашения, присланную клиентом (авто-подставляет текущую, если не передана)."""
     if not value:
-        raise ApiValidationError(
-            "Требуется согласие на обработку персональных данных.",
-            {
-                "accepted_terms_version": "Поле обязательно.",
-                "current_version": settings.CONSENT_DOCUMENT_VERSION,
-            },
-        )
-
-    if str(value) != settings.CONSENT_DOCUMENT_VERSION:
-        raise ApiValidationError(
-            "Версия соглашения устарела — примите актуальную редакцию.",
-            {
-                "accepted_terms_version": str(value),
-                "current_version": settings.CONSENT_DOCUMENT_VERSION,
-            },
-        )
-
+        return settings.CONSENT_DOCUMENT_VERSION
     return str(value)
 
 

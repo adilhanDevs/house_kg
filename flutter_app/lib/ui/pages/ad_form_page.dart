@@ -5,19 +5,6 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../fig_controls.dart';
 
-const List<String> kBishkekDistricts = [
-  'Район Бишкека',
-  'Асанбай',
-  'Центр',
-  'Октябрьский',
-  'Первомайский',
-  'Свердловский',
-  'Ленинский',
-  'Джал',
-  '7-й микрорайон',
-  '10-й микрорайон',
-  'Кок-Жар',
-];
 
 /// Страница «Добавить недвижимость» (Чистый Flutter layout без наложения дублирующихся графических кадеров).
 class AdFormPage extends StatefulWidget {
@@ -41,6 +28,67 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController get _effectiveRoomsController => _roomsController ??= TextEditingController();
   TextEditingController get _effectiveFloorController => _floorController ??= TextEditingController();
   TextEditingController get _effectiveFloorsController => _floorsController ??= TextEditingController();
+  bool _isSaving = false;
+
+  String _getDistrictLabel(AppState state) {
+    if (state.draftDistrict.isEmpty) return 'Выберите район';
+    if (state.filterOptions['districts'] != null) {
+      final list = state.filterOptions['districts'] as List<dynamic>;
+      for (final item in list) {
+        if (item['value'] == state.draftDistrict) {
+          return item['label'] as String;
+        }
+      }
+    }
+    return state.draftDistrict;
+  }
+
+
+  Future<void> _submitForm(AppState state) async {
+    final area = double.tryParse(_effectiveAreaController.text.trim()) ?? 0.0;
+    final price = int.tryParse(_effectivePriceController.text.trim()) ?? 0;
+
+    final data = <String, dynamic>{
+      'kind': state.draftKinds.isNotEmpty ? state.draftKinds.first.name : PropertyKind.apartment.name,
+      'currency': state.draftUsd ? 'USD' : 'KGS',
+      'seller_kind': state.draftOwner ? 'owner' : 'realtor',
+    };
+
+    if (state.draftDistrict.isNotEmpty) {
+      data['district'] = state.draftDistrict;
+    }
+
+    if (state.draftRooms != null && state.draftRooms! > 0) {
+      data['rooms'] = state.draftRooms;
+    }
+    if (area > 0) data['area'] = area;
+    if (state.draftFloor != null && state.draftFloor! > 0) {
+      data['floor'] = state.draftFloor;
+    }
+    if (state.draftFloors != null && state.draftFloors! > 0) {
+      data['floors'] = state.draftFloors;
+    }
+    if (price > 0) data['price'] = price;
+
+    setState(() => _isSaving = true);
+    try {
+      final response = await state.apiClient.createDraft(data);
+      if (response['slug'] != null) {
+        state.draftSlug = response['slug'] as String;
+      }
+      if (mounted) {
+        Navigator.pushNamed(context, Routes.adPhotos);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка создания черновика: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -74,18 +122,20 @@ class _AdFormPageState extends State<AdFormPage> {
               const Divider(height: 1),
               Expanded(
                 child: ListView.separated(
-                  itemCount: kBishkekDistricts.length,
+                  itemCount: state.filterOptions['districts']?.length ?? 0,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final district = kBishkekDistricts[index];
+                    final item = state.filterOptions['districts'][index];
+                    final slug = item['value'] as String;
+                    final label = item['label'] as String;
                     return ListTile(
-                      title: Text(district),
-                      trailing: state.draftDistrict == district
+                      title: Text(label),
+                      trailing: state.draftDistrict == slug
                           ? const Icon(Icons.check, color: Color(0xffea812e))
                           : null,
                       onTap: () {
                         state.setDraft(() {
-                          state.draftDistrict = district;
+                          state.draftDistrict = slug;
                         });
                         Navigator.pop(context);
                       },
@@ -199,7 +249,7 @@ class _AdFormPageState extends State<AdFormPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        state.draftDistrict.isEmpty ? 'Район Бишкека' : state.draftDistrict,
+                        state.draftDistrict.isEmpty ? 'Выберите район' : _getDistrictLabel(state),
                         style: TextStyle(
                           fontSize: 15.0,
                           color: state.draftDistrict.isEmpty
@@ -421,7 +471,7 @@ class _AdFormPageState extends State<AdFormPage> {
                 width: double.infinity,
                 height: 48.0,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, Routes.adPhotos),
+                  onPressed: _isSaving ? null : () => _submitForm(state),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: orangeColor,
                     elevation: 0,
@@ -429,14 +479,16 @@ class _AdFormPageState extends State<AdFormPage> {
                       borderRadius: BorderRadius.circular(12.0),
                     ),
                   ),
-                  child: const Text(
-                    'Далее',
-                    style: TextStyle(
-                      fontSize: 17.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text(
+                          'Далее',
+                          style: TextStyle(
+                            fontSize: 17.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 24.0),

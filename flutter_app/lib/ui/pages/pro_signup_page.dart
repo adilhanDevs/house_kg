@@ -1,6 +1,7 @@
 // Страница регистрации исполнителя / собственника (Frame 56).
 import 'package:flutter/material.dart';
 
+import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../fig_controls.dart';
@@ -27,8 +28,30 @@ class _ProSignupPageState extends State<ProSignupPage> {
     super.dispose();
   }
 
-  void _onNext() {
-    Navigator.of(context).pushNamed(Routes.proCode);
+  void _onNext() async {
+    final phone = _phoneController.text.trim();
+    final name = _nameController.text.trim();
+    final password = _passwordController.text.trim();
+    final iin = _iinController.text.trim();
+
+    if (phone.isEmpty || name.isEmpty || password.isEmpty || iin.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, заполните все поля')),
+      );
+      return;
+    }
+
+    final state = AppScope.read(context);
+    try {
+      await state.registerPro(phone, name, password, iin);
+      if (mounted) {
+        Navigator.of(context).pushNamed(Routes.proCode, arguments: phone);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
   }
 
   @override

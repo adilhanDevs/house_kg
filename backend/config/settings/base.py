@@ -134,8 +134,7 @@ REDIS_URL = env("REDIS_URL")
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": REDIS_URL,
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
 

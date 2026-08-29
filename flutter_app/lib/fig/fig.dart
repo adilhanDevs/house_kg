@@ -336,7 +336,9 @@ class FigBox extends StatelessWidget {
   }
 
   Widget _background(FigBgImage b) {
-    final image = AssetImage(b.asset);
+    final ImageProvider image = (b.asset.startsWith('http://') || b.asset.startsWith('https://'))
+        ? NetworkImage(b.asset)
+        : AssetImage(b.asset) as ImageProvider;
     if (b.wFactor == null) {
       return DecoratedBox(
         decoration: BoxDecoration(

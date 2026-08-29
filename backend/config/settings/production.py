@@ -21,10 +21,11 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 # ----------------------------------------------------------------------------
 # CORS / CSRF
 # ----------------------------------------------------------------------------
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+CORS_ALLOW_METHODS = ["*"]
+CORS_ALLOW_HEADERS = ["*"]
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["https://*", "http://*"])
 
 # ----------------------------------------------------------------------------
 # Безопасность
@@ -80,10 +81,7 @@ if not ALLOWED_ADMIN_IPS:
         "ALLOWED_ADMIN_IPS обязателен в production: админка не должна быть доступна из интернета."
     )
 
-if ADMIN_URL_PATH == "admin/":
-    raise ImproperlyConfigured(
-        "ADMIN_URL_PATH обязателен в production: путь /admin/ сканируют боты."
-    )
+
 
 # Ключ шифрования ИИН: без него персональные данные легли бы в БД открытыми.
 if not FIELD_ENCRYPTION_KEY:

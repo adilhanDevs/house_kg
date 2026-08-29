@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../../data/ad_media.dart';
+import '../../data/api_client.dart';
 import '../add_media.dart';
 import '../fig_controls.dart';
 import '../media_tile.dart';
@@ -15,6 +18,64 @@ class AdVideoPage extends StatefulWidget {
 
 class _AdVideoPageState extends State<AdVideoPage> {
   bool _useInfo = true;
+  bool _isSaving = false;
+
+  Future<void> _saveAndNext(AppState state) async {
+    setState(() => _isSaving = true);
+    final apiClient = state.apiClient;
+    
+    try {
+      final realSlug = state.draftSlug ?? 'draft-slug';
+
+      for (int i = 0; i < state.draftVideoList.length; i++) {
+        final video = state.draftVideoList[i];
+        int realMediaId;
+        
+        if (video.id != null) {
+          realMediaId = video.id!;
+        } else {
+          final tempDir = Directory.systemTemp;
+          final file = File('${tempDir.path}/${video.name}');
+          if (video.bytes != null) {
+            await file.writeAsBytes(video.bytes!);
+          } else {
+            await file.writeAsString('dummy video content');
+          }
+          
+          final uploadResponse = await apiClient.uploadMedia(realSlug, file);
+          final mediaList = uploadResponse['media'] as List;
+          if (mediaList.isEmpty) {
+            throw Exception('Сервер не вернул загруженное медиа');
+          }
+          realMediaId = mediaList[0]['id'] as int;
+          
+          // Save the ID in the state to avoid re-uploading on next save
+          state.draftVideoList[i] = video.copyWith(id: realMediaId);
+        }
+        
+        await apiClient.updateMediaMetadata(
+          realSlug, 
+          realMediaId, 
+          video.title, 
+          video.description,
+        );
+      }
+      
+      if (mounted) {
+        Navigator.pushNamed(context, Routes.adPromo);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сохранения: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,17 +220,23 @@ class _AdVideoPageState extends State<AdVideoPage> {
                         style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                       )
                     else
-                      Wrap(
-                        spacing: 10.0,
-                        runSpacing: 10.0,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          for (final video in state.draftVideoList)
-                            AdMediaTile(
-                              media: video,
-                              size: 100.0,
-                              onRemove: () =>
-                                  state.removeMedia(state.draftVideoList, video),
+                          for (int i = 0; i < state.draftVideoList.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 24),
+                            _VideoFormItem(
+                              media: state.draftVideoList[i],
+                              onChanged: (newMedia) {
+                                setState(() {
+                                  state.draftVideoList[i] = newMedia;
+                                });
+                              },
+                              onRemove: () {
+                                state.removeMedia(state.draftVideoList, state.draftVideoList[i]);
+                              },
                             ),
+                          ]
                         ],
                       ),
                   ],
@@ -184,7 +251,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
                 width: double.infinity,
                 height: 48.0,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, Routes.adPromo),
+                  onPressed: _isSaving ? null : () => _saveAndNext(state),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: orangeColor,
                     elevation: 0,
@@ -192,20 +259,98 @@ class _AdVideoPageState extends State<AdVideoPage> {
                       borderRadius: BorderRadius.circular(12.0),
                     ),
                   ),
-                  child: const Text(
-                    'Далее',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isSaving 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text(
+                          'Далее',
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _VideoFormItem extends StatefulWidget {
+  final AdMedia media;
+  final ValueChanged<AdMedia> onChanged;
+  final VoidCallback onRemove;
+
+  const _VideoFormItem({
+    required this.media,
+    required this.onChanged,
+    required this.onRemove,
+  });
+
+  @override
+  State<_VideoFormItem> createState() => _VideoFormItemState();
+}
+
+class _VideoFormItemState extends State<_VideoFormItem> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.media.title);
+    _descController = TextEditingController(text: widget.media.description);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            AdMediaTile(
+              media: widget.media,
+              size: 80.0,
+              onRemove: widget.onRemove,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextFormField(
+                controller: _titleController,
+                maxLength: 100,
+                decoration: const InputDecoration(
+                  labelText: 'Заголовок видео',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                onChanged: (val) => widget.onChanged(widget.media.copyWith(title: val)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _descController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Описание видео',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          onChanged: (val) => widget.onChanged(widget.media.copyWith(description: val)),
+        ),
+      ],
     );
   }
 }

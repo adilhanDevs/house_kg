@@ -10,6 +10,7 @@ import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
+import 'pro_profile_page.dart';
 
 /// Строки «Настроек» — в кадре они одинаковой высоты и идут через 44 pt.
 const double _rowLeft = 23;
@@ -58,16 +59,99 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
     if (leave != true) return;
-    state.logOut();
-    navigator.pushNamedAndRemoveUntil(Routes.welcome, (r) => false);
+    await state.logout();
+    if (mounted) {
+      navigator.pushNamedAndRemoveUntil(Routes.welcome, (r) => false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    if (state.pro || state.isPro) {
+      return const ProProfilePage();
+    }
     return FigStage(
       frame: frame('15'),
       bottomBar: const AppTabBar(active: 4),
       overlays: [
+        // Динамический заголовок пользователя поверх статичного макета (Y=165..280)
+        Positioned(
+          left: 20.0,
+          top: 165.0,
+          width: 335.0,
+          height: 110.0,
+          child: Container(
+            color: const Color(0xffffffff),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 60.0,
+                  height: 60.0,
+                  decoration: BoxDecoration(
+                    color: (state.pro || state.isPro) ? const Color(0xfffff0e6) : const Color(0xffe6f0ff),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    (state.userName != null && state.userName!.isNotEmpty)
+                        ? state.userName!.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join()
+                        : '👤',
+                    style: TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.bold,
+                      color: (state.pro || state.isPro) ? const Color(0xffea812e) : const Color(0xff007aff),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14.0),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state.userName ?? 'Пользователь',
+                        style: const TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff000000),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        state.userPhone ?? '',
+                        style: const TextStyle(
+                          fontSize: 14.0,
+                          color: Color(0xff7d7d7d),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                  decoration: BoxDecoration(
+                    color: (state.pro || state.isPro) ? const Color(0xfffff0e6) : const Color(0xffe6f0ff),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Text(
+                    (state.pro || state.isPro) ? 'Продавец' : 'Клиент',
+                    style: TextStyle(
+                      fontSize: 13.0,
+                      fontWeight: FontWeight.w600,
+                      color: (state.pro || state.isPro) ? const Color(0xffea812e) : const Color(0xff007aff),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
         FigZone(
           _seeAll.left, _seeAll.top, _seeAll.width, _seeAll.height,
           label: 'Посмотреть все уведомления',

@@ -64,21 +64,64 @@ class ListingPage extends StatefulWidget {
 
 class _ListingPageState extends State<ListingPage> {
   bool _useMortgage = false;
+  bool _isLoading = true;
+  Listing? _listing;
 
   @override
   void initState() {
     super.initState();
-    // Открытый объект попадает в «Историю просмотров». Отметка идёт после
-    // кадра: notifyListeners во время сборки перестроил бы дерево на месте.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) AppScope.read(context).noteViewed(widget.id);
-    });
+    _loadListingDetails();
+  }
+
+  Future<void> _loadListingDetails() async {
+    final state = AppScope.read(context);
+    // Record view asynchronously
+    state.apiClient.recordListingView(widget.id);
+
+    try {
+      final data = await state.apiClient.getListingDetails(widget.id);
+      if (mounted) {
+        setState(() {
+          _listing = Listing.fromJson(data);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Failed to load listing details: $e');
+      if (mounted) {
+        // Fallback to local mock if API fails
+        setState(() {
+          _listing = listingById(widget.id);
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _onCallPressed() {
+    if (_listing?.sellerPhone == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Номер телефона продавца недоступен')),
+      );
+      return;
+    }
+    // Здесь логика звонка, например: launchUrl(Uri.parse('tel:${_listing!.sellerPhone}'));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Звоним: ${_listing!.sellerPhone}')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: _page,
+        body: Center(child: CircularProgressIndicator(color: Color(0xffea812e))),
+      );
+    }
+
     final state = AppScope.of(context);
-    final listing = listingById(widget.id);
+    final listing = _listing!;
     final favourite = state.isFavourite(listing.id);
 
     final badges = <_Badge>[
@@ -323,6 +366,26 @@ class _ListingPageState extends State<ListingPage> {
                   ),
                 );
               },
+            ),
+          ),
+        ),
+        // Кнопка позвонить (нижняя липкая кнопка из макета)
+        // Размещаем её поверх макета, чтобы была кликабельной
+        Positioned(
+          left: 20,
+          bottom: 40,
+          right: 20,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: _onCallPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xffea812e),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Позвонить',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
           ),
         ),

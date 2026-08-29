@@ -46,6 +46,8 @@ class UserMeSerializer(serializers.ModelSerializer):
     iin = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
     wallet_balance = serializers.SerializerMethodField()
+    is_pro = serializers.SerializerMethodField()
+    has_seller_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -54,12 +56,22 @@ class UserMeSerializer(serializers.ModelSerializer):
             "phone",
             "name",
             "is_pro",
+            "has_seller_profile",
+            "seller_kind",
             "iin",
             "avatar_url",
             "date_joined",
             "wallet_balance",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_pro(self, obj: User) -> bool:
+        return bool(obj.is_pro or hasattr(obj, "seller_profile"))
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_has_seller_profile(self, obj: User) -> bool:
+        return hasattr(obj, "seller_profile")
 
     @extend_schema_field(serializers.CharField(allow_blank=True))
     def get_iin(self, obj: User) -> str:

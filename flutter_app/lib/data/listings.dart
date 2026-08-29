@@ -41,6 +41,31 @@ enum SellerKind {
 }
 
 @immutable
+class ListingMedia {
+  const ListingMedia({
+    required this.url,
+    this.title,
+    this.description,
+  });
+
+  final String url;
+  final String? title;
+  final String? description;
+
+  factory ListingMedia.fromJson(Map<String, dynamic> json) => ListingMedia(
+        url: json['url'] as String? ?? '',
+        title: json['title'] as String?,
+        description: json['description'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+      };
+}
+
+@immutable
 class Listing {
   const Listing({
     required this.id,
@@ -62,7 +87,62 @@ class Listing {
     this.agent = 'Садыр Жапаров',
     this.description = kFillerDescription,
     this.more = const [ListingPhotos.livingRoom, ListingPhotos.terrace],
+    this.videos = const [],
+    this.viewsCount = 0,
+    this.sellerPhone,
+    this.isFavourite = false,
   });
+
+  factory Listing.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic val) {
+      if (val == null) return 0;
+      if (val is num) return val.toInt();
+      if (val is String) return double.tryParse(val)?.toInt() ?? int.tryParse(val) ?? 0;
+      return 0;
+    }
+
+    int? parseIntOrNull(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toInt();
+      if (val is String) return double.tryParse(val)?.toInt() ?? int.tryParse(val);
+      return null;
+    }
+
+    return Listing(
+      id: json['slug'] as String? ?? json['id']?.toString() ?? '',
+      district: (json['district'] != null && json['district'] is Map) 
+          ? json['district']['name'] as String? ?? 'Неизвестно' 
+          : 'Неизвестно',
+      priceUsd: parseInt(json['price'] ?? json['price_usd']),
+      oldPriceUsd: parseIntOrNull(json['old_price']),
+      rooms: parseInt(json['rooms']),
+      area: parseInt(json['area']),
+      floor: parseInt(json['floor']),
+      floors: parseInt(json['floors']),
+      photo: json['cover_url'] as String? ?? json['photo'] as String? ?? ListingPhotos.technopark,
+      kind: PropertyKind.values.firstWhere(
+        (e) => e.name == json['kind'] || (e == PropertyKind.newBuilding && json['kind'] == 'new_building'),
+        orElse: () => PropertyKind.apartment,
+      ),
+      seller: SellerKind.values.firstWhere(
+        (e) => e.name == json['seller_kind'],
+        orElse: () => SellerKind.owner,
+      ),
+      secondary: json['is_secondary'] as bool? ?? false,
+      series: json['series_code'] as String?,
+      belowMarket: json['below_market'] as bool? ?? false,
+      redBook: json['red_book'] as bool? ?? false,
+      description: json['description'] as String? ?? kFillerDescription,
+      address: json['address'] as String? ?? 'Бишкек, Октябрьский район,\nул.Бакаева 178/4',
+      viewsCount: parseInt(json['views_count']),
+      sellerPhone: (json['seller'] as Map?)?['phone'] as String? ?? (json['seller'] as Map?)?['phone_number'] as String?,
+      videos: (json['videos'] as List<dynamic>?)
+              ?.map((e) => ListingMedia.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      isFavourite: json['is_favourite'] as bool? ?? false,
+    );
+  }
 
   final String id;
   final String district;
@@ -74,6 +154,7 @@ class Listing {
   final String photo;
   final PropertyKind kind;
   final SellerKind seller;
+  final bool isFavourite;
 
   /// «Вторичка» — жильё не в новостройке.
   final bool secondary;
@@ -93,6 +174,12 @@ class Listing {
 
   /// Остальные фотографии «Фотообзора» — первой идёт [photo].
   final List<String> more;
+
+  /// Видео и их метаданные (Reels)
+  final List<ListingMedia> videos;
+
+  final int viewsCount;
+  final String? sellerPhone;
 
   List<String> get photos {
     final list = [photo, ...more];
