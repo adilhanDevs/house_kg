@@ -8,7 +8,9 @@ import '../fig_controls.dart';
 
 /// Страница «Добавить недвижимость» (Чистый Flutter layout без наложения дублирующихся графических кадеров).
 class AdFormPage extends StatefulWidget {
-  const AdFormPage({super.key});
+  const AdFormPage({super.key, this.slug});
+
+  final String? slug;
 
   @override
   State<AdFormPage> createState() => _AdFormPageState();
@@ -29,46 +31,147 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController get _effectiveFloorController => _floorController ??= TextEditingController();
   TextEditingController get _effectiveFloorsController => _floorsController ??= TextEditingController();
   bool _isSaving = false;
+  bool _initializedFromState = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = AppScope.read(context);
+      if (widget.slug != null) {
+        state.draftSlug = widget.slug;
+      }
+      if (state.filterOptions['districts'] == null || (state.filterOptions['districts'] as List).isEmpty) {
+        state.fetchFilterOptions('bishkek');
+      }
+      if (state.draftSlug == null) {
+        state.loadDraft().then((_) {
+          if (mounted) {
+            setState(() {
+              _initializedFromState = false;
+              _syncControllers(state);
+            });
+          }
+        });
+      }
+    });
+  }
+
+  static const List<Map<String, String>> _defaultDistricts = [
+    {'slug': 'asanbay', 'name': 'Асанбай'},
+    {'slug': 'center', 'name': 'Центр'},
+    {'slug': 'yuzhnye-vorota', 'name': 'Южные ворота'},
+    {'slug': 'technopark', 'name': 'Технопарк'},
+    {'slug': 'lenin', 'name': 'Ленин'},
+    {'slug': 'djal', 'name': 'Джал'},
+    {'slug': 'tunguch', 'name': 'Тунгуч'},
+    {'slug': 'vostok-5', 'name': 'Восток-5'},
+    {'slug': 'alamedin-1', 'name': 'Аламедин-1'},
+    {'slug': 'kyzyl-asker', 'name': 'Кызыл-Аскер'},
+    {'slug': 'pishpek', 'name': 'Пишпек'},
+  ];
+
+  List<Map<String, String>> _getDistrictsList(AppState state) {
+    final rawList = state.filterOptions['districts'];
+    if (rawList is List && rawList.isNotEmpty) {
+      return rawList.map<Map<String, String>>((item) {
+        if (item is Map) {
+          final slug = (item['slug'] ?? item['value'] ?? item['id']?.toString() ?? '').toString();
+          final name = (item['name'] ?? item['label'] ?? slug).toString();
+          return {'slug': slug, 'name': name};
+        }
+        return {'slug': item.toString(), 'name': item.toString()};
+      }).toList();
+    }
+    return _defaultDistricts;
+  }
+
+  void _syncControllers(AppState state) {
+    if (_initializedFromState) return;
+    _initializedFromState = true;
+    if (state.draftArea.isNotEmpty) _effectiveAreaController.text = state.draftArea;
+    if (state.draftBuilder.isNotEmpty) _effectiveBuilderController.text = state.draftBuilder;
+    if (state.draftPrice.isNotEmpty) _effectivePriceController.text = state.draftPrice;
+    if (state.draftRooms > 5) _effectiveRoomsController.text = state.draftRooms.toString();
+    if (state.draftFloor > 5) _effectiveFloorController.text = state.draftFloor.toString();
+    if (state.draftFloors > 5) _effectiveFloorsController.text = state.draftFloors.toString();
+  }
 
   String _getDistrictLabel(AppState state) {
-    if (state.draftDistrict.isEmpty) return 'Выберите район';
-    if (state.filterOptions['districts'] != null) {
-      final list = state.filterOptions['districts'] as List<dynamic>;
-      for (final item in list) {
-        if (item['value'] == state.draftDistrict) {
-          return item['label'] as String;
-        }
+    if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') return 'Выберите район';
+    final list = _getDistrictsList(state);
+    for (final item in list) {
+      if (item['slug'] == state.draftDistrict || item['name'] == state.draftDistrict) {
+        return item['name']!;
       }
     }
     return state.draftDistrict;
   }
 
-
   Future<void> _submitForm(AppState state) async {
-    final area = double.tryParse(_effectiveAreaController.text.trim()) ?? 0.0;
-    final price = int.tryParse(_effectivePriceController.text.trim()) ?? 0;
+    final area = double.tryParse(_effectiveAreaController.text.trim()) ?? (double.tryParse(state.draftArea) ?? 0.0);
+    final price = int.tryParse(_effectivePriceController.text.trim()) ?? (int.tryParse(state.draftPrice) ?? 0);
+    final builder = _effectiveBuilderController.text.trim().isNotEmpty ? _effectiveBuilderController.text.trim() : state.draftBuilder;
 
-    final data = <String, dynamic>{
-      'kind': state.draftKinds.isNotEmpty ? state.draftKinds.first.name : PropertyKind.apartment.name,
-      'currency': state.draftUsd ? 'USD' : 'KGS',
-      'seller_kind': state.draftOwner ? 'owner' : 'realtor',
+    if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, выберите район')),
+      );
+      return;
+    }
+    if (area <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, укажите квадратуру объекта')),
+      );
+      return;
+    }
+    if (price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, укажите цену объекта')),
+      );
+      return;
+    }
+
+    String districtSlug = state.draftDistrict;
+    final districtsList = _getDistrictsList(state);
+    for (final d in districtsList) {
+      if (d['name'] == state.draftDistrict || d['slug'] == state.draftDistrict) {
+        districtSlug = d['slug']!;
+        break;
+      }
+    }
+
+    final kindEnum = state.draftKinds.isNotEmpty ? state.draftKinds.first : PropertyKind.apartment;
+    final kindApi = switch (kindEnum) {
+      PropertyKind.house => 'house',
+      PropertyKind.apartment => 'apartment',
+      PropertyKind.plot => 'plot',
+      PropertyKind.newBuilding => 'new_building',
+      PropertyKind.room => 'room',
+      PropertyKind.commercial => 'commercial',
     };
 
-    if (state.draftDistrict.isNotEmpty) {
-      data['district'] = state.draftDistrict;
-    }
+    final roomsVal = int.tryParse(_effectiveRoomsController.text.trim()) ?? (state.draftRooms > 0 ? state.draftRooms : 1);
+    final floorVal = int.tryParse(_effectiveFloorController.text.trim()) ?? (state.draftFloor > 0 ? state.draftFloor : 1);
+    final floorsVal = int.tryParse(_effectiveFloorsController.text.trim()) ?? (state.draftFloors > 0 ? state.draftFloors : (floorVal > 1 ? floorVal : 1));
+    final sellerKindApi = state.draftOwner ? 'owner' : 'realtor';
 
-    if (state.draftRooms != null && state.draftRooms! > 0) {
-      data['rooms'] = state.draftRooms;
+    final data = <String, dynamic>{
+      'kind': kindApi,
+      'currency': state.draftUsd ? 'USD' : 'KGS',
+      'seller_kind': sellerKindApi,
+      'district': districtSlug,
+      'rooms': roomsVal,
+      'area': area,
+      'floor': floorVal,
+      'floors': floorsVal,
+      'price': price,
+    };
+    if (builder.isNotEmpty) {
+      if (builder.toLowerCase().contains('elite')) {
+        data['builder'] = 'elite-house';
+      }
     }
-    if (area > 0) data['area'] = area;
-    if (state.draftFloor != null && state.draftFloor! > 0) {
-      data['floor'] = state.draftFloor;
-    }
-    if (state.draftFloors != null && state.draftFloors! > 0) {
-      data['floors'] = state.draftFloors;
-    }
-    if (price > 0) data['price'] = price;
 
     setState(() => _isSaving = true);
     try {
@@ -81,7 +184,7 @@ class _AdFormPageState extends State<AdFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка создания черновика: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
       }
     } finally {
       if (mounted) {
@@ -102,12 +205,16 @@ class _AdFormPageState extends State<AdFormPage> {
   }
 
   void _showDistrictPicker(BuildContext context, AppState state) {
+    if (state.filterOptions['districts'] == null || (state.filterOptions['districts'] as List).isEmpty) {
+      state.fetchFilterOptions('bishkek');
+    }
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
       ),
       builder: (context) {
+        final districts = _getDistrictsList(state);
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -122,15 +229,16 @@ class _AdFormPageState extends State<AdFormPage> {
               const Divider(height: 1),
               Expanded(
                 child: ListView.separated(
-                  itemCount: state.filterOptions['districts']?.length ?? 0,
+                  itemCount: districts.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final item = state.filterOptions['districts'][index];
-                    final slug = item['value'] as String;
-                    final label = item['label'] as String;
+                    final item = districts[index];
+                    final slug = item['slug']!;
+                    final label = item['name']!;
+                    final isSelected = state.draftDistrict == slug || state.draftDistrict == label;
                     return ListTile(
                       title: Text(label),
-                      trailing: state.draftDistrict == slug
+                      trailing: isSelected
                           ? const Icon(Icons.check, color: Color(0xffea812e))
                           : null,
                       onTap: () {

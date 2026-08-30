@@ -11,6 +11,7 @@ import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
+import '../widgets/safe_image.dart';
 
 /// Затемнение поверх фотографии — тот же градиент, что в кадре.
 const LinearGradient _shade = LinearGradient(
@@ -51,6 +52,42 @@ class PhotosPage extends StatefulWidget {
 class _PhotosPageState extends State<PhotosPage> {
   late final PageController _pages = PageController();
   int _index = 0;
+  Listing? _listing;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final state = AppScope.read(context);
+    try {
+      var targetId = widget.id;
+      if (targetId == 'technopark' || targetId == 'asanbay' || targetId.isEmpty) {
+        final listingsResp = await state.apiClient.getListings();
+        final first = (listingsResp['results'] as List<dynamic>?)?.firstOrNull;
+        if (first != null && first is Map && first['slug'] != null) {
+          targetId = first['slug'].toString();
+        }
+      }
+      final data = await state.apiClient.getListingDetails(targetId);
+      if (mounted) {
+        setState(() {
+          _listing = Listing.fromJson(data);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _listing = listingById(widget.id);
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -79,8 +116,17 @@ class _PhotosPageState extends State<PhotosPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xff1c1b19),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xffea812e)),
+        ),
+      );
+    }
+
     final state = AppScope.of(context);
-    final listing = listingById(widget.id);
+    final listing = _listing ?? listingById(widget.id);
     final photos = listing.photos;
     final favourite = state.isFavourite(listing.id);
 
@@ -96,12 +142,32 @@ class _PhotosPageState extends State<PhotosPage> {
               controller: _pages,
               itemCount: photos.length,
               onPageChanged: (i) => setState(() => _index = i),
-              itemBuilder: (context, i) => Image.asset(
-                photos[i],
-                fit: BoxFit.cover,
-                errorBuilder: (context, _, __) =>
-                    const ColoredBox(color: Color(0xff1c1b19)),
-              ),
+              itemBuilder: (context, i) {
+                final p = photos[i];
+                final isNet = p.startsWith('http://') || p.startsWith('https://');
+                final fallbackMock = (listing.district.toLowerCase().contains('асанбай') || listing.id.contains('asanbay'))
+                    ? ListingPhotos.asanbay
+                    : ((listing.district.toLowerCase().contains('южные') || listing.id.contains('yuzhnye') || listing.id.contains('house'))
+                        ? ListingPhotos.villa
+                        : ListingPhotos.technopark);
+                return isNet
+                    ? buildSafeNetworkImage(
+                        url: p,
+                        fit: BoxFit.cover,
+                        fallback: Image.asset(
+                          fallbackMock,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Image.asset(
+                        p,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, _, __) => Image.asset(
+                          fallbackMock,
+                          fit: BoxFit.cover,
+                        ),
+                      );
+              },
             ),
           ),
           // затемнения кадра: сверху лёгкое, снизу — под подписи об объекте

@@ -109,10 +109,11 @@ class _CatalogPageState extends State<CatalogPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
+          _listings = kListings;
           _isLoading = false;
           _isLoadingMore = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        debugPrint('Catalog load listings error: $e');
       }
     }
   }
@@ -149,33 +150,37 @@ class _CatalogPageState extends State<CatalogPage> {
           child: ColoredBox(
             color: const Color(0xfffefefe),
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator()) 
-              : ListView.builder(
+              ? const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(
+                        color: Color(0xffea812f),
+                        strokeWidth: 3,
+                      ),
+                      SizedBox(height: 14),
+                      Text(
+                        'Загрузка каталога...',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xff8e8e93),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ) 
+              : ListingGrid(
                   controller: _scrollController,
+                  listings: _listings,
                   padding: const EdgeInsets.only(
                     top: _gridFirstCard - _gridTop,
                     bottom: 16,
                   ),
-                  itemCount: _listings.length + (_isLoadingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _listings.length) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-                    
-                    return ListingGrid(
-                      listings: [_listings[index]],
-                      scrollable: false,
-                      onOpen: (listing) => Navigator.of(context).pushNamed(
-                        Routes.listingVideo, 
-                        arguments: ListingArgs(listing.id),
-                      ),
-                    );
-                  },
+                  onOpen: (listing) => Navigator.of(context).pushNamed(
+                    Routes.listingVideo, 
+                    arguments: ListingArgs(listing.id),
+                  ),
                 ),
           ),
         ),

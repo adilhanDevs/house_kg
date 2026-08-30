@@ -33,9 +33,30 @@ class ListingRepository {
 
   Future<PaginatedResponse<Listing>> getViewHistory({String? cursor}) async {
     final data = await _apiClient.getViewHistory(cursor: cursor);
-    return PaginatedResponse<Listing>.fromJson(
-      data,
-      (json) => Listing.fromJson(json),
+    final resultsRaw = data['results'] as List<dynamic>? ?? [];
+    final List<Listing> listings = [];
+    for (final item in resultsRaw) {
+      if (item is Map) {
+        final itemMap = Map<String, dynamic>.from(item);
+        if (itemMap.containsKey('items') && itemMap['items'] is List) {
+          for (final sub in itemMap['items']) {
+            if (sub is Map) {
+              listings.add(Listing.fromJson(Map<String, dynamic>.from(sub)));
+            }
+          }
+        } else {
+          listings.add(Listing.fromJson(itemMap));
+        }
+      }
+    }
+    return PaginatedResponse<Listing>(
+      results: listings,
+      nextCursor: PaginatedResponse.extractCursor(data['next'] as String?),
     );
+  }
+
+  Future<Listing> getListingDetails(String slug) async {
+    final data = await _apiClient.getListingDetails(slug);
+    return Listing.fromJson(data);
   }
 }

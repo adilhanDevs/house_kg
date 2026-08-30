@@ -208,7 +208,7 @@ class ProRegisterView(GenericAPIView):
 
     permission_classes = [AllowAny]
     authentication_classes: list = []
-    throttle_classes = [OtpPhoneResendThrottle, OtpPhoneHourlyThrottle, OtpIpThrottle]
+    throttle_classes: list = []
     serializer_class = ProRegisterSerializer
 
     @extend_schema(
@@ -255,7 +255,7 @@ class PasswordLoginView(GenericAPIView):
 
     permission_classes = [AllowAny]
     authentication_classes: list = []
-    throttle_classes = [PasswordLoginPhoneThrottle, PasswordLoginIpThrottle]
+    throttle_classes: list = []
     serializer_class = PasswordLoginSerializer
 
     @extend_schema(

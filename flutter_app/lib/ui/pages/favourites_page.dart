@@ -69,6 +69,10 @@ class _FavouritesPageState extends State<FavouritesPage> {
       setState(() => _isLoadingMore = true);
     }
 
+    if (_appState.authInitialized != null) {
+      await _appState.authInitialized;
+    }
+
     try {
       final response = await _repository.getFavourites(
         cursor: _nextCursor,
@@ -94,16 +98,13 @@ class _FavouritesPageState extends State<FavouritesPage> {
           _isLoading = false;
           _isLoadingMore = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        debugPrint('Favourites load error: $e');
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Note: We don't filter _listings by state.isFavourite locally because 
-    // the user might want to see the item they just un-favourited until they refresh.
-    // Or we could hide them instantly. But keeping them until reload is standard.
     return FigStage(
       frame: frame('16'),
       background: const Color(0xfffefefe),
@@ -117,7 +118,26 @@ class _FavouritesPageState extends State<FavouritesPage> {
           child: ColoredBox(
             color: const Color(0xfffefefe),
             child: _isLoading 
-                ? const Center(child: CircularProgressIndicator(color: Color(0xffea812f)))
+                ? const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          color: Color(0xffea812e),
+                          strokeWidth: 3,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Загрузка избранного...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xff8e8e93),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 : ListingGrid(
                     controller: _scrollController,
                     listings: _listings,

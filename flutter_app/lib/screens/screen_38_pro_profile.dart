@@ -689,6 +689,69 @@ class Screen38ProProfile extends StatelessWidget {
                                                   crossAxisAlignment: CrossAxisAlignment.center,
                                                   spacing: 4.0,
                                                   children: [
+                                                    const FigBox(
+                                                      width: 26.0,
+                                                      height: 26.0,
+                                                      child: Center(
+                                                        child: Icon(
+                                                          Icons.workspace_premium_outlined,
+                                                          size: 22.0,
+                                                          color: Color(0xffee9a58),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    FigText(
+                                                      align: TextAlign.center,
+                                                      noWrap: true,
+                                                      span: 
+                                                        TextSpan(text: 'Тарифы', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.467, color: const Color(0xff000000)))
+                                                      ,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            FigBox(
+                                              width: 7.0,
+                                              height: 12.0,
+                                              clip: true,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0.0, top: 0.0,
+                                                    child: FigSvg(
+                                                      width: 7.0, height: 12.0,
+                                                      vbLeft: 0.0, vbTop: 0.0, vbWidth: 7.0, vbHeight: 12.0,
+                                                      shapes: const [FigShape(d: _p3, fill: Color(0xffb8c1cc), evenOdd: true)],
+                                                    )
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    FigBox(
+                                      width: 330.0,
+                                      child: FigOverflow(
+                                        alignment: const Alignment(-1.0, 0.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            FigBox(
+                                              child: FigOverflow(
+                                                freeWidth: true,
+                                                alignment: const Alignment(0.0, 0.0),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  spacing: 4.0,
+                                                  children: [
                                                     FigBox(
                                                       width: 26.0,
                                                       height: 26.0,
@@ -1416,10 +1479,10 @@ class Screen38ProProfile extends StatelessWidget {
                           Positioned(
                             left: 0.0, top: 0.0,
                             child: FigText(
-                              width: 52.0,
+                              width: 65.0,
                               height: 14.0,
                               span: 
-                                TextSpan(text: 'Комната', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe07d7d7d)))
+                                TextSpan(text: 'Квартиры', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe07d7d7d)))
                               ,
                             )
                           ),

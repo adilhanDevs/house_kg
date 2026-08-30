@@ -3,13 +3,16 @@
 // Кадр нарисован под «Технопарк»; приложение подставляет фотографию, цену,
 // характеристики и метки выбранного объекта, включает сердце и делает
 // кликабельными фото, «Фотообзор» и способ покупки.
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
+import '../widgets/safe_image.dart';
 
 /// Фотография объекта во всю ширину.
 const Rect _hero = Rect.fromLTWH(0, 0, 375, 387);
@@ -73,23 +76,47 @@ class _ListingPageState extends State<ListingPage> {
     _loadListingDetails();
   }
 
+  @override
+  void didUpdateWidget(covariant ListingPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.id != oldWidget.id) {
+      setState(() {
+        _isLoading = true;
+        _listing = null;
+      });
+      _loadListingDetails();
+    }
+  }
+
   Future<void> _loadListingDetails() async {
     final state = AppScope.read(context);
-    // Record view asynchronously
-    state.apiClient.recordListingView(widget.id);
+    var targetId = widget.id;
 
     try {
-      final data = await state.apiClient.getListingDetails(widget.id);
+      if (targetId.isEmpty || targetId == 'technopark' || targetId == 'asanbay') {
+        if (state.draftSlug != null && state.draftSlug!.isNotEmpty) {
+          targetId = state.draftSlug!;
+        } else {
+          final listingsResp = await state.apiClient.getListings();
+          final first = (listingsResp['results'] as List<dynamic>?)?.firstOrNull;
+          if (first != null && first is Map && first['slug'] != null) {
+            targetId = first['slug'].toString();
+          }
+        }
+      }
+      state.apiClient.recordListingView(targetId);
+      final data = await state.apiClient.getListingDetails(targetId);
       if (mounted) {
+        final parsed = Listing.fromJson(data);
+        state.noteViewed(targetId, listing: parsed);
         setState(() {
-          _listing = Listing.fromJson(data);
+          _listing = parsed;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      print('Failed to load listing details: $e');
+    } catch (e, st) {
+      debugPrint('FAILED TO LOAD LISTING: $e\n$st');
       if (mounted) {
-        // Fallback to local mock if API fails
         setState(() {
           _listing = listingById(widget.id);
           _isLoading = false;
@@ -111,12 +138,204 @@ class _ListingPageState extends State<ListingPage> {
     );
   }
 
+  Widget _buildInfoRow(String label, String value, {bool isPlain = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: figStyle(
+              fontSize: 15.0,
+              family: FigFont.display,
+              weight: 500,
+              height: 1.333,
+              color: const Color(0xff7d7d7d),
+            ),
+          ),
+          Text(
+            value,
+            style: figStyle(
+              fontSize: 15.0,
+              family: FigFont.display,
+              weight: 600,
+              height: isPlain ? 1.0 : 1.333,
+              color: const Color(0xff555555),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _computePinX(double? lon, double width) {
+    if (lon == null) return width / 2 - 8;
+    const minLon = 74.50;
+    const maxLon = 74.70;
+    final clamped = lon.clamp(minLon, maxLon);
+    final norm = (clamped - minLon) / (maxLon - minLon);
+    return (norm * (width - 40) + 12).clamp(16.0, width - 32.0);
+  }
+
+  double _computePinY(double? lat, double height) {
+    if (lat == null) return height / 2 - 16;
+    const minLat = 42.80;
+    const maxLat = 42.90;
+    final clamped = lat.clamp(minLat, maxLat);
+    final norm = 1.0 - ((clamped - minLat) / (maxLat - minLat));
+    return (norm * (height - 80) + 16).clamp(16.0, height - 60.0);
+  }
+
+  Widget _buildDynamicVideoCard(
+    BuildContext context, {
+    required ListingMedia? video,
+    required int index,
+    required Listing listing,
+  }) {
+    final title = (video?.title != null && video!.title!.isNotEmpty)
+        ? video.title!
+        : (index == 0
+            ? 'Обзор квартиры'
+            : (index == 1 ? 'Обзор местности' : 'Инфраструктура района'));
+
+    String thumbUrl = video?.thumbnailUrl ?? '';
+    if (thumbUrl.isEmpty && listing.photos.isNotEmpty) {
+      final firstPhoto = listing.photos.first;
+      if (firstPhoto.startsWith('http://') || firstPhoto.startsWith('https://')) {
+        thumbUrl = firstPhoto;
+      }
+    }
+    if (thumbUrl.startsWith('/')) {
+      final baseUrl = AppScope.read(context).apiClient.baseUrl;
+      final uri = Uri.tryParse(baseUrl);
+      if (uri != null) {
+        final origin = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+        thumbUrl = '$origin$thumbUrl';
+      }
+    }
+
+    String videoUrl = video?.url ?? '';
+    if (videoUrl.startsWith('/')) {
+      final baseUrl = AppScope.read(context).apiClient.baseUrl;
+      final uri = Uri.tryParse(baseUrl);
+      if (uri != null) {
+        final origin = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+        videoUrl = '$origin$videoUrl';
+      }
+    }
+
+    final hasRealMedia = (thumbUrl.startsWith('http://') || thumbUrl.startsWith('https://')) ||
+        (videoUrl.startsWith('http://') || videoUrl.startsWith('https://'));
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(context).pushNamed(
+          Routes.listingVideo,
+          arguments: ListingArgs(listing.id, initialVideoIndex: index),
+        );
+      },
+      child: SizedBox(
+        width: 140.0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 140.0,
+              height: 200.0,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+                color: const Color(0xff1c1b19),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _VideoCardThumbnail(
+                    thumbnailUrl: thumbUrl,
+                    videoUrl: videoUrl,
+                    fallbackAsset: hasRealMedia
+                        ? null
+                        : ((index == 0)
+                            ? 'assets/figma/92b0d143df96c511.jpg'
+                            : (index == 1
+                                ? 'assets/figma/b76192aa900c610a.jpg'
+                                : 'assets/figma/e267d094d7f9a8fc.jpg')),
+                  ),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment(0.018, 1.009),
+                        end: Alignment(-0.018, -1.009),
+                        colors: [Color(0x33000000), Color(0x00000000)],
+                        stops: [0.243, 0.943],
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: Container(
+                      width: 32.0,
+                      height: 32.0,
+                      decoration: const BoxDecoration(
+                        color: Color(0x73000000),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Color(0xd9ffffff),
+                        size: 22.0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6.0),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: figStyle(
+                fontSize: 14.0,
+                family: FigFont.display,
+                weight: 500,
+                height: 1.25,
+                color: const Color(0xff7d7d7d),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading || _listing == null) {
       return const Scaffold(
         backgroundColor: _page,
-        body: Center(child: CircularProgressIndicator(color: Color(0xffea812e))),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                color: Color(0xffea812e),
+                strokeWidth: 3,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Загрузка объявления...',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xff8e8e93),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -133,263 +352,533 @@ class _ListingPageState extends State<ListingPage> {
         const _Badge('Красная книга', Color(0xfffce8e6), Color(0xffd93025)),
     ];
 
-    return FigStage(
-      frame: frame('19'),
-      background: _page,
-      overlays: [
-        // фотография объекта вместо нарисованной
-        Positioned(
-          left: _hero.left,
-          top: _hero.top,
-          width: _hero.width,
-          height: _hero.height,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context)
-                .pushNamed(Routes.listingPhotos, arguments: ListingArgs(listing.id)),
-            child: Semantics(
-              button: true,
-              label: 'Фотообзор',
-              child: FigBox(
-                width: _hero.width,
-                height: _hero.height,
-                clip: true,
-                color: const Color(0xffd9d9d9),
-                bgImage: FigBgImage(listing.photo),
+    return Scaffold(
+      backgroundColor: _page,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Фотография объекта во всю ширину со стрелкой «Назад» и кнопкой «Избранное»
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(context).pushNamed(
+                    Routes.listingPhotos,
+                    arguments: ListingArgs(listing.id),
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 387.0,
+                    child: buildSafeNetworkImage(
+                      url: listing.photo,
+                      fit: BoxFit.cover,
+                      fallback: Image.asset(
+                        ListingPhotos.technopark,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                FigBackButton(
+                  left: 25,
+                  top: 48,
+                  onLight: false,
+                  onTap: () => Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (r) => false),
+                ),
+                Positioned(
+                  right: 25,
+                  top: 48,
+                  child: Semantics(
+                    button: true,
+                    label: favourite ? 'Убрать из избранного' : 'В избранное',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => state.toggleFavourite(listing.id),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: Color(0xd9ffffff),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: FigSvg(
+                            width: 15.0,
+                            height: 13.0,
+                            vbWidth: 13.513,
+                            vbHeight: 11.842,
+                            shapes: [
+                              FigShape(
+                                d: favourite ? _heartFilled : _heartOutline,
+                                fill: _heartFill,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Метки (Собственник, Цена ниже рыночной, Красная книга)
+            if (badges.isNotEmpty) ...[
+              SizedBox(
+                height: _badgesHeight,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 25),
+                  children: [
+                    for (final badge in badges) ...[
+                      _BadgeChip(badge),
+                      const SizedBox(width: 10),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            // Цена и характеристики
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    listing.price,
+                    style: figStyle(
+                      fontSize: 21.0,
+                      family: FigFont.display,
+                      weight: 600,
+                      height: 1.0,
+                      letterSpacing: -0.21,
+                      color: const Color(0xff000000),
+                    ),
+                  ),
+                  _Specs(listing: listing),
+                ],
               ),
             ),
-          ),
-        ),
-        const FigBackButton(left: 25, top: 48, onLight: false),
-        Positioned(
-          left: _heart.left,
-          top: _heart.top,
-          child: Semantics(
-            button: true,
-            label: favourite ? 'Убрать из избранного' : 'В избранное',
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => state.toggleFavourite(listing.id),
-              child: FigBox(
-                width: _heart.width,
-                height: _heart.height,
-                radius: _heart.width / 2,
-                color: const Color(0xd9ffffff),
-                child: Center(
-                  child: FigSvg(
-                    width: 13.513,
-                    height: 11.842,
-                    vbWidth: 13.513,
-                    vbHeight: 11.842,
-                    shapes: [
-                      FigShape(
-                        d: favourite ? _heartFilled : _heartOutline,
-                        fill: _heartFill,
+
+            const SizedBox(height: 12),
+
+            // Описание объекта
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Text(
+                listing.description,
+                style: figStyle(
+                  fontSize: 15.0,
+                  family: FigFont.display,
+                  weight: 500,
+                  height: 1.333,
+                  color: const Color(0xff7d7d7d),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Разделитель
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Container(height: 1.0, color: const Color(0x337d7d7d)),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Карта, адрес и точка на карте
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 214,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          'assets/figma/f36bc748a320b1d4.jpg',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Container(color: const Color(0x0d000000)),
+                      ),
+                      Positioned(
+                        left: _computePinX(listing.longitude, 325),
+                        top: _computePinY(listing.latitude, 214),
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: const Color(0xffea812e),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2.5),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x40000000),
+                                blurRadius: 5,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 15,
+                        bottom: 12,
+                        right: 15,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffffffff),
+                            borderRadius: BorderRadius.circular(8.0),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x1a000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            listing.address,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: figStyle(
+                              fontSize: 14.0,
+                              family: FigFont.display,
+                              weight: 600,
+                              height: 1.2,
+                              color: const Color(0xff000000),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-        // метки: у объекта они свои, поэтому нарисованные закрываем
-        Positioned(
-          left: 0,
-          top: _badgesTop,
-          right: 0,
-          height: _badgesHeight,
-          child: ColoredBox(
-            color: _page,
-            // меток у объекта может быть больше, чем влезает в ширину экрана,
-            // поэтому лента едет вбок, а не обрезается
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              children: [
-                for (final badge in badges) ...[
-                  _BadgeChip(badge),
-                  const SizedBox(width: 10),
-                ],
-              ],
+
+            const SizedBox(height: 16),
+
+            // Ключевые места
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Text(
+                'Ключевые места',
+                style: figStyle(
+                  fontSize: 15.0,
+                  family: FigFont.display,
+                  weight: 500,
+                  height: 1.333,
+                  color: const Color(0xff7d7d7d),
+                ),
+              ),
             ),
-          ),
-        ),
-        // цена и характеристики
-        Positioned(
-          left: 0,
-          top: _price.top,
-          right: 0,
-          height: 24,
-          child: ColoredBox(
-            color: _page,
-            child: Stack(
-              children: [
-                Positioned(
-                  left: _price.left,
-                  top: 0,
-                  child: FigText(
-                    noWrap: true,
-                    span: TextSpan(
-                      text: listing.price,
-                      style: figStyle(
-                        fontSize: 21.0,
-                        family: FigFont.display,
-                        weight: 600,
-                        height: 1.0,
-                        letterSpacing: -0.21,
-                        color: const Color(0xff000000),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: _specs.left,
-                  top: 4,
-                  child: _Specs(listing: listing),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Способы покупки: закрываем нарисованные в макете чипы белой плашкой, чтобы не было наложения
-        Positioned(
-          left: 20,
-          top: 1283,
-          right: 20,
-          height: 36,
-          child: ColoredBox(
-            color: _page,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(width: 5),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _useMortgage = false),
-                  child: Container(
-                    width: _directChip.width,
-                    height: _directChip.height,
-                    decoration: BoxDecoration(
-                      color: !_useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: !_useMortgage ? const Color(0x00000000) : const Color(0xffe5e5ea),
-                        width: 1.0,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Прямая покупка',
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        fontWeight: !_useMortgage ? FontWeight.w600 : FontWeight.w400,
-                        color: !_useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _useMortgage = true),
-                  child: Container(
-                    width: _mortgageChip.width,
-                    height: _mortgageChip.height,
-                    decoration: BoxDecoration(
-                      color: _useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: _useMortgage ? const Color(0x00000000) : const Color(0xffe5e5ea),
-                        width: 1.0,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Ипотека',
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        fontWeight: _useMortgage ? FontWeight.w600 : FontWeight.w400,
-                        color: _useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Лента «Фотообзора»: закрываем нарисованные в макете 4 фото белой плашкой и выводим динамический горизонтальный скролл со всеми фото
-        Positioned(
-          left: 0,
-          top: _thumbsTop - 4,
-          right: 0,
-          height: _thumbSize + 8,
-          child: ColoredBox(
-            color: _page,
-            child: ListView.separated(
+            const SizedBox(height: 8),
+            SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 25),
-              itemCount: listing.photos.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final photo = listing.photos[index];
-                final isFirst = index == 0;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    Navigator.of(context).pushNamed(
-                      Routes.listingPhotos,
-                      arguments: ListingArgs(listing.id),
-                    );
-                  },
-                  child: Container(
-                    width: _thumbSize,
-                    height: _thumbSize,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: isFirst ? const Color(0xffea812e) : const Color(0xffdcdcdc),
-                        width: isFirst ? 2.0 : 1.0,
+              child: Row(
+                children: [
+                  for (final place in (listing.landmarks.isNotEmpty ? listing.landmarks : const ['Школа 56', 'Магистраль-Бакаева', 'Клиника Эскулап'])) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0x33ea812e),
+                        borderRadius: BorderRadius.circular(8.0),
                       ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6.0),
-                      child: Image.asset(
-                        photo,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, _, _) => const ColoredBox(
-                          color: Color(0xffe5e5ea),
+                      child: Text(
+                        place,
+                        style: figStyle(
+                          fontSize: 13.0,
+                          family: FigFont.display,
+                          weight: 500,
+                          height: 1.077,
+                          letterSpacing: 0.065,
+                          color: const Color(0xe0ea812e),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Разделитель
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Container(height: 1.0, color: const Color(0x337d7d7d)),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Общая информация (динамический список комнат без лишнего пустого пространства снизу)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Общая информация',
+                    style: figStyle(
+                      fontSize: 17.0,
+                      family: FigFont.display,
+                      weight: 600,
+                      height: 1.176,
+                      color: const Color(0xff000000),
+                    ),
                   ),
-                );
-              },
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Общая квадратура', '${listing.area}м²'),
+                  for (final room in listing.roomsBreakdown)
+                    _buildInfoRow(room.name, '${room.area.toStringAsFixed(0)}м²'),
+                  _buildInfoRow('Мебель', listing.furniture.isNotEmpty ? listing.furniture : 'Полностью', isPlain: true),
+                  _buildInfoRow('Этаж', '${listing.floor} из ${listing.floors > 0 ? listing.floors : 12}', isPlain: true),
+                ],
+              ),
             ),
-          ),
+
+            const SizedBox(height: 16),
+
+            // Разделитель — сразу под последней строкой общей информации!
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Container(height: 1.0, color: const Color(0x337d7d7d)),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Варианты покупки
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Варианты покупки',
+                    style: figStyle(
+                      fontSize: 17.0,
+                      family: FigFont.display,
+                      weight: 600,
+                      height: 1.176,
+                      color: const Color(0xff000000),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (listing.hasDirectSale) ...[
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => setState(() => _useMortgage = false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: !_useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
+                              borderRadius: BorderRadius.circular(8.0),
+                              border: Border.all(
+                                color: !_useMortgage ? const Color(0x00000000) : const Color(0xffe5e5ea),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Text(
+                              'Прямая покупка',
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: !_useMortgage ? FontWeight.w600 : FontWeight.w400,
+                                color: !_useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (listing.hasMortgage) ...[
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => setState(() => _useMortgage = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _useMortgage ? const Color(0xfffdf1e8) : const Color(0xffffffff),
+                              borderRadius: BorderRadius.circular(8.0),
+                              border: Border.all(
+                                color: _useMortgage ? const Color(0x00000000) : const Color(0xffe5e5ea),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Text(
+                              'Ипотека',
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: _useMortgage ? FontWeight.w600 : FontWeight.w400,
+                                color: _useMortgage ? const Color(0xffea812e) : const Color(0x993c3c43),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    listing.price,
+                    style: figStyle(
+                      fontSize: 21.0,
+                      family: FigFont.display,
+                      weight: 600,
+                      height: 1.0,
+                      letterSpacing: -0.21,
+                      color: const Color(0xff000000),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Можно сторговаться',
+                    style: figStyle(
+                      fontSize: 15.0,
+                      family: FigFont.display,
+                      weight: 500,
+                      height: 1.333,
+                      color: const Color(0xff7d7d7d),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Разделитель
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Container(height: 1.0, color: const Color(0x337d7d7d)),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Видеообзор
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Text(
+                'Видеообзор',
+                style: figStyle(
+                  fontSize: 17.0,
+                  family: FigFont.display,
+                  weight: 600,
+                  height: 1.176,
+                  color: const Color(0xff000000),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Row(
+                children: [
+                  for (int i = 0; i < (listing.videos.isNotEmpty ? listing.videos.length : 1); i++) ...[
+                    if (i > 0) const SizedBox(width: 15),
+                    _buildDynamicVideoCard(
+                      context,
+                      video: listing.videos.isNotEmpty ? listing.videos[i] : null,
+                      index: i,
+                      listing: listing,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Фотообзор
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Text(
+                'Фотообзор',
+                style: figStyle(
+                  fontSize: 17.0,
+                  family: FigFont.display,
+                  weight: 600,
+                  height: 1.176,
+                  color: const Color(0xff000000),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: _thumbSize,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                itemCount: listing.photos.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final photo = listing.photos[index];
+                  final isFirst = index == 0;
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      Navigator.of(context).pushNamed(
+                        Routes.listingPhotos,
+                        arguments: ListingArgs(listing.id),
+                      );
+                    },
+                    child: Container(
+                      width: _thumbSize,
+                      height: _thumbSize,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
+                        border: Border.all(
+                          color: isFirst ? const Color(0xffea812e) : const Color(0xffdcdcdc),
+                          width: isFirst ? 2.0 : 1.0,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6.0),
+                        child: (photo.startsWith('http://') || photo.startsWith('https://'))
+                            ? buildSafeNetworkImage(
+                                url: photo,
+                                fit: BoxFit.cover,
+                                borderRadius: BorderRadius.circular(6.0),
+                                fallback: Image.asset(
+                                  photo.contains('asanbay')
+                                      ? ListingPhotos.asanbay
+                                      : ListingPhotos.technopark,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Image.asset(
+                                photo,
+                                fit: BoxFit.cover,
+                              ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 50),
+          ],
         ),
-        // Кнопка позвонить (нижняя липкая кнопка из макета)
-        // Размещаем её поверх макета, чтобы была кликабельной
-        Positioned(
-          left: 20,
-          bottom: 40,
-          right: 20,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _onCallPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xffea812e),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Позвонить',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -483,4 +972,122 @@ class _Dot extends StatelessWidget {
         radius: 2,
         color: Color(0xffd9d9d9),
       );
+}
+
+class _VideoCardThumbnail extends StatefulWidget {
+  const _VideoCardThumbnail({
+    required this.thumbnailUrl,
+    required this.videoUrl,
+    this.fallbackAsset,
+  });
+
+  final String thumbnailUrl;
+  final String videoUrl;
+  final String? fallbackAsset;
+
+  @override
+  State<_VideoCardThumbnail> createState() => _VideoCardThumbnailState();
+}
+
+class _VideoCardThumbnailState extends State<_VideoCardThumbnail> {
+  VideoPlayerController? _controller;
+  bool _isInit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.thumbnailUrl.isEmpty && widget.videoUrl.isNotEmpty) {
+      _initVideoFrame();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _VideoCardThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.thumbnailUrl.isEmpty && widget.videoUrl != oldWidget.videoUrl) {
+      _controller?.dispose();
+      _controller = null;
+      _isInit = false;
+      if (widget.videoUrl.isNotEmpty) {
+        _initVideoFrame();
+      }
+    }
+  }
+
+  Future<void> _initVideoFrame() async {
+    final rawUrl = widget.videoUrl;
+    try {
+      final uri = Uri.tryParse(rawUrl);
+      if (uri != null && (uri.isScheme('http') || uri.isScheme('https'))) {
+        _controller = VideoPlayerController.networkUrl(uri);
+      } else if (kIsWeb) {
+        final webUri = Uri.base.resolve(rawUrl.startsWith('assets/') ? rawUrl : 'assets/$rawUrl');
+        _controller = VideoPlayerController.networkUrl(webUri);
+      } else {
+        _controller = VideoPlayerController.asset(rawUrl);
+      }
+      await _controller!.initialize();
+      await _controller!.setVolume(0.0);
+      await _controller!.pause();
+      if (mounted) {
+        setState(() => _isInit = true);
+      }
+    } catch (e) {
+      debugPrint('Error generating video thumbnail from frame: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.thumbnailUrl.isNotEmpty) {
+      final isNet = widget.thumbnailUrl.startsWith('http://') || widget.thumbnailUrl.startsWith('https://');
+      if (isNet) {
+        return buildSafeNetworkImage(
+          url: widget.thumbnailUrl,
+          fit: BoxFit.cover,
+          fallback: widget.fallbackAsset != null
+              ? Image.asset(widget.fallbackAsset!, fit: BoxFit.cover)
+              : const ColoredBox(color: Color(0xff222222)),
+        );
+      } else if (widget.thumbnailUrl.startsWith('assets/')) {
+        return Image.asset(widget.thumbnailUrl, fit: BoxFit.cover);
+      }
+    }
+
+    if (_isInit && _controller != null) {
+      return FittedBox(
+        fit: BoxFit.cover,
+        clipBehavior: Clip.hardEdge,
+        child: SizedBox(
+          width: _controller!.value.size.width > 0 ? _controller!.value.size.width : 140,
+          height: _controller!.value.size.height > 0 ? _controller!.value.size.height : 200,
+          child: VideoPlayer(_controller!),
+        ),
+      );
+    }
+
+    if (widget.fallbackAsset != null) {
+      return Image.asset(widget.fallbackAsset!, fit: BoxFit.cover);
+    }
+
+    return const ColoredBox(
+      color: Color(0xff222222),
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Color(0xffea812e),
+          ),
+        ),
+      ),
+    );
+  }
 }

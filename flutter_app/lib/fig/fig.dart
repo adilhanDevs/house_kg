@@ -10,6 +10,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import '../ui/widgets/safe_image.dart';
 
 /// Font families used by the design.
 ///
@@ -336,9 +337,20 @@ class FigBox extends StatelessWidget {
   }
 
   Widget _background(FigBgImage b) {
-    final ImageProvider image = (b.asset.startsWith('http://') || b.asset.startsWith('https://'))
-        ? NetworkImage(b.asset)
-        : AssetImage(b.asset) as ImageProvider;
+    if (b.asset.startsWith('http://') || b.asset.startsWith('https://')) {
+      final fallback = b.asset.contains('asanbay') || b.asset.contains('photo_1')
+          ? 'assets/figma/2e62acec850fa8b9.jpg'
+          : (b.asset.contains('yuzhnye') || b.asset.contains('photo_2')
+              ? 'assets/figma/ccc665cff0c465a4.jpg'
+              : 'assets/figma/92b0d143df96c511.jpg');
+      return buildSafeNetworkImage(
+        url: b.asset,
+        fit: BoxFit.cover,
+        borderRadius: _radius,
+        fallback: Image.asset(fallback, fit: BoxFit.cover),
+      );
+    }
+    final image = AssetImage(b.asset);
     if (b.wFactor == null) {
       return DecoratedBox(
         decoration: BoxDecoration(

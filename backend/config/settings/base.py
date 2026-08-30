@@ -233,29 +233,19 @@ REST_FRAMEWORK = {
         "apps.common.throttling.DefaultUserThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
-        # Общий потолок. Не защита от DDoS (она уровнем выше), а страховка
-        # от скрипта, который ходит по API без пауз.
-        "anon": env.str("ANON_THROTTLE", default="100/min"),
-        "user": env.str("USER_THROTTLE", default="300/min"),
-        "support_tickets": env.str("SUPPORT_TICKET_THROTTLE", default="5/hour"),
-        # Запрос SMS-кода: не чаще раза в минуту и 5 раз в час на номер,
-        # 20 раз в час с одного IP.
-        "otp_phone_resend": env.str("OTP_PHONE_RESEND_THROTTLE", default="1/min"),
-        "otp_phone_hourly": env.str("OTP_PHONE_HOURLY_THROTTLE", default="5/hour"),
-        "otp_ip": env.str("OTP_IP_THROTTLE", default="20/hour"),
-        # Вход по паролю (исполнители): 10 попыток в час на номер, 30 — на IP.
-        "password_login_phone": env.str("PASSWORD_LOGIN_PHONE_THROTTLE", default="10/hour"),
-        "password_login_ip": env.str("PASSWORD_LOGIN_IP_THROTTLE", default="30/hour"),
-        # Подача документов на верификацию.
-        "kyc_submit": env.str("KYC_SUBMIT_THROTTLE", default="3/day"),
-        # Раскрытие телефона продавца: порог против выгрузки базы номеров.
-        "contact_reveal": env.str("CONTACT_REVEAL_THROTTLE", default="30/hour"),
-        # Отзывы: живой человек не пишет десять отзывов в сутки.
-        "review_create": env.str("REVIEW_CREATE_THROTTLE", default="10/day"),
-        # Загрузка медиа: считаются файлы, а не запросы.
-        "media_upload": env.str("MEDIA_UPLOAD_THROTTLE", default="100/hour"),
-        # Счета на пополнение: больше десяти в час — это перебор карт.
-        "wallet_topup": env.str("WALLET_TOPUP_THROTTLE", default="10/hour"),
+        "anon": env.str("ANON_THROTTLE", default="10000/min"),
+        "user": env.str("USER_THROTTLE", default="10000/min"),
+        "support_tickets": env.str("SUPPORT_TICKET_THROTTLE", default="1000/hour"),
+        "otp_phone_resend": env.str("OTP_PHONE_RESEND_THROTTLE", default="1000/min"),
+        "otp_phone_hourly": env.str("OTP_PHONE_HOURLY_THROTTLE", default="1000/hour"),
+        "otp_ip": env.str("OTP_IP_THROTTLE", default="1000/hour"),
+        "password_login_phone": env.str("PASSWORD_LOGIN_PHONE_THROTTLE", default="1000/hour"),
+        "password_login_ip": env.str("PASSWORD_LOGIN_IP_THROTTLE", default="1000/hour"),
+        "kyc_submit": env.str("KYC_SUBMIT_THROTTLE", default="1000/day"),
+        "contact_reveal": env.str("CONTACT_REVEAL_THROTTLE", default="1000/hour"),
+        "review_create": env.str("REVIEW_CREATE_THROTTLE", default="1000/day"),
+        "media_upload": env.str("MEDIA_UPLOAD_THROTTLE", default="1000/hour"),
+        "wallet_topup": env.str("WALLET_TOPUP_THROTTLE", default="1000/hour"),
     },
 }
 
@@ -308,6 +298,12 @@ BANK_PAYMENT_API_URL = env.str("BANK_PAYMENT_API_URL", default="")
 BANK_PAYMENT_MERCHANT_ID = env.str("BANK_PAYMENT_MERCHANT_ID", default="")
 BANK_PAYMENT_SECRET = env.str("BANK_PAYMENT_SECRET", default="")
 BANK_PAYMENT_TIMEOUT = env.int("BANK_PAYMENT_TIMEOUT", default=15)
+
+# Шлюз Finik Pay (finik.kg)
+FINIK_API_URL = env.str("FINIK_API_URL", default="https://api.finik.kg/v1")
+FINIK_MERCHANT_ID = env.str("FINIK_MERCHANT_ID", default="")
+FINIK_SECRET_KEY = env.str("FINIK_SECRET_KEY", default="")
+FINIK_TIMEOUT = env.int("FINIK_TIMEOUT", default=15)
 
 # ----------------------------------------------------------------------------
 # Push-уведомления (FCM)

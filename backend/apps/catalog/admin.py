@@ -18,6 +18,7 @@ from apps.catalog.models import (
     Listing,
     ListingMedia,
     ListingReport,
+    ListingRoom,
     ModerationTask,
     RejectReason,
 )
@@ -63,11 +64,19 @@ class BuilderAdmin(admin.ModelAdmin):
     ordering = ["order", "name"]
 
 
+class ListingRoomInline(admin.TabularInline):
+    model = ListingRoom
+    extra = 1
+    fields = ["name", "area", "order"]
+    verbose_name = "Комната (помещение)"
+    verbose_name_plural = "Комнаты (экспликация помещений)"
+
+
 class ListingMediaInline(admin.TabularInline):
     model = ListingMedia
     extra = 0
-    fields = ["file", "kind", "status", "order", "is_cover", "phash", "width", "height"]
-    readonly_fields = ["status", "phash", "width", "height"]
+    fields = ["file", "kind", "title", "thumbnail", "status", "order", "is_cover", "width", "height"]
+    readonly_fields = ["status", "width", "height"]
 
 
 @admin.register(ListingMedia)
@@ -113,14 +122,85 @@ class ListingAdmin(admin.ModelAdmin):
     search_fields = ["slug", "address", "description"]
     autocomplete_fields = ["city", "district", "builder", "series", "owner"]
     list_select_related = ["district", "city"]
-    # Счётчики денормализованы и меняются только сервисами — руками не правим.
     readonly_fields = ["slug", "views_count", "favourites_count", "search_vector", "bumped_at"]
+
+    fieldsets = [
+        (
+            "Основная информация",
+            {
+                "fields": [
+                    "slug",
+                    "owner",
+                    "status",
+                    "kind",
+                    "seller_kind",
+                    "city",
+                    "district",
+                    "address",
+                    ("latitude", "longitude"),
+                    ("price", "currency"),
+                    "old_price",
+                    "description",
+                ]
+            },
+        ),
+        (
+            "Общая информация",
+            {
+                "fields": [
+                    "area",
+                    "rooms",
+                    ("floor", "floors"),
+                    "furniture",
+                ]
+            },
+        ),
+        (
+            "Ключевые места и покупка",
+            {
+                "fields": [
+                    "landmarks",
+                    ("has_direct_sale", "has_mortgage"),
+                ]
+            },
+        ),
+        (
+            "Дополнительные параметры",
+            {
+                "fields": [
+                    "series",
+                    "builder",
+                    "land_area",
+                    ("is_secondary", "below_market", "red_book"),
+                    ("contact_name", "contact_phone"),
+                    "allow_media_download",
+                    "rejection_reason",
+                ],
+                "classes": ["collapse"],
+            },
+        ),
+        (
+            "Системные поля",
+            {
+                "fields": [
+                    "views_count",
+                    "favourites_count",
+                    "bumped_at",
+                    "published_at",
+                    "expires_at",
+                    "promoted_until",
+                    "is_deleted",
+                ],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
 
     def get_queryset(self, request):
         # В админке видны и мягко удалённые объявления.
         return Listing.all_objects.get_queryset().select_related("district", "city")
 
-    inlines = [ListingMediaInline]
+    inlines = [ListingRoomInline, ListingMediaInline]
     actions = ["publish", "reject", "archive"]
     date_hierarchy = "created_at"
 

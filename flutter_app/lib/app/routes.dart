@@ -54,6 +54,7 @@ abstract final class Routes {
   // объявление
   static const ad = '/ad';
   static const adPreview = '/ad/preview';
+  static const adEdit = '/ad/edit';
   static const adForm = '/ad/form';
   static const adPhotos = '/ad/photos';
   static const adVideo = '/ad/video';
@@ -141,6 +142,7 @@ enum AdMode { edit, create }
 /// Аргументы, которые страницы принимают через [Navigator].
 @immutable
 class ListingArgs {
-  const ListingArgs(this.id);
+  const ListingArgs(this.id, {this.initialVideoIndex = 0});
   final String id;
+  final int initialVideoIndex;
 }

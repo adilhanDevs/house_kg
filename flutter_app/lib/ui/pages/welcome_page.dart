@@ -24,11 +24,15 @@ class _WelcomePageState extends State<WelcomePage> {
     super.dispose();
   }
 
+  bool _isLoading = false;
+
   void _onLogin() async {
+    if (_isLoading) return;
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
     if (phone.isEmpty) return;
 
+    setState(() => _isLoading = true);
     final state = AppScope.read(context);
     try {
       if (password.isNotEmpty) {
@@ -47,6 +51,10 @@ class _WelcomePageState extends State<WelcomePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка входа: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

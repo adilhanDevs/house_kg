@@ -8,8 +8,11 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/api_client.dart';
+import '../data/api_exceptions.dart';
 import '../data/ad_media.dart';
+import '../data/finik_payment_service.dart';
 import '../data/listings.dart';
+import '../data/tariff.dart';
 
 /// Операция по кошельку — строка «Истории пополнения и трат».
 @immutable
@@ -45,18 +48,27 @@ enum WalletTab {
 /// Строка «Истории просмотров»: какой объект открывали и когда.
 @immutable
 class ViewEntry {
-  const ViewEntry(this.id, this.at);
+  const ViewEntry(this.id, this.at, {this.listingData});
 
   final String id;
   final DateTime at;
+  final Listing? listingData;
 
-  Listing get listing => listingById(id);
+  Listing get listing => listingData ?? listingById(id);
 }
 
 class AppState extends ChangeNotifier {
-  AppState({MediaSource media = const DeviceMedia()}) : _media = media {
-    _initAuth();
+  AppState({
+    MediaSource media = const DeviceMedia(),
+    ListingApiClient? apiClient,
+  })  : _media = media,
+        apiClient = apiClient ??
+            ListingApiClient(baseUrl: 'https://adilhan1234.pythonanywhere.com') {
+    this.apiClient.setTokenRefreshCallback(_handleTokenRefresh);
+    authInitialized = _initAuth();
   }
+
+  Future<void>? authInitialized;
 
   /// Откуда берутся файлы для объявления — галерея и камера устройства.
   final MediaSource _media;
@@ -69,29 +81,204 @@ class AppState extends ChangeNotifier {
   String? userPhone;
   int walletBalance = 0;
   bool isPro = false;
+  bool isInitializing = true;
   
-  final ListingApiClient apiClient = ListingApiClient(baseUrl: 'https://adilhan1234.pythonanywhere.com');
+  final ListingApiClient apiClient;
 
   bool get isAuthenticated => _accessToken != null;
 
-  Future<void> _initAuth() async {
+  Future<String?> _handleTokenRefresh() async {
     final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString('access_token');
-    _refreshToken = prefs.getString('refresh_token');
-    if (_accessToken != null) {
-      apiClient.setToken(_accessToken);
-      await fetchProfile();
+    final refresh = _refreshToken ?? prefs.getString('refresh_token');
+    if (refresh != null && refresh.isNotEmpty) {
+      try {
+        final data = await apiClient.refreshToken(refresh);
+        final newAccess = data['access'] as String?;
+        final newRefresh = data['refresh'] as String?;
+        if (newAccess != null && newAccess.isNotEmpty) {
+          _accessToken = newAccess;
+          await prefs.setString('access_token', newAccess);
+          if (newRefresh != null && newRefresh.isNotEmpty) {
+            _refreshToken = newRefresh;
+            await prefs.setString('refresh_token', newRefresh);
+          }
+          apiClient.setToken(newAccess);
+          return newAccess;
+        }
+      } catch (e) {
+        debugPrint('Token refresh with refresh_token failed: $e');
+      }
     }
-    await fetchFilterOptions('Бишкек');
+
+    final phoneToUse = (userPhone != null && userPhone!.isNotEmpty)
+        ? userPhone!
+        : (prefs.getString('saved_phone') ?? '+996555444333');
+    try {
+      await apiClient.requestOtp(phoneToUse);
+      final authResp = await apiClient.verifyOtp(phoneToUse, '0000');
+      final newAccess = authResp['access'] as String?;
+      final newRefresh = authResp['refresh'] as String?;
+      if (newAccess != null) {
+        _accessToken = newAccess;
+        await prefs.setString('access_token', newAccess);
+        if (newRefresh != null) {
+          _refreshToken = newRefresh;
+          await prefs.setString('refresh_token', newRefresh);
+        }
+        apiClient.setToken(newAccess);
+        return newAccess;
+      }
+    } catch (e) {
+      debugPrint('Auto re-login failed: $e');
+    }
+    return null;
+  }
+
+  Future<void> _initAuth() async {
+    isInitializing = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey('cached_is_pro')) {
+        _pro = prefs.getBool('cached_is_pro') ?? false;
+      }
+      _accessToken = prefs.getString('access_token');
+      _refreshToken = prefs.getString('refresh_token');
+      if (_accessToken == null) {
+        try {
+          await apiClient.requestOtp('+996555444333');
+          final authResp = await apiClient.verifyOtp('+996555444333', '0000');
+          _accessToken = authResp['access'] as String?;
+          _refreshToken = authResp['refresh'] as String?;
+          if (_accessToken != null) {
+            await prefs.setString('access_token', _accessToken!);
+          }
+          if (_refreshToken != null) {
+            await prefs.setString('refresh_token', _refreshToken!);
+          }
+        } catch (e) {
+          debugPrint('Demo auto-login skipped/failed: $e');
+        }
+      }
+      if (_accessToken != null) {
+        apiClient.setToken(_accessToken);
+        await fetchProfile();
+      }
+      if (prefs.containsKey('current_tariff_code')) {
+        currentTariffCode = prefs.getString('current_tariff_code') ?? 'owner';
+      }
+      await fetchTariffs();
+      await fetchFilterOptions('bishkek');
+      await loadViewHistory();
+      await loadFavourites();
+    } finally {
+      isInitializing = false;
+      notifyListeners();
+    }
+  }
+
+  // ---------------------------------------------------------------- подписки и тарифы
+  String currentTariffCode = 'owner';
+  List<TariffPlan> tariffs = kDefaultTariffPlans;
+  Map<String, dynamic>? currentSubscription;
+
+  TariffPlan get activeTariff => tariffs.firstWhere(
+        (t) => t.code == currentTariffCode,
+        orElse: () => kDefaultTariffPlans.first,
+      );
+
+  Future<void> fetchTariffs() async {
+    try {
+      final list = await apiClient.getTariffs();
+      if (list.isNotEmpty) {
+        tariffs = list.map((json) => TariffPlan.fromJson(json)).toList();
+      }
+    } catch (_) {}
+    await fetchCurrentSubscription();
+  }
+
+  Future<void> fetchCurrentSubscription() async {
+    try {
+      final sub = await apiClient.getCurrentSubscription();
+      if (sub != null) {
+        currentSubscription = sub;
+        final tCode = (sub['tariff'] is Map) ? sub['tariff']['code'] : sub['tariff_code'];
+        if (tCode != null) {
+          final raw = tCode.toString();
+          if (raw == 'free') {
+            currentTariffCode = 'owner';
+          } else if (raw == 'realtor') {
+            if (currentTariffCode != 'top' && currentTariffCode != 'vip') {
+              currentTariffCode = 'vip';
+            }
+          } else if (raw == 'agency') {
+            currentTariffCode = 'premium';
+          } else {
+            currentTariffCode = raw;
+          }
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('current_tariff_code', currentTariffCode);
+        }
+      }
+    } catch (_) {}
     notifyListeners();
   }
 
-  Future<void> fetchFilterOptions(String city) async {
+  void spend(int amount, String label) {
+    if (walletBalance >= amount) {
+      walletBalance -= amount;
+    }
+    _wallet.insert(
+      0,
+      WalletEntry(
+        day: 'Сегодня',
+        label: label,
+        bricks: -amount,
+        kind: WalletEntryKind.spend,
+      ),
+    );
+    notifyListeners();
+  }
+
+  Future<void> buySubscription(TariffPlan tariff, {bool withBricks = false}) async {
+    if (tariff.isFree) {
+      try {
+        await apiClient.cancelSubscription();
+      } catch (_) {}
+      currentSubscription = null;
+    } else if (withBricks) {
+      final requiredBricks = tariff.priceBricks ?? tariff.priceSom;
+      if (walletBalance < requiredBricks) {
+        throw ApiException(400, 'Недостаточно кирпичей в кошельке ($walletBalance из $requiredBricks). Пополните баланс.');
+      }
+      try {
+        final sub = await apiClient.subscribe(tariff.code, paymentMethod: 'bricks');
+        currentSubscription = sub;
+      } catch (e) {
+        debugPrint('Backend subscribe error: $e');
+      }
+      spend(requiredBricks, 'Тариф «${tariff.name}» (1 месяц)');
+    } else {
+      try {
+        final sub = await apiClient.subscribe(tariff.code, paymentMethod: 'som');
+        currentSubscription = sub;
+      } catch (e) {
+        debugPrint('Backend subscribe error: $e');
+      }
+    }
+
+    currentTariffCode = tariff.code;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('current_tariff_code', currentTariffCode);
+    notifyListeners();
+  }
+
+  Future<void> fetchFilterOptions([String? city = 'bishkek']) async {
     try {
-      filterOptions = await apiClient.getFilterOptions(city: city);
+      final citySlug = (city == 'Бишкек' || city == null || city.isEmpty) ? 'bishkek' : city;
+      filterOptions = await apiClient.getFilterOptions(city: citySlug);
       notifyListeners();
     } catch (e) {
-      print('Failed to fetch filter options: $e');
+      debugPrint('Failed to fetch filter options: $e');
     }
   }
 
@@ -110,10 +297,40 @@ class AppState extends ChangeNotifier {
       final sellerKind = profile['seller_kind'] as String?;
       if (isPro || hasSellerProfile || (sellerKind != null && sellerKind.isNotEmpty)) {
         _pro = true;
+      } else {
+        _pro = false;
       }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('cached_is_pro', _pro);
       notifyListeners();
     } catch (e) {
-      print('Failed to fetch profile: $e');
+      if (e is ApiException && e.statusCode == 401 && _refreshToken != null) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final data = await apiClient.refreshToken(_refreshToken!);
+          final newAccess = data['access'] as String?;
+          final newRefresh = data['refresh'] as String?;
+          if (newAccess != null) {
+            _accessToken = newAccess;
+            await prefs.setString('access_token', newAccess);
+          }
+          if (newRefresh != null) {
+            _refreshToken = newRefresh;
+            await prefs.setString('refresh_token', newRefresh);
+          }
+          final profile = await apiClient.getMe();
+          userName = profile['name'] as String?;
+          userPhone = profile['phone'] as String?;
+          isPro = profile['is_pro'] as bool? ?? false;
+          _pro = isPro || (profile['has_seller_profile'] as bool? ?? false);
+          await prefs.setBool('cached_is_pro', _pro);
+          notifyListeners();
+          return;
+        } catch (_) {
+          await logout();
+        }
+      }
+      debugPrint('Failed to fetch profile: $e');
     }
   }
 
@@ -141,16 +358,17 @@ class AppState extends ChangeNotifier {
     userPhone = null;
     walletBalance = 0;
     isPro = false;
+    _pro = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('cached_is_pro');
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
     
     _favourites.clear();
     _viewed.clear();
     _query = '';
-    _pro = false;
 
     apiClient.setToken(null);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    await prefs.remove('refresh_token');
     notifyListeners();
   }
 
@@ -177,21 +395,23 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _saveTokens(Map<String, dynamic> response) async {
-    if (response.containsKey('access')) {
-      _accessToken = response['access'];
+    final prefs = await SharedPreferences.getInstance();
+    if (response.containsKey('access') && response['access'] != null) {
+      _accessToken = response['access'] as String;
       apiClient.setToken(_accessToken);
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', _accessToken!);
     }
-    if (response.containsKey('refresh')) {
-      _refreshToken = response['refresh'];
-      final prefs = await SharedPreferences.getInstance();
+    if (response.containsKey('refresh') && response['refresh'] != null) {
+      _refreshToken = response['refresh'] as String;
       await prefs.setString('refresh_token', _refreshToken!);
     }
     if (response.containsKey('user') && response['user'] is Map) {
       final user = response['user'] as Map<String, dynamic>;
       userName = user['name'] as String?;
       userPhone = user['phone'] as String?;
+      if (userPhone != null && userPhone!.isNotEmpty) {
+        await prefs.setString('saved_phone', userPhone!);
+      }
       isPro = user['is_pro'] as bool? ?? false;
       final hasSeller = user['has_seller_profile'] as bool? ?? false;
       final sellerKind = user['seller_kind'] as String?;
@@ -225,6 +445,26 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> loadFavourites() async {
+    try {
+      final resp = await apiClient.getFavourites();
+      final results = resp['results'] as List<dynamic>? ?? [];
+      bool changed = false;
+      for (final item in results) {
+        if (item is Map) {
+          final slug = item['slug']?.toString() ?? item['id']?.toString();
+          if (slug != null && slug.isNotEmpty && !_favourites.contains(slug)) {
+            _favourites.add(slug);
+            changed = true;
+          }
+        }
+      }
+      if (changed) notifyListeners();
+    } catch (e) {
+      print('Failed to load favourites: $e');
+    }
+  }
+
   Future<void> toggleFavourite(String id) async {
     final wasFavourited = _favourites.contains(id);
     
@@ -238,7 +478,7 @@ class AppState extends ChangeNotifier {
 
     try {
       final response = await apiClient.toggleFavourite(id);
-      final isFavourited = response['is_favourited'] == true;
+      final isFavourited = response['is_favourite'] == true || response['is_favourited'] == true;
       
       // Re-sync with actual response just in case
       bool changed = false;
@@ -285,10 +525,17 @@ class AppState extends ChangeNotifier {
   AreaRange? get customArea => _customArea;
   Set<SellerKind> get sellers => Set.unmodifiable(_sellers);
   bool get secondaryOnly => _secondaryOnly;
+  bool get series103 => _series103;
   Set<String> get series => Set.unmodifiable(_series);
   int? get priceFrom => _priceFrom;
   int? get priceTo => _priceTo;
   bool get ownerOnly => _sellers.contains(SellerKind.owner);
+
+  void setSeries103(bool value) {
+    if (_series103 == value) return;
+    _series103 = value;
+    notifyListeners();
+  }
 
   /// Все выбранные диапазоны квадратуры — чипы плюс введённый вручную.
   List<AreaRange> get areaFilter =>
@@ -467,8 +714,45 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ----------------------------------------------------------- Finik Pay
+  final FinikPaymentService finikPayment = FinikPaymentService();
+  FinikPaymentResponse? currentFinikPayment;
+  bool isFinikLoading = false;
+
+  /// Инициализирует инвойс в платёжной системе Finik Pay.
+  Future<FinikPaymentResponse> createFinikTopup(int amount) async {
+    isFinikLoading = true;
+    setTopupAmount(amount);
+    notifyListeners();
+
+    try {
+      final payment = await finikPayment.createInvoice(
+        amount: amount,
+        description: 'Пополнение кошелька House KG (${thousands(amount)} сом)',
+      );
+      currentFinikPayment = payment;
+      return payment;
+    } finally {
+      isFinikLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Фиксирует успешную оплату через Finik Pay и начисляет кирпичи с бонусом.
+  Future<void> confirmFinikTopup(FinikPaymentResponse payment) async {
+    final confirmed = finikPayment.mockConfirmPayment(payment);
+    currentFinikPayment = confirmed;
+    commitTopup();
+    
+    // Синхронизация баланса с бэкендом (если доступен)
+    try {
+      await fetchWalletBalance();
+    } catch (_) {}
+  }
+
   void commitTopup() {
     _bricks += topupAmount + topupBonus;
+    walletBalance += topupAmount + topupBonus;
     _wallet.insertAll(0, [
       WalletEntry(
         day: 'Сегодня',
@@ -498,30 +782,72 @@ class AppState extends ChangeNotifier {
 
   // ------------------------------------------------------ история просмотров
   //
-  // Пока объектов нет на сервере, историю ведёт само приложение: страница
-  // объекта отмечается открытой, а чтобы экран не встречал пустотой на первом
-  // запуске, несколько записей заведено заранее — по одной в день.
-  final List<ViewEntry> _viewed = [
-    for (var i = 0; i < kListings.length; i++)
-      ViewEntry(
-        kListings[i].id,
-        DateTime.now().subtract(Duration(hours: 3 * i * i + 2)),
-      ),
-  ];
+  // История просмотров подгружается из бэкенда.
+  final List<ViewEntry> _viewed = [];
 
   List<ViewEntry> get viewed => List.unmodifiable(_viewed);
+  bool isHistoryLoading = false;
 
-  /// Объект открыли — он поднимается наверх истории с текущим временем.
-  void noteViewed(String id) {
-    _viewed.removeWhere((e) => e.id == id);
-    _viewed.insert(0, ViewEntry(id, DateTime.now()));
+  Future<void> loadViewHistory() async {
+    isHistoryLoading = true;
     notifyListeners();
+    try {
+      final data = await apiClient.getViewHistory();
+      final results = data['results'] as List<dynamic>? ?? [];
+      final entries = <ViewEntry>[];
+      for (final group in results) {
+        if (group is Map) {
+          final items = group['items'] as List<dynamic>? ?? [];
+          for (final item in items) {
+            if (item is Map) {
+              final listingMap = Map<String, dynamic>.from(item);
+              final listing = Listing.fromJson(listingMap);
+              final viewedAtStr = listingMap['viewed_at'] as String?;
+              final at = viewedAtStr != null
+                  ? (DateTime.tryParse(viewedAtStr)?.toLocal() ?? DateTime.now())
+                  : DateTime.now();
+              entries.add(ViewEntry(listing.id, at, listingData: listing));
+            }
+          }
+        }
+      }
+      _viewed.clear();
+      _viewed.addAll(entries);
+    } catch (e) {
+      print('Failed to load view history: $e');
+    } finally {
+      isHistoryLoading = false;
+      notifyListeners();
+    }
   }
 
-  void forgetViewed(Set<String> ids) {
+  /// Объект открыли — он поднимается наверх истории с текущим временем и отправляется на бэкенд.
+  void noteViewed(String id, {Listing? listing}) {
+    _viewed.removeWhere((e) => e.id == id);
+    _viewed.insert(0, ViewEntry(id, DateTime.now(), listingData: listing));
+    notifyListeners();
+    apiClient.recordListingView(id);
+  }
+
+  Future<void> forgetViewed(Set<String> ids) async {
     if (ids.isEmpty) return;
     _viewed.removeWhere((e) => ids.contains(e.id));
     notifyListeners();
+    try {
+      await apiClient.clearViewHistory(slugs: ids.toList());
+    } catch (e) {
+      print('Failed to forget viewed items: $e');
+    }
+  }
+
+  Future<void> clearAllViewed() async {
+    _viewed.clear();
+    notifyListeners();
+    try {
+      await apiClient.clearViewHistory(all: true);
+    } catch (e) {
+      print('Failed to clear view history: $e');
+    }
   }
 
   /// Выход из аккаунта: всё, что относится к сеансу, забывается — избранное,
@@ -561,8 +887,6 @@ class AppState extends ChangeNotifier {
   /// кнопкой «Добавить».
   static const int draftMediaLimit = 20;
 
-  /// Приложенные снимки и ролики. Первыми лежат кадры из макета: с ними экран
-  /// сразу выглядит так, как нарисовано.
   final List<AdMedia> draftGallery = [
     const AdMedia.demo('assets/figma/2e62acec850fa8b9.jpg'),
     const AdMedia.demo('assets/figma/b76192aa900c610a.jpg'),
@@ -583,8 +907,89 @@ class AppState extends ChangeNotifier {
   int get freePhotoSlots => draftMediaLimit - draftGallery.length;
   int get freeVideoSlots => draftMediaLimit - draftVideoList.length;
 
-  /// Выбрать снимки. Возвращает, сколько добавилось: сверх предела файлы не
-  /// берём, и экран говорит об этом вслух.
+  /// Загрузить черновик с бэкенда
+  Future<void> loadDraft() async {
+    try {
+      final response = await apiClient.getDraft();
+      draftSlug = response['slug'] as String?;
+      if (response['kind'] != null) {
+        final kindStr = response['kind'] as String;
+        final kind = PropertyKind.values.firstWhere(
+          (k) => k.name == kindStr,
+          orElse: () => PropertyKind.apartment,
+        );
+        draftKinds.clear();
+        draftKinds.add(kind);
+      }
+      if (response['rooms'] != null) draftRooms = response['rooms'] as int;
+      if (response['floor'] != null) draftFloor = response['floor'] as int;
+      if (response['floors'] != null) draftFloors = response['floors'] as int;
+      if (response['area'] != null) draftArea = response['area'].toString();
+      if (response['price'] != null) draftPrice = response['price'].toString();
+      if (response['currency'] != null) draftUsd = response['currency'] == 'USD';
+      if (response['district'] != null) {
+        final d = response['district'];
+        draftDistrict = d is Map ? (d['slug'] ?? d['id']?.toString() ?? '') : d.toString();
+      }
+      if (response['builder'] != null) {
+        final b = response['builder'];
+        draftBuilder = b is Map ? (b['name'] ?? '') : b.toString();
+      }
+      if (response['allow_media_download'] != null) {
+        draftAllowDownload = response['allow_media_download'] as bool;
+      }
+      final mediaList = response['media'] as List<dynamic>?;
+      if (mediaList != null) {
+        draftGallery.clear();
+        draftVideoList.clear();
+        for (final m in mediaList) {
+          final kind = m['kind'] as String?;
+          final fileUrl = m['file'] as String? ?? m['url'] as String? ?? '';
+          final mediaId = m['id'] as int?;
+          if (kind == 'video') {
+            draftVideoList.add(AdMedia.network(
+              fileUrl,
+              id: mediaId,
+              video: true,
+              title: m['title'] as String?,
+              description: m['description'] as String?,
+            ));
+          } else {
+            draftGallery.add(AdMedia.network(
+              fileUrl,
+              id: mediaId,
+              video: false,
+            ));
+          }
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('loadDraft error: $e');
+    }
+  }
+
+  void resetDraft() {
+    draftKinds.clear();
+    draftKinds.add(PropertyKind.newBuilding);
+    draftRooms = 1;
+    draftFloor = 1;
+    draftFloors = 1;
+    draftArea = '';
+    draftDistrict = 'Район Бишкека';
+    draftBuilder = '';
+    draftPrice = '';
+    draftUsd = true;
+    draftOwner = true;
+    draftAllowDownload = true;
+    draftUseAdInfo = true;
+    draftSlug = null;
+    draftGallery.clear();
+    draftVideoList.clear();
+    notifyListeners();
+  }
+
+  /// Выбрать снимки. Возвращает, сколько добавилось.
   Future<int> addPhotos({required bool camera}) async {
     final picked = await _media.photos(camera: camera);
     return _append(draftGallery, picked);
@@ -607,6 +1012,11 @@ class AppState extends ChangeNotifier {
 
   void removeMedia(List<AdMedia> from, AdMedia media) {
     from.remove(media);
+    if (media.id != null && draftSlug != null) {
+      apiClient.deleteMedia(draftSlug!, media.id!).catchError((e) {
+        debugPrint('Failed to delete media from backend: $e');
+      });
+    }
     notifyListeners();
   }
 

@@ -273,7 +273,8 @@ class TariffSerializer(serializers.ModelSerializer):
 
 class SubscribeRequestSerializer(serializers.Serializer):
     tariff_code = serializers.CharField(max_length=32)
-    months = serializers.IntegerField(min_value=1, max_value=12, default=1)
+    months = serializers.IntegerField(min_value=1, max_value=12, default=1, required=False)
+    payment_method = serializers.CharField(max_length=32, required=False, default="som")
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):

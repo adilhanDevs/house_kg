@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../../data/api_client.dart';
 import '../../fig/fig.dart';
 import '../fig_controls.dart';
 
@@ -42,40 +43,84 @@ class _AdPromoPageState extends State<AdPromoPage> {
 
   bool _isPublishing = false;
 
-  Future<void> _onNext() async {
-    if (!_useBricks) {
-      // Режим «Пополнение кошелька» — переход на страницу пополнения кирпичей
-      Navigator.of(context).pushNamed(Routes.topup);
-    } else {
-      setState(() => _isPublishing = true);
-      final state = AppScope.read(context);
-      final slug = state.draftSlug ?? 'draft-slug';
-      try {
+  Future<void> _publishListing({required bool withPromo}) async {
+    setState(() => _isPublishing = true);
+    final state = AppScope.read(context);
+    final slug = state.draftSlug ?? 'draft-slug';
+    try {
+      await state.apiClient.publishListing(slug);
+      
+      if (withPromo) {
         final days = int.tryParse(_daysController.text.trim()) ?? _selectedDay;
-        await state.apiClient.promoteListing(slug, days, _idempotencyKey);
-        await state.apiClient.publishListing(slug);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Объявление успешно опубликовано и продвинуто!'),
-              duration: Duration(seconds: 2),
-              backgroundColor: Color(0xffea812e),
-            ),
-          );
-          Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка продвижения/публикации: $e')),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isPublishing = false);
+        try {
+          await state.apiClient.promoteListing(slug, days, _idempotencyKey);
+        } catch (pe) {
+          debugPrint('Promotion warning: $pe');
         }
       }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(withPromo 
+                ? 'Объявление успешно опубликовано и продвинуто!' 
+                : 'Объявление успешно опубликовано!'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: const Color(0xffea812e),
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed(
+          Routes.adPreview,
+          arguments: slug,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        final errorMsg = e is ApiException ? e.message : e.toString();
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Публикация объявления'),
+            content: Text(errorMsg),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pushNamed(Routes.tariffs);
+                },
+                child: const Text('Сменить тариф', style: TextStyle(color: Color(0xfff5222d), fontWeight: FontWeight.bold)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pushReplacementNamed(
+                    Routes.adPreview,
+                    arguments: slug,
+                  );
+                },
+                child: const Text('К предпросмотру', style: TextStyle(color: Color(0xffea812e))),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Понятно', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPublishing = false);
+      }
+    }
+  }
+
+  Future<void> _onNext() async {
+    if (_useBricks) {
+      await _publishListing(withPromo: true);
+    } else {
+      await _publishListing(withPromo: false);
     }
   }
 
@@ -130,12 +175,16 @@ class _AdPromoPageState extends State<AdPromoPage> {
                           bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
                         ),
                         const SizedBox(width: 4.0),
-                        Text(
-                          'Списать кирпичи',
-                          style: TextStyle(
-                            fontSize: 13.0,
-                            fontWeight: FontWeight.w500,
-                            color: _useBricks ? const Color(0xffffffff) : const Color(0xff7d7d7d),
+                        Flexible(
+                          child: Text(
+                            'Списать кирпичи',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: _useBricks ? const Color(0xffffffff) : const Color(0xff7d7d7d),
+                            ),
                           ),
                         ),
                       ],
@@ -143,7 +192,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8.0),
+              const SizedBox(width: 6.0),
               // Правая кнопка «Пополнение кошелька»
               Expanded(
                 child: GestureDetector(
@@ -160,8 +209,10 @@ class _AdPromoPageState extends State<AdPromoPage> {
                     alignment: Alignment.center,
                     child: Text(
                       'Пополнение кошелька',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13.0,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w500,
                         color: !_useBricks ? const Color(0xffffffff) : const Color(0xff7d7d7d),
                       ),
@@ -193,7 +244,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
             child: Row(
               children: [
                 Container(
-                  width: 140.0,
+                  width: 125.0,
                   height: 36.0,
                   decoration: BoxDecoration(
                     color: const Color(0xffffffff),
@@ -209,41 +260,47 @@ class _AdPromoPageState extends State<AdPromoPage> {
                     style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color(0xff000000)),
                     decoration: const InputDecoration(
                       hintText: 'Введите сумму',
-                      hintStyle: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+                      hintStyle: TextStyle(fontSize: 12.0, color: Color(0xff7d7d7d)),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8.0),
-                Container(
-                  height: 36.0,
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffe8f6e4),
-                    borderRadius: BorderRadius.circular(8.0),
-                    border: Border.all(color: const Color(0xffc5e8bc), width: 1.0),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const FigBox(
-                        width: 24.0,
-                        height: 16.0,
-                        bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
-                      ),
-                      const SizedBox(width: 6.0),
-                      Text(
-                        '+$sumValue Кирпичей',
-                        style: const TextStyle(
-                          fontSize: 13.0,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xff4dba17),
+                const SizedBox(width: 6.0),
+                Expanded(
+                  child: Container(
+                    height: 36.0,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffe8f6e4),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(color: const Color(0xffc5e8bc), width: 1.0),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const FigBox(
+                          width: 22.0,
+                          height: 15.0,
+                          bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4.0),
+                        Flexible(
+                          child: Text(
+                            '+$sumValue Кирпичей',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xff4dba17),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

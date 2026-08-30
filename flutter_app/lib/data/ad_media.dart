@@ -13,6 +13,7 @@ class AdMedia {
   const AdMedia({
     required this.name,
     this.asset,
+    this.url,
     this.bytes,
     this.video = false,
     this.id,
@@ -25,11 +26,31 @@ class AdMedia {
   const AdMedia.demo(String asset, {bool video = false})
       : this(name: asset, asset: asset, video: video);
 
+  /// Сетевой снимок или ролик, загруженный на бэкенд.
+  const AdMedia.network(
+    String url, {
+    int? id,
+    bool video = false,
+    String? title,
+    String? description,
+    String? name,
+  }) : this(
+          name: name ?? url,
+          url: url,
+          video: video,
+          id: id,
+          title: title,
+          description: description,
+        );
+
   /// Имя файла — им подписаны ролики в «Было добавлено».
   final String name;
 
   /// Картинка из ассетов приложения.
   final String? asset;
+
+  /// Картинка с бэкенда.
+  final String? url;
 
   /// Содержимое выбранного файла. У ролика его нет: кадр-обложку из видео без
   /// отдельного плеера не достать, поэтому карточка рисует заглушку.
@@ -46,10 +67,12 @@ class AdMedia {
     int? id,
     String? title,
     String? description,
+    String? url,
   }) {
     return AdMedia(
       name: name,
       asset: asset,
+      url: url ?? this.url,
       bytes: bytes,
       video: video,
       id: id ?? this.id,

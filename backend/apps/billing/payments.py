@@ -237,6 +237,21 @@ def process_webhook_result(provider_code: str, result: Any, endpoint: str) -> tu
     """Обрабатывает уже проверенный вебхук. Возвращает (код ответа, тело)."""
     payment = Payment.objects.filter(provider_ref=result.provider_ref).first()
 
+    if payment is None and result.raw:
+        # Fallback: поиск по paymentId внутри fields (Finik Callback format) или по PK
+        raw_fields = (result.raw or {}).get("fields") or {}
+        raw_id = (
+            raw_fields.get("paymentId")
+            or raw_fields.get("payment_id")
+            or (result.raw or {}).get("payment_id")
+            or result.provider_ref
+        )
+        if raw_id:
+            try:
+                payment = Payment.objects.filter(pk=raw_id).first()
+            except Exception:
+                pass
+
     if payment is None:
         log_payment(
             payment=None,

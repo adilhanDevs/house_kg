@@ -23,6 +23,8 @@ class PaginatedResponse<T> {
     );
   }
 
+  static String? extractCursor(String? url) => _extractCursor(url);
+
   static String? _extractCursor(String? url) {
     if (url == null) return null;
     final uri = Uri.tryParse(url);

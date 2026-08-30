@@ -554,12 +554,15 @@ class Screen50Ad5 extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            FigText(
-                              noWrap: true,
-                              height: 18.0,
-                              span: 
-                                TextSpan(text: 'Использовать точное продвижение', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, letterSpacing: -0.15, color: const Color(0xff85858a)))
-                              ,
+                            SizedBox(
+                              width: 280.0,
+                              child: FigText(
+                                noWrap: false,
+                                height: 18.0,
+                                span: 
+                                  TextSpan(text: 'Использовать точное продвижение', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, letterSpacing: -0.15, color: const Color(0xff85858a)))
+                                ,
+                              ),
                             ),
                             FigBox(
                               width: 30.0,
@@ -598,11 +601,14 @@ class Screen50Ad5 extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            FigText(
-                              noWrap: true,
-                              span: 
-                                TextSpan(text: 'Использовать клиентскую базу', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, letterSpacing: -0.15, color: const Color(0xff85858a)))
-                              ,
+                            SizedBox(
+                              width: 280.0,
+                              child: FigText(
+                                noWrap: false,
+                                span: 
+                                  TextSpan(text: 'Использовать клиентскую базу', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, letterSpacing: -0.15, color: const Color(0xff85858a)))
+                                ,
+                              ),
                             ),
                             FigBox(
                               width: 30.0,
@@ -641,11 +647,14 @@ class Screen50Ad5 extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            FigText(
-                              noWrap: true,
-                              span: 
-                                TextSpan(text: 'Использовать Whatsapp базу', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, letterSpacing: -0.15, color: const Color(0xff85858a)))
-                              ,
+                            SizedBox(
+                              width: 280.0,
+                              child: FigText(
+                                noWrap: false,
+                                span: 
+                                  TextSpan(text: 'Использовать Whatsapp базу', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.0, letterSpacing: -0.15, color: const Color(0xff85858a)))
+                                ,
+                              ),
                             ),
                             FigBox(
                               width: 30.0,

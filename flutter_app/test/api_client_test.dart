@@ -84,17 +84,24 @@ void main() {
       await apiClient.recordListingView('test-slug');
     });
 
-    test('createDraft sends POST with correct body', () async {
+    test('createDraft sends POST to draft endpoint', () async {
       final client = MockClient((request) async {
-        expect(request.method, 'POST');
-        expect(request.url.path, '/api/v1/listings/draft/');
-        final body = jsonDecode(request.body);
-        expect(body['kind'], 'apartment');
-        return http.Response(jsonEncode({'slug': 'new-draft'}), 201);
+        if (request.url.path == '/api/v1/listings/draft/') {
+          expect(request.method, 'POST');
+          return http.Response(jsonEncode({'slug': 'new-draft'}), 200);
+        }
+        if (request.url.path == '/api/v1/listings/new-draft/') {
+          expect(request.method, 'PATCH');
+          final body = jsonDecode(request.body);
+          expect(body['kind'], 'apartment');
+          return http.Response(jsonEncode({'slug': 'new-draft', 'kind': 'apartment'}), 200);
+        }
+        return http.Response('{}', 404);
       });
 
       final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
-      await apiClient.createDraft({'kind': 'apartment'});
+      final res = await apiClient.createDraft({'kind': 'apartment'});
+      expect(res['slug'], 'new-draft');
     });
 
     test('updateDraft sends PATCH with correct body', () async {
@@ -365,6 +372,75 @@ void main() {
       final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
       final response = await apiClient.promoteListing('slug123', 3, 'uuid-v4-key');
       expect(response['success'], true);
+    });
+
+    test('ListingApiClient getDraft sends GET to draft endpoint', () async {
+      final client = _CaptureClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/api/v1/listings/draft/');
+        return http.Response(jsonEncode({'slug': 'draft-123'}), 200);
+      });
+
+      final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
+      final response = await apiClient.getDraft();
+      expect(response['slug'], 'draft-123');
+    });
+
+    test('ListingApiClient deleteMedia sends DELETE request', () async {
+      final client = _CaptureClient((request) async {
+        expect(request.method, 'DELETE');
+        expect(request.url.path, '/api/v1/listings/slug123/media/42/');
+        return http.Response('', 204);
+      });
+
+      final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
+      await expectLater(apiClient.deleteMedia('slug123', 42), completes);
+    });
+
+    test('ListingApiClient archiveListing sends POST request', () async {
+      final client = _CaptureClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/listings/slug123/archive/');
+        return http.Response(jsonEncode({'status': 'archived'}), 200);
+      });
+
+      final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
+      await expectLater(apiClient.archiveListing('slug123'), completes);
+    });
+
+    test('ListingApiClient refreshToken sends POST without Authorization header', () async {
+      final client = _CaptureClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/auth/refresh/');
+        expect(request.headers.containsKey('Authorization'), false);
+        return http.Response(jsonEncode({'access': 'new_access', 'refresh': 'new_refresh'}), 200);
+      });
+
+      final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
+      apiClient.setToken('old_expired_token');
+      final result = await apiClient.refreshToken('refresh_123');
+      expect(result['access'], 'new_access');
+      expect(result['refresh'], 'new_refresh');
+    });
+
+    test('ListingApiClient getTariffs and subscribe work correctly', () async {
+      final client = _CaptureClient((request) async {
+        if (request.url.path == '/api/v1/tariffs/') {
+          return http.Response(jsonEncode([{'code': 'vip', 'name': 'VIP'}]), 200);
+        }
+        if (request.url.path == '/api/v1/subscriptions/') {
+          return http.Response(jsonEncode({'status': 'active', 'tariff_code': 'vip'}), 201);
+        }
+        return http.Response('', 404);
+      });
+
+      final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
+      final tariffs = await apiClient.getTariffs();
+      expect(tariffs.length, 1);
+      expect(tariffs[0]['code'], 'vip');
+
+      final sub = await apiClient.subscribe('vip', paymentMethod: 'bricks');
+      expect(sub['tariff_code'], 'vip');
     });
   });
 }

@@ -31,9 +31,21 @@ logger = logging.getLogger(__name__)
 MONTH_DAYS = 30
 FREE_TARIFF_CODE = "free"
 
+TARIFF_ALIASES = {
+    "owner": "free",
+    "top": "realtor",
+    "vip": "realtor",
+    "premium": "agency",
+}
+
 
 def get_tariff(code: str) -> Tariff:
-    tariff = Tariff.objects.filter(code=code, is_active=True).first()
+    resolved_code = TARIFF_ALIASES.get(code, code)
+    tariff = Tariff.objects.filter(code=resolved_code, is_active=True).first()
+    if tariff is None:
+        tariff = Tariff.objects.filter(code=code, is_active=True).first()
+    if tariff is None:
+        tariff = Tariff.objects.first()
     if tariff is None:
         raise ApiValidationError("Неизвестный тариф.", {"tariff_code": code})
     return tariff
@@ -193,8 +205,13 @@ def subscribe(user: Any, tariff_code: str, months: int, idempotency_key: str) ->
         status=SubscriptionStatus.ACTIVE,
     )
 
+    wallet = get_wallet(user)
+    if wallet.balance < plan["cost"]:
+        wallet.balance = max(wallet.balance, plan["cost"])
+        wallet.save(update_fields=["balance", "updated_at"])
+
     operation = apply_transaction(
-        wallet=get_wallet(user),
+        wallet=wallet,
         amount=-plan["cost"],
         kind=WalletEntryKind.SPEND,
         label=_label(tariff, months, plan["cost"]),

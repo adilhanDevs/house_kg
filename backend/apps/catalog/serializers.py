@@ -15,6 +15,7 @@ from apps.catalog.models import (
     Listing,
     ListingMedia,
     ListingReport,
+    ListingRoom,
     ModerationTask,
     RejectReason,
 )
@@ -26,6 +27,8 @@ def absolute_file_url(file_field: Any, request: Any) -> str | None:
     if not file_field:
         return None
     url = file_field.url
+    if url.startswith("/media/"):
+        url = "/api/v1" + url
     return request.build_absolute_uri(url) if request else url
 
 
@@ -171,7 +174,19 @@ class ListingMediaSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_thumbnail_url(self, obj: ListingMedia) -> str | None:
-        return self._url(obj.thumbnail or obj.url_thumb)
+        if obj.thumbnail:
+            return self._url(obj.thumbnail)
+        if obj.url_thumb:
+            return self._url(obj.url_thumb)
+        if obj.kind == MediaKind.VIDEO and obj.file:
+            try:
+                from apps.catalog.tasks import _process_video
+                _process_video(obj)
+                if obj.thumbnail:
+                    return self._url(obj.thumbnail)
+            except Exception:
+                pass
+        return None
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_url_thumb(self, obj: ListingMedia) -> str | None:
@@ -329,12 +344,23 @@ class ListingReelsSerializer(ListingListSerializer):
         read_only_fields = fields
 
 
+class ListingRoomSerializer(serializers.ModelSerializer):
+    """Помещение / комната в объекте."""
+
+    class Meta:
+        model = ListingRoom
+        fields = ["id", "name", "area", "order"]
+        read_only_fields = fields
+
+
 class ListingDetailSerializer(ListingListSerializer):
     """Полная карточка объекта."""
 
     builder = BuilderBriefSerializer(read_only=True)
     media = ListingMediaSerializer(many=True, read_only=True)
     seller = serializers.SerializerMethodField()
+    rooms_breakdown = ListingRoomSerializer(source="rooms_data", many=True, read_only=True)
+    videos = serializers.SerializerMethodField()
 
     class Meta(ListingListSerializer.Meta):
         fields = [
@@ -343,6 +369,19 @@ class ListingDetailSerializer(ListingListSerializer):
             "address",
             "latitude",
             "longitude",
+            "living_room_area",
+            "hall_area",
+            "kitchen_area",
+            "bedroom_area",
+            "bedroom_2_area",
+            "balcony_area",
+            "bathroom_area",
+            "furniture",
+            "has_direct_sale",
+            "has_mortgage",
+            "landmarks",
+            "rooms_breakdown",
+            "videos",
             "builder",
             "allow_media_download",
             "views_count",
@@ -351,6 +390,11 @@ class ListingDetailSerializer(ListingListSerializer):
             "seller",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(ListingMediaSerializer(many=True))
+    def get_videos(self, obj: Listing) -> list[dict[str, Any]]:
+        video_items = [m for m in obj.media.all() if m.kind == MediaKind.VIDEO]
+        return ListingMediaSerializer(video_items, many=True, context=self.context).data
 
     @extend_schema_field(SellerSerializer)
     def get_seller(self, obj: Listing) -> dict[str, Any]:
@@ -446,6 +490,17 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
             "address",
             "rooms",
             "area",
+            "living_room_area",
+            "hall_area",
+            "kitchen_area",
+            "bedroom_area",
+            "bedroom_2_area",
+            "balcony_area",
+            "bathroom_area",
+            "furniture",
+            "has_direct_sale",
+            "has_mortgage",
+            "landmarks",
             "land_area",
             "floor",
             "floors",

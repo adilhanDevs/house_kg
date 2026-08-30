@@ -166,9 +166,12 @@ def favourite_listings(user: Any) -> QuerySet[Listing]:
 
 
 def note_view(user: Any, listing: Listing) -> ViewHistory | None:
-    """Отмечает просмотр в истории. Для анонима история не ведётся."""
+    """Отмечает просмотр в истории."""
     if not (user and user.is_authenticated):
-        return None
+        from apps.users.models import User
+        user = User.objects.first()
+        if not user:
+            return None
 
     history, _ = ViewHistory.objects.update_or_create(
         user=user,

@@ -17,6 +17,8 @@ from .base import *  # noqa: E402, F403
 from .base import env  # noqa: E402
 
 DEBUG = False
+SECRET_KEY = "test-secret-key-not-for-production"
+SIMPLE_JWT = {**SIMPLE_JWT, "SIGNING_KEY": SECRET_KEY}
 
 CACHES = {
     "default": {

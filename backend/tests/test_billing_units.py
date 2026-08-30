@@ -439,3 +439,62 @@ def test_spend_label_and_balance_after_are_consistent(wallet_with_balance):
     wallet.refresh_from_db()
     assert operation.balance_after == wallet.balance == 4_220
     assert get_wallet(wallet.user).balance == 4_220
+
+
+def test_finik_provider_signature_and_webhook(settings):
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_SECRET_KEY = "test-finik-secret"
+    provider = FinikPaymentProvider()
+
+    payload = {"payment_id": "fnk_999", "status": "paid", "amount": "12000"}
+    signature = provider.sign(payload)
+
+    # Валидная подпись
+    request = Mock(headers={"X-Signature": signature}, data=payload)
+    result = provider.verify_webhook(request)
+
+    assert result.provider_ref == "fnk_999"
+    assert result.status == "succeeded"
+    assert result.amount == Decimal("12000")
+
+    # Невалидная подпись
+    bad_request = Mock(headers={"X-Signature": "invalid-signature"}, data=payload)
+    with pytest.raises(WebhookSignatureError):
+        provider.verify_webhook(bad_request)
+
+
+def test_finik_provider_safa_callback_format(settings):
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_ACCOUNT_ID = "finik-account-123"
+    provider = FinikPaymentProvider()
+
+    callback_payload = {
+        "status": "SUCCEEDED",
+        "accountId": "finik-account-123",
+        "amount": "12000.00",
+        "transactionId": "test-transaction-123",
+        "item": {"id": "item-123"},
+        "fields": {
+            "paymentId": "550e8400-e29b-41d4-a716-446655440000",
+            "finikRequestId": "550e8400-e29b-41d4-a716-446655440000",
+            "paymentKind": "wallet_topup",
+        },
+    }
+
+    request = Mock(headers={}, data=callback_payload)
+    result = provider.verify_webhook(request)
+
+    assert result.provider_ref == "item-123"
+    assert result.status == "succeeded"
+    assert result.amount == Decimal("12000.00")
+    assert result.raw["fields"]["paymentId"] == "550e8400-e29b-41d4-a716-446655440000"
+
+    # Несовпадение accountId
+    bad_account_payload = {**callback_payload, "accountId": "wrong-account"}
+    bad_request = Mock(headers={}, data=bad_account_payload)
+    with pytest.raises(WebhookSignatureError):
+        provider.verify_webhook(bad_request)
+
+

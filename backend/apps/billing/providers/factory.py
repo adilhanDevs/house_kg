@@ -5,11 +5,13 @@ from django.core.exceptions import ImproperlyConfigured
 
 from apps.billing.providers.bank import BankPaymentProvider
 from apps.billing.providers.base import PaymentProvider
+from apps.billing.providers.finik import FinikPaymentProvider
 from apps.billing.providers.mock import MockPaymentProvider
 
 PROVIDERS: dict[str, type[PaymentProvider]] = {
     MockPaymentProvider.code: MockPaymentProvider,
     BankPaymentProvider.code: BankPaymentProvider,
+    FinikPaymentProvider.code: FinikPaymentProvider,
 }
 
 

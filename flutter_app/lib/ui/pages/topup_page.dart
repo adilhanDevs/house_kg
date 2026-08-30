@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../widgets/finik_payment_sheet.dart';
 
 class TopUpPage extends StatefulWidget {
   const TopUpPage({super.key});
@@ -21,27 +22,36 @@ class _TopUpPageState extends State<TopUpPage> {
     super.dispose();
   }
 
-  void _onNext(BuildContext context, AppState state) {
+  Future<void> _onNext(BuildContext context, AppState state) async {
     if (_step == 1) {
       setState(() => _step = 2);
     } else if (_step == 2) {
       setState(() => _step = 3);
     } else if (_step == 3) {
+      final parsed = int.tryParse(_amountController.text.trim()) ?? 12000;
+      final amount = parsed > 0 ? parsed : 12000;
+      state.setTopupAmount(amount);
+      await state.createFinikTopup(amount);
       setState(() => _step = 4);
     } else if (_step == 4) {
-      _selectBankAndPay(context, state);
+      await _selectBankAndPay(context, state);
     } else {
       _finishFlow(context, state);
     }
   }
 
-  void _selectBankAndPay(BuildContext context, AppState state) {
-    final parsed = int.tryParse(_amountController.text);
-    if (parsed != null && parsed > 0) {
-      state.setTopupAmount(parsed);
-    }
-    state.commitTopup();
+  Future<void> _selectBankAndPay(BuildContext context, AppState state, [String? bankName]) async {
+    final parsed = int.tryParse(_amountController.text.trim());
+    final amount = (parsed != null && parsed > 0) ? parsed : state.topupAmount;
+    state.setTopupAmount(amount);
 
+    final payment = state.currentFinikPayment ??
+        await state.createFinikTopup(state.topupAmount);
+
+    // Подтверждаем оплату через Finik Pay
+    await state.confirmFinikTopup(payment);
+
+    if (!mounted) return;
     setState(() {
       _step = 5;
     });
@@ -50,7 +60,7 @@ class _TopUpPageState extends State<TopUpPage> {
   void _finishFlow(BuildContext context, AppState state) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Кошелёк успешно пополнен на ${state.topupAmount} сом!'),
+        content: Text('Кошелёк успешно пополнен на ${state.topupAmount} сом через Finik Pay!'),
         duration: const Duration(seconds: 2),
         backgroundColor: const Color(0xff4dba17),
       ),
@@ -163,6 +173,18 @@ class _TopUpPageState extends State<TopUpPage> {
             ),
           ),
         ],
+
+        if (state.isFinikLoading)
+          Positioned.fill(
+            child: Container(
+              color: const Color(0x66000000),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xffea812e)),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

@@ -607,7 +607,50 @@ class TariffListView(ListAPIView):
         responses={status.HTTP_200_OK: TariffSerializer(many=True)},
     )
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        return super().get(request, *args, **kwargs)
+        subscription = current_subscription(request.user)
+        current_code = subscription.tariff.code if subscription else "owner"
+        code_alias = {"free": "owner", "realtor": "top", "agency": "premium"}
+        current_code = code_alias.get(current_code, current_code)
+
+        tariffs_data = [
+            {
+                "code": "owner",
+                "name": "Собственник",
+                "price_som": 0,
+                "price_bricks": None,
+                "price_bricks_per_month": 0,
+                "listings_limit": 5,
+                "is_current": current_code in ("owner", "free"),
+            },
+            {
+                "code": "top",
+                "name": "TOP",
+                "price_som": 1,
+                "price_bricks": 1,
+                "price_bricks_per_month": 1,
+                "listings_limit": 15,
+                "is_current": current_code in ("top", "realtor"),
+            },
+            {
+                "code": "vip",
+                "name": "VIP",
+                "price_som": 1,
+                "price_bricks": 1,
+                "price_bricks_per_month": 1,
+                "listings_limit": 20,
+                "is_current": current_code == "vip",
+            },
+            {
+                "code": "premium",
+                "name": "Premium",
+                "price_som": 1,
+                "price_bricks": 1,
+                "price_bricks_per_month": 1,
+                "listings_limit": 20,
+                "is_current": current_code in ("premium", "agency"),
+            },
+        ]
+        return Response(tariffs_data, status=status.HTTP_200_OK)
 
 
 class SubscriptionCreateView(APIView):

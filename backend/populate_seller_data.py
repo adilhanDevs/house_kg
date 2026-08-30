@@ -5,7 +5,8 @@ import urllib.request
 from decimal import Decimal
 
 # Настройка Django окружения
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
+if "DJANGO_SETTINGS_MODULE" not in os.environ:
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 django.setup()
 
 from django.core.files.base import ContentFile
@@ -93,7 +94,20 @@ def run():
             "floors": 14,
             "series": series_elita,
             "builder": builder,
-            "description": "Роскошная квартира в ЖК Премиум класса. Дизайнерский ремонт, панорамные окна, вся мебель и техника остаются.",
+            "living_room_area": Decimal("35.0"),
+            "hall_area": Decimal("23.0"),
+            "kitchen_area": Decimal("17.0"),
+            "bedroom_area": Decimal("25.0"),
+            "bedroom_2_area": Decimal("15.0"),
+            "balcony_area": Decimal("7.0"),
+            "bathroom_area": Decimal("10.0"),
+            "furniture": "Полностью",
+            "landmarks": ["Школа 56", "Магистраль-Бакаева", "Клиника Эскулап"],
+            "latitude": Decimal("42.825632"),
+            "longitude": Decimal("74.587321"),
+            "has_direct_sale": True,
+            "has_mortgage": True,
+            "description": "Роскошная квартира в ЖК Премиум класса. Дизайнерский ремонт, панорамные окна, вся мебель и техника остаются. Рядом парк, школы и супермаркеты.",
         },
         {
             "title": "Уютный 2-этажный дом с садом",
@@ -108,6 +122,19 @@ def run():
             "floors": 2,
             "series": None,
             "builder": None,
+            "living_room_area": Decimal("60.0"),
+            "hall_area": Decimal("35.0"),
+            "kitchen_area": Decimal("28.0"),
+            "bedroom_area": Decimal("30.0"),
+            "bedroom_2_area": Decimal("25.0"),
+            "balcony_area": Decimal("12.0"),
+            "bathroom_area": Decimal("15.0"),
+            "furniture": "Полностью",
+            "landmarks": ["Парк Победы", "Магистраль", "ТРЦ Ала-Арча"],
+            "latitude": Decimal("42.818900"),
+            "longitude": Decimal("74.605400"),
+            "has_direct_sale": True,
+            "has_mortgage": True,
             "description": "Просторный дом в тихом престижном районе. Участок 6 соток, ландшафтный дизайн, навес на 3 авто, зона барбекю.",
         },
         {
@@ -118,11 +145,24 @@ def run():
             "price": Decimal("82000"),
             "old_price": Decimal("87000"),
             "rooms": 2,
-            "area": Decimal("64.0"),
-            "floor": 5,
-            "floors": 9,
+            "area": Decimal("92.0"),
+            "floor": 8,
+            "floors": 12,
             "series": series_105,
             "builder": None,
+            "living_room_area": Decimal("35.0"),
+            "hall_area": Decimal("23.0"),
+            "kitchen_area": Decimal("17.0"),
+            "bedroom_area": Decimal("25.0"),
+            "bedroom_2_area": Decimal("15.0"),
+            "balcony_area": Decimal("7.0"),
+            "bathroom_area": Decimal("10.0"),
+            "furniture": "Полностью",
+            "landmarks": ["Школа 56", "Магистраль-Бакаева", "Клиника Эскулап"],
+            "latitude": Decimal("42.825632"),
+            "longitude": Decimal("74.587321"),
+            "has_direct_sale": True,
+            "has_mortgage": True,
             "description": "Отличная квартира в районе Технопарка. Развитая инфраструктура, свежий евроремонт, новые трубы и проводка.",
         }
     ]
@@ -141,6 +181,19 @@ def run():
             old_price=data["old_price"],
             rooms=data["rooms"],
             area=data["area"],
+            living_room_area=data.get("living_room_area"),
+            hall_area=data.get("hall_area"),
+            kitchen_area=data.get("kitchen_area"),
+            bedroom_area=data.get("bedroom_area"),
+            bedroom_2_area=data.get("bedroom_2_area"),
+            balcony_area=data.get("balcony_area"),
+            bathroom_area=data.get("bathroom_area"),
+            furniture=data.get("furniture", "Полностью"),
+            landmarks=data.get("landmarks", []),
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
+            has_direct_sale=data.get("has_direct_sale", True),
+            has_mortgage=data.get("has_mortgage", True),
             floor=data["floor"],
             floors=data["floors"],
             series=data["series"],
@@ -179,26 +232,51 @@ def run():
                 print(f"   ⚠️ Не удалось загрузить фото: {err}")
 
         # Добавляем видео к объявлению
-        if idx == 1:
-            try:
-                print("   🎬 Загружаем видео...")
-                req = urllib.request.Request(sample_video_url, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    v_content = resp.read()
-                    v_media = ListingMedia(
-                        listing=listing,
-                        kind=MediaKind.VIDEO,
-                        order=10,
-                        is_cover=False,
-                        status=MediaStatus.READY,
-                        duration_seconds=15,
-                    )
-                    v_media.file.save(f"video_{listing.id}.mp4", ContentFile(v_content), save=False)
-                    v_media.url_original.save(f"video_{listing.id}.mp4", ContentFile(v_content), save=False)
-                    v_media.save()
-                    print("   ✅ Видео успешно прикреплено к объявлению!")
-            except Exception as err:
-                print(f"   ⚠️ Ошибка при загрузке видео: {err}")
+        try:
+            video_content = None
+            local_video_paths = [
+                os.path.join(os.path.dirname(__file__), "sample_videos", "sample_video.mp4"),
+                os.path.join(os.path.dirname(__file__), "..", "flutter_app", "assets", "videos_obzor", "video_3.mp4"),
+                os.path.join(os.path.dirname(__file__), "..", "flutter_app", "assets", "videos_obzor", f"video_{idx}.mp4"),
+            ]
+            for v_path in local_video_paths:
+                if os.path.exists(v_path):
+                    with open(v_path, "rb") as f:
+                        video_content = f.read()
+                    print(f"   🎬 Использован локальный видеофайл: {os.path.basename(v_path)} ({len(video_content)} байт)")
+                    break
+
+            if not video_content:
+                # Fallback download URLs
+                urls = [
+                    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4",
+                    "https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4",
+                ]
+                for u in urls:
+                    try:
+                        req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+                        with urllib.request.urlopen(req, timeout=10) as resp:
+                            video_content = resp.read()
+                            print(f"   🎬 Видео успешно скачано ({len(video_content)} байт)")
+                            break
+                    except Exception:
+                        continue
+
+            if video_content:
+                v_media = ListingMedia(
+                    listing=listing,
+                    kind=MediaKind.VIDEO,
+                    order=10,
+                    is_cover=False,
+                    status=MediaStatus.READY,
+                    duration_seconds=15,
+                )
+                v_media.file.save(f"video_{listing.id}.mp4", ContentFile(video_content), save=False)
+                v_media.url_original.save(f"video_{listing.id}.mp4", ContentFile(video_content), save=False)
+                v_media.save()
+                print(f"   ✅ Видео успешно прикреплено к объявлению #{idx}!")
+        except Exception as err:
+            print(f"   ⚠️ Ошибка при сохранении видео: {err}")
 
     print("\n🎉 Все данные успешно созданы и готовы к работе!")
     print("👤 Логин продавца: +996555444333")

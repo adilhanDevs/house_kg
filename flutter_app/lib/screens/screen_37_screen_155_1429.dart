@@ -1145,10 +1145,10 @@ class Screen37Screen1551429 extends StatelessWidget {
                                           Positioned(
                                             left: 0.0, top: 0.0,
                                             child: FigText(
-                                              width: 52.0,
+                                              width: 65.0,
                                               height: 14.0,
                                               span: 
-                                                TextSpan(text: 'Комната', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe07d7d7d)))
+                                                TextSpan(text: 'Квартиры', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe07d7d7d)))
                                               ,
                                             )
                                           ),

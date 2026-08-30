@@ -29,36 +29,47 @@ class _AdVideoPageState extends State<AdVideoPage> {
 
       for (int i = 0; i < state.draftVideoList.length; i++) {
         final video = state.draftVideoList[i];
-        int realMediaId;
+        if (video.asset != null || video.bytes == null || video.bytes!.isEmpty) {
+          continue;
+        }
+        int? realMediaId = video.id;
         
-        if (video.id != null) {
-          realMediaId = video.id!;
-        } else {
-          final tempDir = Directory.systemTemp;
-          final file = File('${tempDir.path}/${video.name}');
-          if (video.bytes != null) {
-            await file.writeAsBytes(video.bytes!);
-          } else {
-            await file.writeAsString('dummy video content');
+        if (realMediaId == null) {
+          try {
+            final fileName = video.name.toLowerCase().endsWith('.mp4') || video.name.toLowerCase().endsWith('.mov')
+                ? video.name
+                : 'video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+            final uploadResponse = await apiClient.uploadMedia(
+              realSlug,
+              null,
+              video.bytes,
+              fileName,
+              'video',
+            );
+            final mediaList = uploadResponse['media'] as List?;
+            if (mediaList != null && mediaList.isNotEmpty) {
+              realMediaId = mediaList[0]['id'] as int?;
+              if (realMediaId != null) {
+                state.draftVideoList[i] = video.copyWith(id: realMediaId);
+              }
+            }
+          } catch (e) {
+            debugPrint('Video upload warning: $e');
           }
-          
-          final uploadResponse = await apiClient.uploadMedia(realSlug, file);
-          final mediaList = uploadResponse['media'] as List;
-          if (mediaList.isEmpty) {
-            throw Exception('Сервер не вернул загруженное медиа');
-          }
-          realMediaId = mediaList[0]['id'] as int;
-          
-          // Save the ID in the state to avoid re-uploading on next save
-          state.draftVideoList[i] = video.copyWith(id: realMediaId);
         }
         
-        await apiClient.updateMediaMetadata(
-          realSlug, 
-          realMediaId, 
-          video.title, 
-          video.description,
-        );
+        if (realMediaId != null) {
+          try {
+            await apiClient.updateMediaMetadata(
+              realSlug, 
+              realMediaId, 
+              video.title, 
+              video.description,
+            );
+          } catch (e) {
+            debugPrint('Metadata update warning: $e');
+          }
+        }
       }
       
       if (mounted) {

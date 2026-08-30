@@ -4,8 +4,11 @@
 чтобы клиент мог переключиться с моковых данных на API без изменений в UI.
 """
 
+import logging
 import uuid
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
@@ -230,6 +233,15 @@ class Listing(TimeStampedModel):
 
     rooms = models.PositiveSmallIntegerField("Комнат", default=0)
     area = models.DecimalField("Площадь, м²", max_digits=8, decimal_places=2, blank=True, null=True)
+    living_room_area = models.DecimalField("Гостинная, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    hall_area = models.DecimalField("Холл, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    kitchen_area = models.DecimalField("Кухня, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    bedroom_area = models.DecimalField("Спальная, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    bedroom_2_area = models.DecimalField("Спальная 2, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    balcony_area = models.DecimalField("Балкон, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    bathroom_area = models.DecimalField("Сан.узел, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    furniture = models.CharField("Мебель", max_length=50, blank=True, default="Полностью")
+
     land_area = models.DecimalField(
         "Площадь участка, соток", max_digits=8, decimal_places=2, blank=True, null=True
     )
@@ -256,6 +268,10 @@ class Listing(TimeStampedModel):
     is_secondary = models.BooleanField("Вторичка", default=False)
     below_market = models.BooleanField("Ниже рынка", default=False)
     red_book = models.BooleanField("Красная книга", default=False)
+    has_direct_sale = models.BooleanField("Прямая покупка", default=True)
+    has_mortgage = models.BooleanField("Ипотека", default=True)
+
+    landmarks = models.JSONField("Ключевые места", default=list, blank=True)
 
     description = models.TextField("Описание", blank=True)
 
@@ -348,7 +364,34 @@ class Listing(TimeStampedModel):
         """На сколько процентов цена ниже прежней."""
         if self.price is None or not self.old_price or self.old_price <= self.price:
             return None
-        return round((self.old_price - self.price) / self.old_price * 100)
+class ListingRoom(models.Model):
+    """Комната или помещение в объявлении с указанием квадратуры."""
+
+    listing = models.ForeignKey(
+        Listing,
+        verbose_name="Объявление",
+        on_delete=models.CASCADE,
+        related_name="rooms_data",
+    )
+    name = models.CharField(
+        "Название комнаты",
+        max_length=100,
+        help_text="Например: Гостинная, Холл, Кухня, Спальная, Гардеробная, Терраса, Сан.узел",
+    )
+    area = models.DecimalField(
+        "Площадь, м²",
+        max_digits=6,
+        decimal_places=2,
+    )
+    order = models.PositiveIntegerField("Порядок", default=0)
+
+    class Meta:
+        verbose_name = "Комната"
+        verbose_name_plural = "Комнаты (экспликация помещений)"
+        ordering = ["order", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.name}: {self.area} м²"
 
 
 class ListingMedia(TimeStampedModel):
@@ -432,6 +475,15 @@ class ListingMedia(TimeStampedModel):
     @property
     def is_ready(self) -> bool:
         return self.status == MediaStatus.READY
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        super().save(*args, **kwargs)
+        if self.kind == MediaKind.VIDEO and not self.thumbnail and self.file:
+            try:
+                from apps.catalog.tasks import _process_video
+                _process_video(self)
+            except Exception as e:
+                logger.warning("Не удалось автоматически извлечь кадр-обложку видео: %s", e)
 
     def display_file(self) -> Any:
         """Что показывать клиенту сейчас.

@@ -89,84 +89,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
       bottomBar: const AppTabBar(active: 4),
       background: const Color(0xfffefefe),
       overlays: [
-        // Динамический заголовок продавца поверх статичного макета (Y=140..250)
-        Positioned(
-          left: 20.0,
-          top: 140.0,
-          width: 335.0,
-          height: 105.0,
-          child: Container(
-            color: const Color(0xfffefefe),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 60.0,
-                  height: 60.0,
-                  decoration: BoxDecoration(
-                    color: const Color(0xfffff0e6),
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    (state.userName != null && state.userName!.isNotEmpty)
-                        ? state.userName!.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join()
-                        : '🏠',
-                    style: const TextStyle(
-                      fontSize: 22.0,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xffea812e),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14.0),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        state.userName ?? 'Адилхан Сатымкулов',
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff000000),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4.0),
-                      Text(
-                        state.userPhone ?? '+996555444333',
-                        style: const TextStyle(
-                          fontSize: 14.0,
-                          color: Color(0xff7d7d7d),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xfffff0e6),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: const Text(
-                    'Продавец',
-                    style: TextStyle(
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xffea812e),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Табы категорий (Y=318): Новостройки, Комната, Коммерция
+        // Табы категорий (Y=318): Новостройки, Квартиры, Коммерция
         Positioned(
           left: 25.0,
           top: 318.0,
@@ -224,28 +147,31 @@ class _ProProfilePageState extends State<ProProfilePage> {
           top: 480.0,
           right: 0,
           height: 220.0,
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xffea812e)))
-              : (_listings.isEmpty
-                  ? const Center(child: Text('Нет активных объектов', style: TextStyle(color: Color(0xff7d7d7d))))
-                  : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      child: Row(
-                        children: _listings.map((l) => Padding(
-                          padding: const EdgeInsets.only(right: 15.0),
-                          child: ObjectCard(
-                            listing: l,
-                            favourite: state.isFavourite(l.id),
-                            onTap: () => Navigator.of(context).pushNamed(
-                              Routes.listingVideo,
-                              arguments: ListingArgs(l.id),
+          child: Container(
+            color: const Color(0xfffefefe),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xffea812e)))
+                : (_listings.isEmpty
+                    ? const Center(child: Text('Нет активных объектов', style: TextStyle(color: Color(0xff7d7d7d))))
+                    : SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                        child: Row(
+                          children: _listings.map((l) => Padding(
+                            padding: const EdgeInsets.only(right: 15.0),
+                            child: ObjectCard(
+                              listing: l,
+                              favourite: state.isFavourite(l.id),
+                              onTap: () => Navigator.of(context).pushNamed(
+                                Routes.adPreview,
+                                arguments: l.slug,
+                              ),
+                              onFavourite: () => state.toggleFavourite(l.id),
                             ),
-                            onFavourite: () => state.toggleFavourite(l.id),
-                          ),
-                        )).toList(),
-                      ),
-                    )),
+                          )).toList(),
+                        ),
+                      )),
+          ),
         ),
 
         // Клик по кнопке «Пополнить» на панели баланса (Y=725)
@@ -285,18 +211,19 @@ class _ProProfilePageState extends State<ProProfilePage> {
                 Text(
                   '${state.walletBalance} кирпичей',
                   style: const TextStyle(
-                    fontSize: 22.0,
+                    fontSize: 18.0,
                     fontWeight: FontWeight.bold,
                     color: Color(0xffea812e),
-                    height: 1.2,
+                    height: 1.1,
                   ),
                 ),
+                const SizedBox(height: 2.0),
                 const Text(
                   'Баланс',
                   style: TextStyle(
-                    fontSize: 13.0,
+                    fontSize: 12.0,
                     color: Color(0x993c3c43),
-                    height: 1.2,
+                    height: 1.1,
                   ),
                 ),
               ],
@@ -316,10 +243,22 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
 
-        // Клик по настройке «Уведомление»
+        // Клик по настройке «Тарифы»
         Positioned(
           left: 25.0,
           top: 960.0,
+          width: 325.0,
+          height: 40.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(Routes.tariffs),
+          ),
+        ),
+
+        // Клик по настройке «Уведомление»
+        Positioned(
+          left: 25.0,
+          top: 1004.0,
           width: 325.0,
           height: 40.0,
           child: GestureDetector(
@@ -331,7 +270,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
         // Клик по настройке «Аккаунт»
         Positioned(
           left: 25.0,
-          top: 1004.0,
+          top: 1048.0,
           width: 325.0,
           height: 40.0,
           child: GestureDetector(
@@ -343,7 +282,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
         // Клик по настройке «Служба поддержки»
         Positioned(
           left: 25.0,
-          top: 1048.0,
+          top: 1092.0,
           width: 325.0,
           height: 40.0,
           child: GestureDetector(
@@ -355,7 +294,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
         // Клик по настройке «История пополнения и трат»
         Positioned(
           left: 25.0,
-          top: 1092.0,
+          top: 1136.0,
           width: 325.0,
           height: 40.0,
           child: GestureDetector(
@@ -364,26 +303,26 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
 
-        // Маска для закрашивания статичной плашки макета и линии (Y=1130)
+        // Маска для закрашивания статичной плашки макета и линии (Y=1174)
         const Positioned(
           left: 150.0,
-          top: 1130.0,
+          top: 1174.0,
           width: 225.0,
           height: 48.0,
           child: ColoredBox(color: Color(0xffffffff)),
         ),
 
-        // Полноценная пересверстанная кнопка-переключатель языка (Y=1140)
+        // Полноценная пересверстанная кнопка-переключатель языка (Y=1184)
         const Positioned(
           left: 175.0,
-          top: 1140.0,
+          top: 1184.0,
           child: LanguageToggleWidget(),
         ),
 
-        // Строка «Выйти из аккаунта» у собственника (Y=1180)
+        // Строка «Выйти из аккаунта» у собственника (Y=1224)
         Positioned(
           left: 25.0,
-          top: 1180.0,
+          top: 1224.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _confirmLogOut(context),

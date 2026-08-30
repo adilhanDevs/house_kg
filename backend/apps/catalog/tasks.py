@@ -289,6 +289,8 @@ def _process_video(media: Any) -> None:
     try:
         probe = probe_video(path)
         frame = extract_video_frame(path, at_second=1)
+        if not frame:
+            frame = extract_video_frame(path, at_second=0)
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)

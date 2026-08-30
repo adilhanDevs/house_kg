@@ -10,8 +10,10 @@ import 'package:flutter/material.dart';
 import '../ui/app_tab_bar.dart';
 import '../ui/fig_cta.dart';
 import '../ui/pages/account_page.dart';
+import '../ui/pages/ad_edit_page.dart';
 import '../ui/pages/ad_form_page.dart';
 import '../ui/pages/ad_photos_page.dart';
+import '../ui/pages/ad_preview_page.dart';
 import '../ui/pages/ad_promo_page.dart';
 import '../ui/pages/ad_video_page.dart';
 import '../ui/pages/catalog_page.dart';
@@ -30,6 +32,7 @@ import '../ui/pages/pro_signup_page.dart';
 import '../ui/pages/profile_page.dart';
 import '../ui/pages/splash_page.dart';
 import '../ui/pages/support_page.dart';
+import '../ui/pages/tariffs_page.dart';
 import '../ui/pages/topup_page.dart';
 import '../ui/pages/view_history_page.dart';
 import '../ui/pages/video_page.dart';
@@ -105,7 +108,9 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
   Route<dynamic> _route(RouteSettings settings) {
     final name = settings.name ?? Routes.catalog;
     final rawArgs = settings.arguments;
-    final id = (rawArgs is ListingArgs) ? rawArgs.id : kListings.first.id;
+    final id = (rawArgs is ListingArgs)
+        ? rawArgs.id
+        : ((rawArgs is String && rawArgs.isNotEmpty) ? rawArgs : '');
     return MaterialPageRoute(
       settings: settings,
       builder: (context) => switch (name) {
@@ -125,9 +130,20 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
         Routes.notifications => const NotificationsPage(),
         Routes.viewHistory => const ViewHistoryPage(),
         Routes.profile || Routes.pro => Builder(
-              builder: (context) => AppScope.of(context).pro
-                  ? const ProProfilePage()
-                  : const ProfilePage(),
+              builder: (context) {
+                final state = AppScope.of(context);
+                if (state.isInitializing) {
+                  return const Scaffold(
+                    backgroundColor: Color(0xffffffff),
+                    body: Center(
+                      child: CircularProgressIndicator(color: Color(0xffea812e)),
+                    ),
+                  );
+                }
+                return (state.pro || state.isPro)
+                    ? const ProProfilePage()
+                    : const ProfilePage();
+              },
             ),
         Routes.account => const AccountPage(),
         Routes.support => const SupportPage(),
@@ -141,12 +157,36 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
             ),
         Routes.listing => ListingPage(id: id),
         Routes.listingPhotos => PhotosPage(id: id),
-        Routes.listingVideo => VideoPage(id: id),
+        Routes.listingVideo => Builder(
+              builder: (context) {
+                final args = ModalRoute.of(context)?.settings.arguments;
+                final initialIdx = (args is ListingArgs) ? args.initialVideoIndex : 0;
+                return VideoPage(id: id, initialVideoIndex: initialIdx);
+              },
+            ),
         Routes.ad => const AdFormPage(),
-        Routes.adForm => const AdFormPage(),
+        Routes.adForm => Builder(
+              builder: (context) {
+                final slug = ModalRoute.of(context)?.settings.arguments as String?;
+                return AdFormPage(slug: slug);
+              },
+            ),
+        Routes.adEdit => Builder(
+              builder: (context) {
+                final slug = ModalRoute.of(context)?.settings.arguments as String?;
+                return AdEditPage(slug: slug, media: widget.media);
+              },
+            ),
         Routes.adPhotos => const AdPhotosPage(),
         Routes.adVideo => const AdVideoPage(),
         Routes.adPromo => const AdPromoPage(),
+        Routes.adPreview => Builder(
+              builder: (context) {
+                final slug = ModalRoute.of(context)?.settings.arguments as String?;
+                return AdPreviewPage(slug: slug);
+              },
+            ),
+        Routes.tariffs || Routes.subscriptions => const TariffsPage(),
         _ => FramePage(route: name),
       },
     );

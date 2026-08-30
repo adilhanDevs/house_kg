@@ -68,6 +68,14 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    if (state.isInitializing) {
+      return const Scaffold(
+        backgroundColor: Color(0xffffffff),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xffea812e)),
+        ),
+      );
+    }
     if (state.pro || state.isPro) {
       return const ProProfilePage();
     }
@@ -75,83 +83,6 @@ class _ProfilePageState extends State<ProfilePage> {
       frame: frame('15'),
       bottomBar: const AppTabBar(active: 4),
       overlays: [
-        // Динамический заголовок пользователя поверх статичного макета (Y=165..280)
-        Positioned(
-          left: 20.0,
-          top: 165.0,
-          width: 335.0,
-          height: 110.0,
-          child: Container(
-            color: const Color(0xffffffff),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 60.0,
-                  height: 60.0,
-                  decoration: BoxDecoration(
-                    color: (state.pro || state.isPro) ? const Color(0xfffff0e6) : const Color(0xffe6f0ff),
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    (state.userName != null && state.userName!.isNotEmpty)
-                        ? state.userName!.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join()
-                        : '👤',
-                    style: TextStyle(
-                      fontSize: 22.0,
-                      fontWeight: FontWeight.bold,
-                      color: (state.pro || state.isPro) ? const Color(0xffea812e) : const Color(0xff007aff),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14.0),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        state.userName ?? 'Пользователь',
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff000000),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4.0),
-                      Text(
-                        state.userPhone ?? '',
-                        style: const TextStyle(
-                          fontSize: 14.0,
-                          color: Color(0xff7d7d7d),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                  decoration: BoxDecoration(
-                    color: (state.pro || state.isPro) ? const Color(0xfffff0e6) : const Color(0xffe6f0ff),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Text(
-                    (state.pro || state.isPro) ? 'Продавец' : 'Клиент',
-                    style: TextStyle(
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w600,
-                      color: (state.pro || state.isPro) ? const Color(0xffea812e) : const Color(0xff007aff),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
         FigZone(
           _seeAll.left, _seeAll.top, _seeAll.width, _seeAll.height,
           label: 'Посмотреть все уведомления',
@@ -164,46 +95,51 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         FigZone(
           _rowLeft, 425, _rowWidth, _rowHeight,
+          label: 'Тарифы',
+          onTap: () => Navigator.of(context).pushNamed(Routes.tariffs),
+        ),
+        FigZone(
+          _rowLeft, 469, _rowWidth, _rowHeight,
           label: 'Уведомление',
           onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
         ),
         FigZone(
-          _rowLeft, 469, _rowWidth, _rowHeight,
+          _rowLeft, 513, _rowWidth, _rowHeight,
           label: 'Аккаунт',
           onTap: () => Navigator.of(context).pushNamed(Routes.account),
         ),
         FigZone(
-          _rowLeft, 513, _rowWidth, _rowHeight,
+          _rowLeft, 557, _rowWidth, _rowHeight,
           label: 'Служба поддержки',
           onTap: () => Navigator.of(context).pushNamed(Routes.support),
         ),
 
-        // Маска для закрашивания статичной плашки макета и линии (Y=550)
+        // Маска для закрашивания статичной плашки макета и линии (Y=594)
         const Positioned(
           left: 150.0,
-          top: 550.0,
+          top: 594.0,
           width: 225.0,
           height: 48.0,
           child: ColoredBox(color: Color(0xffffffff)),
         ),
 
-        // Полноценная пересверстанная кнопка-переключатель языка (Y=561)
+        // Полноценная пересверстанная кнопка-переключатель языка (Y=605)
         const Positioned(
           left: 175.0,
-          top: 561.0,
+          top: 605.0,
           child: LanguageToggleWidget(),
         ),
-        // Клик по кнопке макета «Продать недвижимость» (Y=652)
+        // Клик по кнопке макета «Продать недвижимость» (Y=696)
         FigZone(
-          101.0, 652.0, 185.3, 30.0,
+          101.0, 696.0, 185.3, 30.0,
           label: 'Продать недвижимость',
           onTap: () => Navigator.of(context).pushNamed(Routes.ad),
         ),
 
-        // На месте «Служба безопасности» (Y=601) размещаем «Выйти из аккаунта»
+        // На месте «Служба безопасности» (Y=645) размещаем «Выйти из аккаунта»
         Positioned(
           left: _rowLeft,
-          top: 601.0,
+          top: 645.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _confirmLogOut(context),

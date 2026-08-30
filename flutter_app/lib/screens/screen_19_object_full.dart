@@ -896,7 +896,7 @@ class Screen19ObjectFull extends StatelessWidget {
             left: 0.0,
             right: 0.0,
             top: 1454.0,
-            height: 235.0,
+            height: 250.0,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 25.0),

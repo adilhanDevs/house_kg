@@ -10,6 +10,7 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../data/listings.dart';
 import '../app_tab_bar.dart';
+import '../widgets/safe_image.dart';
 
 const Color _accent = Color(0xffea812e);
 const Color _ink = Color(0xff000000);
@@ -63,6 +64,14 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
   /// Режим выбора и что в нём отмечено.
   bool _selecting = false;
   final Set<String> _picked = {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppScope.of(context).loadViewHistory();
+    });
+  }
 
   List<ViewEntry> _entries(AppState state) {
     final now = DateTime.now();
@@ -155,14 +164,35 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
               ),
             ),
             Expanded(
-              child: entries.isEmpty
-                  ? const _Empty()
-                  : _Grid(
-                      entries: entries,
-                      selecting: _selecting,
-                      picked: _picked,
-                      onTap: _open,
-                    ),
+              child: state.isHistoryLoading && entries.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(
+                            color: _accent,
+                            strokeWidth: 3,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Загрузка истории...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _muted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : entries.isEmpty
+                      ? const _Empty()
+                      : _Grid(
+                          entries: entries,
+                          selecting: _selecting,
+                          picked: _picked,
+                          onTap: _open,
+                        ),
             ),
             if (_selecting)
               Padding(
@@ -449,12 +479,18 @@ class HistoryTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(
-                listing.photo,
-                fit: BoxFit.cover,
-                errorBuilder: (context, _, __) =>
-                    const ColoredBox(color: Color(0xffd9d9d9)),
-              ),
+              (listing.photo.startsWith('http://') || listing.photo.startsWith('https://'))
+                  ? buildSafeNetworkImage(
+                      url: listing.photo,
+                      fit: BoxFit.cover,
+                      fallback: const ColoredBox(color: Color(0xffd9d9d9)),
+                    )
+                  : Image.asset(
+                      listing.photo,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, _, __) =>
+                          const ColoredBox(color: Color(0xffd9d9d9)),
+                    ),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

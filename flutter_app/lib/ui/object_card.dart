@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../data/listings.dart';
 import '../fig/fig.dart';
+import 'widgets/safe_image.dart';
 
 /// Контур сердца из макета (иконка «в избранное» на карточке).
 const String _heartOutline =
@@ -44,23 +45,43 @@ class ObjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(
-        width: kCardWidth,
-        height: kCardHeight,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            FigBox(
-              width: kCardWidth,
-              height: kCardWidth,
-              radius: 10.0,
-              color: const Color(0xffd9d9d9),
-              clip: true,
-              bgImage: FigBgImage(listing.photo),
+    return Container(
+      color: const Color(0xfffefefe),
+      width: kCardWidth,
+      height: kCardHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            width: kCardWidth,
+            height: kCardWidth,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10.0),
+              child: IgnorePointer(
+                child: listing.photo.startsWith('http')
+                    ? buildSafeNetworkImage(
+                        url: listing.photo,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.circular(10.0),
+                        fallback: Image.asset(
+                          listing.photo.contains('asanbay')
+                              ? ListingPhotos.asanbay
+                              : ListingPhotos.technopark,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Image.asset(listing.photo, fit: BoxFit.cover),
+              ),
             ),
+          ),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+            ),
+          ),
             Positioned(
               left: 12,
               top: 131,
@@ -171,8 +192,7 @@ class ObjectCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   static Widget _spec7(String text) => FigText(

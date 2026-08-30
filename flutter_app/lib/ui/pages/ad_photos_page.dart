@@ -15,11 +15,70 @@ class AdPhotosPage extends StatefulWidget {
 
 class _AdPhotosPageState extends State<AdPhotosPage> {
   bool _allowDownload = true;
+  bool _isSaving = false;
+  bool _initialized = false;
+
+  Future<void> _uploadPhotosAndNext(AppState state) async {
+    final slug = state.draftSlug;
+    if (slug == null) {
+      Navigator.pushNamed(context, Routes.adVideo);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await state.apiClient.updateDraft(slug, {
+        'allow_media_download': _allowDownload,
+      });
+
+      for (int i = 0; i < state.draftGallery.length; i++) {
+        final photo = state.draftGallery[i];
+        if (photo.id == null && photo.bytes != null) {
+          try {
+            final res = await state.apiClient.uploadMedia(
+              slug,
+              null,
+              photo.bytes,
+              photo.name,
+              'photo',
+            );
+            final mediaList = res['media'] as List<dynamic>?;
+            if (mediaList != null && mediaList.isNotEmpty) {
+              final newId = mediaList[0]['id'] as int?;
+              if (newId != null) {
+                state.draftGallery[i] = photo.copyWith(id: newId);
+              }
+            }
+          } catch (e) {
+            debugPrint('Failed to upload photo $i: $e');
+          }
+        }
+      }
+      if (mounted) {
+        Navigator.pushNamed(context, Routes.adVideo);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сохранения фото: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
     const orangeColor = Color(0xffea812e);
+
+    if (!_initialized) {
+      _initialized = true;
+      _allowDownload = state.draftAllowDownload;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
@@ -179,7 +238,7 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                 width: double.infinity,
                 height: 48.0,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, Routes.adVideo),
+                  onPressed: _isSaving ? null : () => _uploadPhotosAndNext(state),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: orangeColor,
                     elevation: 0,
@@ -187,14 +246,20 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                       borderRadius: BorderRadius.circular(12.0),
                     ),
                   ),
-                  child: const Text(
-                    'Далее',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Далее',
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
             ),

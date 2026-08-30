@@ -96,6 +96,14 @@ class _Preview extends StatelessWidget {
         errorBuilder: (context, _, __) => _Name(media: media),
       );
     }
+    final url = media.url;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (context, _, __) => _Name(media: media),
+      );
+    }
     final asset = media.asset;
     if (asset != null) {
       return Image.asset(

@@ -1,5 +1,6 @@
 // «Видеообзор» — просмотр видеоматериалов объекта в интерфейсе полноэкранного плеера (Instagram Reels style).
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -11,6 +12,7 @@ import '../../data/api_client.dart';
 import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
+import '../widgets/safe_image.dart';
 
 /// Затемнение поверх видео — аналогично просмотрщику фото.
 const LinearGradient _shade = LinearGradient(
@@ -131,9 +133,10 @@ final List<_ListingFeedItem> kVideoListings = [
 ];
 
 class VideoPage extends StatefulWidget {
-  const VideoPage({super.key, required this.id});
+  const VideoPage({super.key, required this.id, this.initialVideoIndex = 0});
 
   final String id;
+  final int initialVideoIndex;
 
   @override
   State<VideoPage> createState() => _VideoPageState();
@@ -157,6 +160,9 @@ class _VideoPageState extends State<VideoPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialVideoIndex > 0) {
+      _subVideoIndices[0] = widget.initialVideoIndex;
+    }
     _repository = ListingRepository(ListingApiClient(baseUrl: 'https://adilhan1234.pythonanywhere.com'));
     _verticalPages = PageController();
     _loadNextPage();
@@ -166,23 +172,71 @@ class _VideoPageState extends State<VideoPage> {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     try {
+      if (_feed.isEmpty && widget.id.isNotEmpty) {
+        try {
+          final targetListing = await _repository.getListingDetails(widget.id);
+          if (targetListing.videos.isNotEmpty) {
+            _feed.add(_ListingFeedItem(
+              listing: targetListing,
+              videos: targetListing.videos.map((v) => _SubVideo(
+                asset: v.url,
+                title: (v.title != null && v.title!.isNotEmpty) ? v.title! : 'Обзор — ${targetListing.district}',
+                description: (v.description != null && v.description!.isNotEmpty) ? v.description! : targetListing.description,
+              )).toList(),
+            ));
+          } else {
+            _feed.add(_ListingFeedItem(
+              listing: targetListing,
+              videos: [
+                _SubVideo(
+                  asset: 'assets/videos_obzor/video_1.mp4',
+                  title: 'Видеообзор — ${targetListing.district}',
+                  description: targetListing.description,
+                ),
+              ],
+            ));
+          }
+        } catch (e) {
+          debugPrint('Error loading target listing for video page: $e');
+        }
+      }
+
       final response = await _repository.getReelsFeed(cursor: _nextCursor);
-      final newItems = response.results.map((l) => _ListingFeedItem(
-        listing: l,
-        videos: l.videos.map((v) => _SubVideo(
-          asset: v.url, 
-          title: v.title ?? 'Обзор', 
-          description: v.description ?? l.description,
-        )).toList(),
-      )).toList();
+      for (final l in response.results) {
+        if (!_feed.any((f) => f.listing.id == l.id)) {
+          final vids = l.videos.isNotEmpty 
+              ? l.videos.map((v) => _SubVideo(
+                  asset: v.url,
+                  title: (v.title != null && v.title!.isNotEmpty) ? v.title! : 'Обзор — ${l.district}',
+                  description: (v.description != null && v.description!.isNotEmpty) ? v.description! : l.description,
+                )).toList()
+              : [
+                  _SubVideo(
+                    asset: 'assets/videos_obzor/video_1.mp4',
+                    title: 'Видеообзор — ${l.district}',
+                    description: l.description,
+                  ),
+                ];
+          _feed.add(_ListingFeedItem(
+            listing: l,
+            videos: vids,
+          ));
+        }
+      }
+
+      if (_feed.isEmpty) {
+        _feed.addAll(kVideoListings);
+      }
 
       setState(() {
-        _feed.addAll(newItems);
         _nextCursor = response.nextCursor;
         _hasMore = response.nextCursor != null;
       });
     } catch (e) {
       debugPrint('Error loading reels: $e');
+      if (_feed.isEmpty) {
+        _feed.addAll(kVideoListings);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -620,6 +674,8 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _isPlaying = true;
+  bool _userPaused = false;
+  bool _forceFill = false;
 
   bool get isPlaying => _isPlaying;
 
@@ -632,68 +688,98 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   Future<void> _initController() async {
     VideoPlayerController controller;
     try {
-      final uri = Uri.tryParse(widget.asset);
+      final assetPath = widget.asset.trim();
+      final uri = Uri.tryParse(assetPath);
       if (uri != null && (uri.isScheme('http') || uri.isScheme('https'))) {
-        controller = VideoPlayerController.networkUrl(uri);
+        controller = VideoPlayerController.networkUrl(
+          uri,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
       } else if (kIsWeb) {
-        final webUri = Uri.base.resolve('assets/${widget.asset}');
-        controller = VideoPlayerController.networkUrl(webUri);
+        final cleanPath = assetPath.startsWith('assets/') ? assetPath : 'assets/$assetPath';
+        final webUri = Uri.base.resolve(cleanPath);
+        controller = VideoPlayerController.networkUrl(
+          webUri,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
       } else {
-        controller = VideoPlayerController.asset(widget.asset);
+        controller = VideoPlayerController.asset(
+          assetPath,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
       }
       _controller = controller;
       await controller.initialize();
       if (!mounted) return;
       await controller.setLooping(true);
-      await controller.setVolume(widget.isMuted ? 0.0 : 1.0);
       await controller.seekTo(Duration.zero);
       
+      if (widget.isActive) {
+        await _playWithAutoplayFallback(controller);
+      }
+
       controller.addListener(_onControllerUpdate);
 
       setState(() {
         _isInitialized = true;
+        _isPlaying = controller.value.isPlaying;
       });
-
-      final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
-
-      if (widget.isActive && isCurrentRoute) {
-        try {
-          await controller.play();
-          if (mounted) setState(() => _isPlaying = true);
-        } catch (e) {
-          debugPrint('Autoplay error (unmuted fallback): $e');
-          await controller.setVolume(0.0);
-          await controller.play();
-          if (mounted) setState(() => _isPlaying = true);
-        }
-      }
     } catch (e) {
       debugPrint('Primary controller failed ($e), trying fallback...');
       try {
-        final fallbackController = VideoPlayerController.asset(widget.asset);
+        final fallbackController = VideoPlayerController.asset(
+          widget.asset,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
         _controller = fallbackController;
         await fallbackController.initialize();
         if (!mounted) return;
         await fallbackController.setLooping(true);
-        await fallbackController.setVolume(widget.isMuted ? 0.0 : 1.0);
+        if (widget.isActive) {
+          await _playWithAutoplayFallback(fallbackController);
+        }
         fallbackController.addListener(_onControllerUpdate);
         setState(() {
           _isInitialized = true;
+          _isPlaying = fallbackController.value.isPlaying;
         });
-        final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
-        if (widget.isActive && isCurrentRoute) {
-          await fallbackController.play();
-          if (mounted) setState(() => _isPlaying = true);
-        }
       } catch (err) {
         debugPrint('Video initialization failed completely: $err');
       }
     }
   }
 
+  Future<void> _playWithAutoplayFallback(VideoPlayerController controller) async {
+    _userPaused = false;
+    try {
+      await controller.setLooping(true);
+      await controller.setVolume(widget.isMuted ? 0.0 : 1.0);
+      await controller.play();
+      if (!controller.value.isPlaying) {
+        // Fallback for browsers with strict autoplay policies
+        await controller.setVolume(0.0);
+        await controller.play();
+      }
+    } catch (e) {
+      debugPrint('Autoplay retry with mute: $e');
+      try {
+        await controller.setVolume(0.0);
+        await controller.play();
+      } catch (err) {
+        debugPrint('Autoplay completely failed: $err');
+      }
+    }
+    if (mounted) {
+      setState(() => _isPlaying = controller.value.isPlaying);
+    }
+  }
+
   void _onControllerUpdate() {
     if (_controller == null || !mounted) return;
     final isPlaying = _controller!.value.isPlaying;
+    if (widget.isActive && !_userPaused && !isPlaying && _isInitialized) {
+      _controller!.play();
+    }
     if (_isPlaying != isPlaying) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _controller != null) {
@@ -712,6 +798,8 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
     if (!isCurrent) {
       pauseVideo();
+    } else if (widget.isActive && _isInitialized && _controller != null && !_controller!.value.isPlaying) {
+      _playWithAutoplayFallback(_controller!);
     }
   }
 
@@ -728,11 +816,9 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
       return;
     }
 
-    final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
-
     if (oldWidget.isActive != widget.isActive) {
-      if (widget.isActive && isCurrentRoute) {
-        _controller!.play();
+      if (widget.isActive) {
+        _playWithAutoplayFallback(_controller!);
       } else {
         pauseVideo();
       }
@@ -746,7 +832,6 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   @override
   void deactivate() {
     _controller?.pause();
-    _controller?.setVolume(0.0);
     super.deactivate();
   }
 
@@ -760,8 +845,10 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   void togglePlayPause() {
     if (_controller == null || !_isInitialized) return;
     if (_controller!.value.isPlaying) {
+      _userPaused = true;
       pauseVideo();
     } else {
+      _userPaused = false;
       _controller!.setVolume(widget.isMuted ? 0.0 : 1.0);
       _controller!.play();
       setState(() => _isPlaying = true);
@@ -772,7 +859,6 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
     if (_controller != null) {
       try {
         _controller!.pause();
-        _controller!.setVolume(0.0);
       } catch (_) {}
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -786,39 +872,101 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
 
   @override
   Widget build(BuildContext context) {
+    final size = _controller?.value.size;
+    final double rawRatio = (_controller != null && _controller!.value.aspectRatio > 0)
+        ? _controller!.value.aspectRatio
+        : ((size != null && size.width > 0 && size.height > 0)
+            ? (size.width / size.height)
+            : (9 / 16));
+
+    // В Instagram Reels:
+    // Вертикальные видео (aspect ratio <= 0.65, т.е. ~9:16) заполняют экран.
+    // Горизонтальные, квадратные или промежуточные (16:9, 4:3, 1:1) отображаются по центру с сохранением
+    // оригинальных пропорций, а вокруг создаётся мягкий размытый фон из самого видео (как в Instagram Reels).
+    final bool isVertical = rawRatio <= 0.65;
+    final bool useFill = isVertical || _forceFill;
+
     return GestureDetector(
       onTap: togglePlayPause,
+      onDoubleTap: () {
+        if (!isVertical) {
+          setState(() {
+            _forceFill = !_forceFill;
+          });
+        }
+      },
       behavior: HitTestBehavior.opaque,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (_isInitialized && _controller != null)
-            SizedBox.expand(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                clipBehavior: Clip.hardEdge,
-                child: SizedBox(
-                  width: _controller!.value.size.width,
-                  height: _controller!.value.size.height,
-                  child: VideoPlayer(_controller!),
+          // 1. Размытый фоновый слой для горизонтальных / квадратных видео (Instagram style ambient backdrop)
+          if (!useFill && _isInitialized && _controller != null) ...[
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  clipBehavior: Clip.hardEdge,
+                  child: SizedBox(
+                    width: _controller!.value.size.width > 0 ? _controller!.value.size.width : 100,
+                    height: _controller!.value.size.height > 0 ? _controller!.value.size.height : 100,
+                    child: VideoPlayer(_controller!),
+                  ),
                 ),
               ),
-            )
-          else
-            Image.asset(
-              widget.posterPhoto,
-              fit: BoxFit.cover,
-              errorBuilder: (context, _, _) =>
-                  const ColoredBox(color: Color(0xff1c1b19)),
             ),
+            Positioned.fill(
+              child: Container(
+                color: const Color(0x66000000), // лёгкое затемнение фона
+              ),
+            ),
+          ],
+
+          // 2. Основной видеоплеер с правильным aspect ratio
+          if (_isInitialized && _controller != null)
+            if (useFill)
+              SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  clipBehavior: Clip.hardEdge,
+                  child: SizedBox(
+                    width: _controller!.value.size.width > 0 ? _controller!.value.size.width : 100,
+                    height: _controller!.value.size.height > 0 ? _controller!.value.size.height : 100,
+                    child: VideoPlayer(_controller!),
+                  ),
+                ),
+              )
+            else
+              Center(
+                child: AspectRatio(
+                  aspectRatio: rawRatio,
+                  child: VideoPlayer(_controller!),
+                ),
+              )
+          else
+            (widget.posterPhoto.startsWith('http://') || widget.posterPhoto.startsWith('https://'))
+                ? buildSafeNetworkImage(
+                    url: widget.posterPhoto,
+                    fit: BoxFit.cover,
+                    fallback: const ColoredBox(color: Color(0xff1c1b19)),
+                  )
+                : Image.asset(
+                    widget.posterPhoto,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, _, _) =>
+                        const ColoredBox(color: Color(0xff1c1b19)),
+                  ),
+
+          // Индикатор загрузки
           if (!_isInitialized)
             const Center(
               child: CircularProgressIndicator(
                 color: Color(0xffea812e),
               ),
             ),
-          // Показываем иконку Плей по центру только если видео стоит на паузе
-          if (_isInitialized && !_isPlaying)
+
+          // Иконка паузы / Play по центру (только при ручной паузе)
+          if (_isInitialized && _userPaused)
             Center(
               child: IgnorePointer(
                 child: Container(
@@ -833,6 +981,48 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
                     Icons.play_arrow_rounded,
                     size: 38,
                     color: Color(0xffffffff),
+                  ),
+                ),
+              ),
+            ),
+
+          // Кнопка быстрого переключения оригинального соотношения / заполнения (как в Reels)
+          if (_isInitialized && !isVertical)
+            Positioned(
+              right: 16,
+              bottom: 120,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  setState(() {
+                    _forceFill = !_forceFill;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0x73000000),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0x40ffffff), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _forceFill ? Icons.aspect_ratio : Icons.fullscreen,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _forceFill ? 'Оригинал' : 'Заполнить',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
