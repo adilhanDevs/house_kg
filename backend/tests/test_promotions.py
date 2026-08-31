@@ -435,3 +435,49 @@ def test_view_and_favourite_increment_daily_stats(listing, api_client):
     stat = ListingDailyStat.objects.get(listing=listing, date=timezone.localdate())
     assert stat.views == 1
     assert stat.favourites == 1
+
+
+def test_retry_after_topup_succeeds_with_the_same_key():
+    """Сценарий «не хватило кирпичей → пополнил → повторил» из приложения.
+
+    Экран продвижения ловит 402, открывает оплату через Finik на `shortfall`
+    и повторяет запрос с тем же Idempotency-Key. Ключ не должен помешать
+    списанию: первая попытка ничего не создала.
+    """
+    poor = UserFactory()
+    fund(poor, 300)
+    listing = ListingFactory(owner=poor, status=ListingStatus.ACTIVE)
+    client = client_for(poor)
+
+    refused = promote(client, listing, "promo-retry")
+    assert refused.status_code == 402
+    shortfall = refused.data["error"]["details"]["shortfall"]
+
+    # Пополнение ровно на недостачу — столько и запросит платёжная шторка.
+    fund(poor, shortfall)
+
+    accepted = promote(client, listing, "promo-retry")
+
+    assert accepted.status_code == 201, accepted.data
+    assert Promotion.objects.count() == 1
+    assert get_wallet(poor).balance == 0
+    listing.refresh_from_db()
+    assert listing.promoted_until is not None
+
+
+def test_shortfall_is_the_missing_part_not_the_full_price():
+    """`shortfall` — недостача, а не полная цена.
+
+    Приложение открывает пополнение именно на это число; если бы там лежала
+    полная стоимость, пользователь заплатил бы второй раз за то, что уже
+    есть на балансе.
+    """
+    poor = UserFactory()
+    fund(poor, 300)
+    listing = ListingFactory(owner=poor, status=ListingStatus.ACTIVE)
+
+    response = promote(client_for(poor), listing, "promo-shortfall")
+
+    details = response.data["error"]["details"]
+    assert details["shortfall"] == details["required"] - details["available"]
+    assert details["shortfall"] < details["required"]

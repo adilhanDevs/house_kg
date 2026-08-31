@@ -242,6 +242,27 @@ class ListingApiClient {
     }
   }
 
+  /// GET /api/v1/promotions/pricing/ — стоимость продвижения и баланс.
+  ///
+  /// Отдаёт `total_cost`, `balance` и `is_affordable`, поэтому экран может
+  /// показать цену и понять, хватает ли кирпичей, ещё до попытки оплаты.
+  Future<Map<String, dynamic>> getPromotionPricing({int days = 1, String? package}) async {
+    final params = <String, String>{'days': days.toString()};
+    if (package != null && package.isNotEmpty) params['package'] = package;
+
+    final uri = Uri.parse('$baseUrl/api/v1/promotions/pricing/')
+        .replace(queryParameters: params);
+    try {
+      final response = await _client.get(uri, headers: {'Accept': 'application/json'});
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> promoteListing(String slug, int days, String idempotencyKey) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$slug/promote/');
     try {
@@ -507,6 +528,8 @@ class ListingApiClient {
       return jsonDecode(decoded) as Map<String, dynamic>;
     } else {
       String errorMessage = 'Ошибка: ${response.statusCode}';
+      String errorCode = '';
+      Map<String, dynamic> errorDetails = const {};
       try {
         if (response.bodyBytes.isNotEmpty) {
           final decoded = utf8.decode(response.bodyBytes);
@@ -515,7 +538,15 @@ class ListingApiClient {
             if (errorData['error'] is Map && errorData['error']['message'] != null) {
               final msg = errorData['error']['message'];
               final details = errorData['error']['details'];
-              if (details is Map && details.isNotEmpty) {
+              errorCode = (errorData['error']['code'] ?? '').toString();
+              if (details is Map) {
+                errorDetails = Map<String, dynamic>.from(details);
+              }
+              // Детали приклеиваем к тексту только у ошибок валидации — там
+              // это подсказка по конкретным полям. У остальных (нехватка
+              // средств, конфликт) получилось бы «Недостаточно средств
+              // (required: 780, available: 100)» вместо человеческой фразы.
+              if (errorCode == 'validation_error' && details is Map && details.isNotEmpty) {
                 final fieldErrors = details.entries.map((e) => '${e.key}: ${e.value}').join(', ');
                 errorMessage = '$msg ($fieldErrors)';
               } else {
@@ -534,6 +565,8 @@ class ListingApiClient {
       throw ApiException(
         response.statusCode,
         errorMessage,
+        code: errorCode,
+        details: errorDetails,
       );
     }
   }

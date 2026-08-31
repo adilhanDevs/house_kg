@@ -251,27 +251,20 @@ class AppState extends ChangeNotifier {
         await apiClient.cancelSubscription();
       } catch (_) {}
       currentSubscription = null;
-    } else if (withBricks) {
-      final requiredBricks = tariff.priceBricks ?? tariff.priceSom;
-      if (walletBalance < requiredBricks) {
-        throw ApiException(400, 'Недостаточно кирпичей в кошельке ($walletBalance из $requiredBricks). Пополните баланс.');
-      }
-      try {
-        final sub = await apiClient.subscribe(tariff.code, paymentMethod: 'bricks');
-        currentSubscription = sub;
-      } catch (e) {
-        debugPrint('Backend subscribe error: $e');
-      }
-      spend(requiredBricks, 'Тариф «${tariff.name}» (1 месяц)');
     } else {
-      try {
-        final sub = await apiClient.subscribe(tariff.code, paymentMethod: 'som');
-        currentSubscription = sub;
-      } catch (e) {
-        debugPrint('Backend subscribe error: $e');
-      }
+      // Кирпичи за подписку списывает бэкенд (apps/billing/subscriptions.py).
+      // Раньше клиент списывал их ещё раз локально — баланс на экране падал
+      // вдвое, пока его не перечитывали с сервера.
+      final sub = await apiClient.subscribe(
+        tariff.code,
+        paymentMethod: withBricks ? 'bricks' : 'som',
+      );
+      currentSubscription = sub;
+      await fetchWalletBalance();
     }
 
+    // Сюда доходим только если сервер подтвердил подписку: ошибка выше
+    // пробрасывается вызывающему экрану, а не гасится в debugPrint.
     currentTariffCode = tariff.code;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('current_tariff_code', currentTariffCode);

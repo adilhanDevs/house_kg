@@ -4,6 +4,7 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/tariff.dart';
+import '../../data/api_client.dart';
 import '../widgets/finik_payment_sheet.dart';
 
 class TariffsPage extends StatefulWidget {
@@ -96,28 +97,79 @@ class _TariffsPageState extends State<TariffsPage> {
           ),
         );
       }
-    } catch (e) {
-      if (mounted) {
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      // Не хватило кирпичей — предлагаем оплатить недостачу через Finik и
+      // повторить. Остальные ошибки показываем как есть, а не под заголовком
+      // «Недостаточно средств», которым раньше накрывало вообще всё.
+      if (e.isInsufficientFunds) {
+        final missing = e.missingBricks;
+        final topUp = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Недостаточно кирпичей'),
+            content: Text(
+              missing != null
+                  ? 'Не хватает $missing кирпичей. Пополнить кошелёк и подключить тариф?'
+                  : e.message,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Отмена'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Пополнить', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+
+        if (topUp == true && mounted && missing != null) {
+          final paid = await showFinikPaymentSheet(
+            context: context,
+            amountSom: missing,
+            purposeTitle: 'Пополнение на тариф «${plan.name}»',
+            state: state,
+            tariff: plan,
+          );
+          if (paid == true && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Тариф «${plan.name}» успешно активирован!'),
+                backgroundColor: const Color(0xff2e7d32),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } else if (topUp == true && mounted) {
+          Navigator.pushNamed(context, Routes.topup);
+        }
+      } else {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Недостаточно средств'),
-            content: Text(e.toString()),
+            title: const Text('Не удалось подключить тариф'),
+            content: Text(e.message),
             actions: [
-              if (withBricks)
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.pushNamed(context, Routes.topup);
-                  },
-                  child: const Text('Пополнить кошелёк', style: TextStyle(color: Color(0xffea812e), fontWeight: FontWeight.bold)),
-                ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('Понятно', style: TextStyle(color: Colors.white)),
               ),
             ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Не удалось подключить тариф: $e'),
+            backgroundColor: const Color(0xffd93025),
           ),
         );
       }

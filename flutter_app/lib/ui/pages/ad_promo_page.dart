@@ -8,6 +8,7 @@ import '../../app/stage.dart';
 import '../../data/api_client.dart';
 import '../../fig/fig.dart';
 import '../fig_controls.dart';
+import '../widgets/finik_payment_sheet.dart';
 
 class AdPromoPage extends StatefulWidget {
   const AdPromoPage({super.key});
@@ -28,11 +29,34 @@ class _AdPromoPageState extends State<AdPromoPage> {
   
   late final String _idempotencyKey;
 
+  /// Предрасчёт с сервера: цена продвижения и баланс кошелька. Пока не
+  /// загружен, экран не показывает выдуманных чисел.
+  Map<String, dynamic>? _pricing;
+
   @override
   void initState() {
     super.initState();
     _idempotencyKey = const Uuid().v4();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPricing());
   }
+
+  /// Тянет стоимость продвижения на выбранное число дней.
+  Future<void> _loadPricing() async {
+    if (!mounted) return;
+    final state = AppScope.read(context);
+    final days = int.tryParse(_daysController.text.trim()) ?? _selectedDay;
+    try {
+      final pricing = await state.apiClient.getPromotionPricing(days: days > 0 ? days : 1);
+      if (mounted) setState(() => _pricing = pricing);
+    } catch (e) {
+      debugPrint('Не удалось получить стоимость продвижения: \$e');
+    }
+  }
+
+  int get _promotionCost => (_pricing?['total_cost'] as num?)?.toInt() ?? 0;
+
+  int get _walletBalance =>
+      (_pricing?['balance'] as num?)?.toInt() ?? AppScope.read(context).walletBalance;
 
   @override
   void dispose() {
@@ -43,27 +67,99 @@ class _AdPromoPageState extends State<AdPromoPage> {
 
   bool _isPublishing = false;
 
+  /// Списывает кирпичи за продвижение. При нехватке открывает пополнение
+  /// через Finik на недостающую сумму и повторяет попытку.
+  ///
+  /// Ключ идемпотентности один на обе попытки: повторный запрос с тем же
+  /// ключом не спишет дважды.
+  Future<bool> _promote(AppState state, String slug, int days) async {
+    try {
+      await state.apiClient.promoteListing(slug, days, _idempotencyKey);
+      return true;
+    } on ApiException catch (e) {
+      if (!e.isInsufficientFunds || !mounted) {
+        if (mounted) _showPromotionError(e.message);
+        return false;
+      }
+
+      // 1 сом = 1 кирпич при пополнении (§1.2 ТЗ), поэтому недостающие
+      // кирпичи — это и есть сумма к оплате.
+      final missing = e.missingBricks ?? (_promotionCost - _walletBalance);
+      if (missing <= 0) {
+        _showPromotionError(e.message);
+        return false;
+      }
+
+      final paid = await showFinikPaymentSheet(
+        context: context,
+        amountSom: missing,
+        purposeTitle: 'Пополнение на продвижение объявления',
+        state: state,
+      );
+      if (paid != true || !mounted) return false;
+
+      await state.fetchWalletBalance();
+      try {
+        await state.apiClient.promoteListing(slug, days, _idempotencyKey);
+        return true;
+      } catch (retryError) {
+        if (mounted) {
+          _showPromotionError(
+            retryError is ApiException ? retryError.message : retryError.toString(),
+          );
+        }
+        return false;
+      }
+    } catch (e) {
+      if (mounted) _showPromotionError(e.toString());
+      return false;
+    }
+  }
+
+  void _showPromotionError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Продвижение не оплачено: $message'),
+        duration: const Duration(seconds: 4),
+        backgroundColor: const Color(0xffd93025),
+      ),
+    );
+  }
+
   Future<void> _publishListing({required bool withPromo}) async {
     setState(() => _isPublishing = true);
     final state = AppScope.read(context);
     final slug = state.draftSlug ?? 'draft-slug';
     try {
       await state.apiClient.publishListing(slug);
-      
+
+      // Продвижение оплачивается кирпичами. Если их не хватает, предлагаем
+      // пополнить кошелёк через Finik и повторяем списание — молча
+      // проглатывать ошибку нельзя, иначе экран рапортует об успехе, которого
+      // не было.
+      var promoted = false;
       if (withPromo) {
         final days = int.tryParse(_daysController.text.trim()) ?? _selectedDay;
-        try {
-          await state.apiClient.promoteListing(slug, days, _idempotencyKey);
-        } catch (pe) {
-          debugPrint('Promotion warning: $pe');
+        promoted = await _promote(state, slug, days);
+        if (!promoted && mounted) {
+          // Объявление опубликовано, продвижение — нет. Так и говорим.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Объявление опубликовано, но продвижение не оплачено'),
+              duration: Duration(seconds: 3),
+              backgroundColor: Color(0xffd93025),
+            ),
+          );
+          Navigator.of(context).pushReplacementNamed(Routes.adPreview, arguments: slug);
+          return;
         }
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(withPromo 
-                ? 'Объявление успешно опубликовано и продвинуто!' 
+            content: Text(promoted
+                ? 'Объявление успешно опубликовано и продвинуто!'
                 : 'Объявление успешно опубликовано!'),
             duration: const Duration(seconds: 2),
             backgroundColor: const Color(0xffea812e),
@@ -329,12 +425,18 @@ class _AdPromoPageState extends State<AdPromoPage> {
                     bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
                   ),
                   const SizedBox(width: 6.0),
-                  const Text(
-                    'Ваш баланс: 8938 кирпичей',
+                  // Настоящий баланс и цена: раньше здесь стояло зашитое
+                  // «8938 кирпичей», одинаковое у всех пользователей.
+                  Text(
+                    _pricing == null
+                        ? 'Ваш баланс: $_walletBalance кирпичей'
+                        : 'Баланс: $_walletBalance · продвижение: $_promotionCost кирпичей',
                     style: TextStyle(
                       fontSize: 14.0,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xff4dba17),
+                      color: _pricing != null && _walletBalance < _promotionCost
+                          ? const Color(0xffd93025)
+                          : const Color(0xff4dba17),
                     ),
                   ),
                 ],
@@ -371,6 +473,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                   onTap: () {
                     setState(() {
                       _selectedDay = day;
+                      _loadPricing();
                       _daysController.clear();
                     });
                   },

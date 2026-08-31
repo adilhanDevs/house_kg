@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_state.dart';
+import '../../data/api_client.dart';
 import '../../data/topup.dart';
 import '../../data/tariff.dart';
 
@@ -289,12 +290,23 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
       return;
     }
 
-    // Тариф подключаем только после подтверждённой оплаты.
+    // Тариф подключаем только после подтверждённой оплаты. Если подключить
+    // не удалось — деньги уже зачислены кирпичами, и об этом надо сказать
+    // прямо, а не показывать успех: иначе пользователь уйдёт с экрана
+    // уверенным, что тариф работает.
     if (widget.tariff != null) {
       try {
         await widget.state.buySubscription(widget.tariff!, withBricks: true);
       } catch (e) {
-        debugPrint('Не удалось активировать тариф после оплаты: $e');
+        if (!mounted) return;
+        setState(() {
+          _isProcessing = false;
+          _statusText = null;
+          _error = 'Оплата прошла и кирпичи зачислены, но тариф подключить не '
+              'удалось: ${e is ApiException ? e.message : e}. Попробуйте '
+              'подключить его на экране тарифов.';
+        });
+        return;
       }
     }
 
