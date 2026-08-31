@@ -289,6 +289,17 @@
         ],
         "type": "string"
       },
+      "ConditionEnum": {
+        "description": "* `euro` - Евроремонт\n* `good` - Хорошее состояние\n* `shell` - Под самоотделку\n* `medium` - Среднее состояние\n* `none` - Без ремонта",
+        "enum": [
+          "euro",
+          "good",
+          "shell",
+          "medium",
+          "none"
+        ],
+        "type": "string"
+      },
       "ConsentRequestRequest": {
         "description": "Согласие, данное уже после регистрации (реклама, аналитика).",
         "properties": {
@@ -800,6 +811,15 @@
         ],
         "type": "object"
       },
+      "FurnitureEnum": {
+        "description": "* `full` - Полностью меблирована\n* `partial` - Частично с мебелью\n* `none` - Без мебели",
+        "enum": [
+          "full",
+          "partial",
+          "none"
+        ],
+        "type": "string"
+      },
       "Health": {
         "description": "Ответ health-check.",
         "properties": {
@@ -825,6 +845,16 @@
         "enum": [
           "ok",
           "error"
+        ],
+        "type": "string"
+      },
+      "HeatingEnum": {
+        "description": "* `central` - Центральное\n* `gas` - Газовое\n* `electric` - Электрическое\n* `autonomous` - Автономное",
+        "enum": [
+          "central",
+          "gas",
+          "electric",
+          "autonomous"
         ],
         "type": "string"
       },
@@ -1159,6 +1189,15 @@
             "readOnly": true,
             "title": "Назначение помещения"
           },
+          "condition": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConditionEnum"
+              }
+            ],
+            "readOnly": true,
+            "title": "Состояние и ремонт"
+          },
           "cover_url": {
             "format": "uri",
             "nullable": true,
@@ -1187,6 +1226,11 @@
             ],
             "readOnly": true
           },
+          "exchange_possible": {
+            "readOnly": true,
+            "title": "Возможен обмен",
+            "type": "boolean"
+          },
           "favourites_count": {
             "readOnly": true,
             "title": "В избранном",
@@ -1203,9 +1247,13 @@
             "type": "integer"
           },
           "furniture": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FurnitureEnum"
+              }
+            ],
             "readOnly": true,
-            "title": "Мебель",
-            "type": "string"
+            "title": "Мебель"
           },
           "hall_area": {
             "format": "decimal",
@@ -1220,6 +1268,11 @@
             "title": "Прямая покупка",
             "type": "boolean"
           },
+          "has_gas": {
+            "readOnly": true,
+            "title": "Наличие газа",
+            "type": "boolean"
+          },
           "has_mortgage": {
             "readOnly": true,
             "title": "Ипотека",
@@ -1229,6 +1282,15 @@
             "readOnly": true,
             "title": "Отдельный вход",
             "type": "boolean"
+          },
+          "heating": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HeatingEnum"
+              }
+            ],
+            "readOnly": true,
+            "title": "Отопление"
           },
           "is_available": {
             "readOnly": true,
@@ -1418,18 +1480,22 @@
           "building_line",
           "ceiling_height",
           "commercial_purpose",
+          "condition",
           "cover_url",
           "currency",
           "description",
           "district",
+          "exchange_possible",
           "favourites_count",
           "floor",
           "floors",
           "furniture",
           "hall_area",
           "has_direct_sale",
+          "has_gas",
           "has_mortgage",
           "has_separate_entrance",
+          "heating",
           "is_available",
           "is_favourite",
           "is_promoted",
@@ -1560,6 +1626,15 @@
             ],
             "readOnly": true
           },
+          "condition": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConditionEnum"
+              }
+            ],
+            "readOnly": true,
+            "title": "Состояние и ремонт"
+          },
           "cover_url": {
             "format": "uri",
             "nullable": true,
@@ -1588,6 +1663,11 @@
             ],
             "readOnly": true
           },
+          "exchange_possible": {
+            "readOnly": true,
+            "title": "Возможен обмен",
+            "type": "boolean"
+          },
           "favourites_count": {
             "readOnly": true,
             "title": "В избранном",
@@ -1604,9 +1684,13 @@
             "type": "integer"
           },
           "furniture": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FurnitureEnum"
+              }
+            ],
             "readOnly": true,
-            "title": "Мебель",
-            "type": "string"
+            "title": "Мебель"
           },
           "hall_area": {
             "format": "decimal",
@@ -1621,6 +1705,11 @@
             "title": "Прямая покупка",
             "type": "boolean"
           },
+          "has_gas": {
+            "readOnly": true,
+            "title": "Наличие газа",
+            "type": "boolean"
+          },
           "has_mortgage": {
             "readOnly": true,
             "title": "Ипотека",
@@ -1630,6 +1719,15 @@
             "readOnly": true,
             "title": "Отдельный вход",
             "type": "boolean"
+          },
+          "heating": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HeatingEnum"
+              }
+            ],
+            "readOnly": true,
+            "title": "Отопление"
           },
           "is_available": {
             "readOnly": true,
@@ -1829,18 +1927,22 @@
           "ceiling_height",
           "commercial_purpose",
           "completeness",
+          "condition",
           "cover_url",
           "currency",
           "description",
           "district",
+          "exchange_possible",
           "favourites_count",
           "floor",
           "floors",
           "furniture",
           "hall_area",
           "has_direct_sale",
+          "has_gas",
           "has_mortgage",
           "has_separate_entrance",
+          "heating",
           "is_available",
           "is_favourite",
           "is_promoted",
@@ -2595,6 +2697,17 @@
             ],
             "title": "Назначение помещения"
           },
+          "condition": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ConditionEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              }
+            ],
+            "title": "Состояние и ремонт"
+          },
           "contact_name": {
             "maxLength": 150,
             "title": "Контактное лицо",
@@ -2622,6 +2735,10 @@
             "title": "Слаг",
             "type": "string"
           },
+          "exchange_possible": {
+            "title": "Возможен обмен",
+            "type": "boolean"
+          },
           "floor": {
             "format": "int64",
             "maximum": 9223372036854775807,
@@ -2637,9 +2754,15 @@
             "type": "integer"
           },
           "furniture": {
-            "maxLength": 50,
-            "title": "Мебель",
-            "type": "string"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FurnitureEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              }
+            ],
+            "title": "Мебель"
           },
           "hall_area": {
             "format": "decimal",
@@ -2652,6 +2775,10 @@
             "title": "Прямая покупка",
             "type": "boolean"
           },
+          "has_gas": {
+            "title": "Наличие газа",
+            "type": "boolean"
+          },
           "has_mortgage": {
             "title": "Ипотека",
             "type": "boolean"
@@ -2659,6 +2786,17 @@
           "has_separate_entrance": {
             "title": "Отдельный вход",
             "type": "boolean"
+          },
+          "heating": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HeatingEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              }
+            ],
+            "title": "Отопление"
           },
           "is_secondary": {
             "title": "Вторичка",
@@ -3917,6 +4055,17 @@
             ],
             "title": "Назначение помещения"
           },
+          "condition": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ConditionEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              }
+            ],
+            "title": "Состояние и ремонт"
+          },
           "contact_name": {
             "maxLength": 150,
             "title": "Контактное лицо",
@@ -3945,6 +4094,10 @@
             "title": "Слаг",
             "type": "string"
           },
+          "exchange_possible": {
+            "title": "Возможен обмен",
+            "type": "boolean"
+          },
           "floor": {
             "format": "int64",
             "maximum": 9223372036854775807,
@@ -3960,9 +4113,15 @@
             "type": "integer"
           },
           "furniture": {
-            "maxLength": 50,
-            "title": "Мебель",
-            "type": "string"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FurnitureEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              }
+            ],
+            "title": "Мебель"
           },
           "hall_area": {
             "format": "decimal",
@@ -3975,6 +4134,10 @@
             "title": "Прямая покупка",
             "type": "boolean"
           },
+          "has_gas": {
+            "title": "Наличие газа",
+            "type": "boolean"
+          },
           "has_mortgage": {
             "title": "Ипотека",
             "type": "boolean"
@@ -3982,6 +4145,17 @@
           "has_separate_entrance": {
             "title": "Отдельный вход",
             "type": "boolean"
+          },
+          "heating": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HeatingEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              }
+            ],
+            "title": "Отопление"
           },
           "is_secondary": {
             "title": "Вторичка",

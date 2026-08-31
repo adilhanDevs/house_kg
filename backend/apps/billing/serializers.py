@@ -100,6 +100,7 @@ class TopupResponseSerializer(serializers.Serializer):
     total_bricks = serializers.IntegerField()
     payment_url = serializers.CharField(allow_blank=True)
     qr_code_url = serializers.CharField(allow_blank=True)
+    qr_data = serializers.CharField(allow_blank=True)
     expires_at = serializers.DateTimeField(allow_null=True)
     providers = PaymentProviderSerializer(many=True)
 

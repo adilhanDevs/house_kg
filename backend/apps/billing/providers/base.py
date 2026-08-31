@@ -16,6 +16,8 @@ class PaymentIntent:
 
     payment_url: str
     qr_code_url: str = ""
+    # Строка, которую клиент рисует как QR. Обычно это та же ссылка на оплату.
+    qr_data: str = ""
     provider_ref: str = ""
     extra: dict[str, Any] = field(default_factory=dict)
 

@@ -170,6 +170,14 @@ def test_masking_does_not_touch_ordinary_numbers():
     assert mask_text(text) == text
 
 
+def test_mask_text_survives_all_zero_digit_runs():
+    """Строка из одних нулей роняла маску телефона, а с ней и логгер."""
+    text = "paymentId 00000000-0000-0000-0000-000000000000 не совпал"
+
+    assert mask_text(text)  # не падает
+    assert "00000000-0000-0000-0000-000000000000" not in mask_text(text)
+
+
 def test_nested_structures_are_masked():
     masked = mask_pii(
         None,

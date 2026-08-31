@@ -4,6 +4,7 @@ import json
 import uuid
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.test import override_settings
@@ -386,3 +387,109 @@ def test_bonus_matches_configured_rate(auth: APIClient) -> None:
     assert body["bricks"] == 100
     assert body["bonus_bricks"] == 10
     assert Decimal(body["amount_kgs"]) == Decimal("100.00")
+
+
+# -- Finik Pay: счёт и колбэк ------------------------------------------------
+
+FINIK_WEBHOOK_URL = "/api/v1/webhooks/payments/finik/"
+FINIK_ACCOUNT = "5bcbb092-0000-0000-0000-000000000000"
+
+finik_settings = override_settings(
+    PAYMENT_PROVIDER="finik",
+    FINIK_API_KEY="test-api-key",
+    FINIK_ACCOUNT_ID=FINIK_ACCOUNT,
+    FINIK_SECRET_KEY="",
+    PAYMENT_WEBHOOK_SECRET="",
+)
+
+
+def finik_callback(client: APIClient, item_id: str, payment_id: str, amount: str = "12000.00"):
+    payload = {
+        "status": "SUCCEEDED",
+        "accountId": FINIK_ACCOUNT,
+        "amount": amount,
+        "transactionId": f"trx-{item_id}",
+        "item": {"id": item_id},
+        "fields": {"paymentId": payment_id, "paymentKind": "wallet_topup"},
+    }
+    return client.post(
+        FINIK_WEBHOOK_URL,
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+
+@finik_settings
+def test_finik_topup_is_credited_by_callback_once(auth: APIClient, user, api_client: APIClient):
+    """Полный путь: счёт в Finik -> колбэк -> кирпичи на балансе, ровно один раз."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    create_response = {"data": {"createItem": {"id": "finik-item-1", "requestId": "1"}}}
+
+    with patch(
+        "apps.billing.providers.finik._finik_graphql", return_value=create_response
+    ):
+        created = auth.post(
+            TOPUP_URL,
+            {"amount_kgs": 12_000},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY=uuid.uuid4().hex,
+        )
+
+    assert created.status_code == 201, created.data
+    payment_id = created.data["payment_id"]
+    assert created.data["payment_url"]
+    # QR клиент рисует сам — строка обязана прийти.
+    assert created.data["qr_data"]
+
+    payment = Payment.objects.get(pk=payment_id)
+    assert payment.provider == "finik"
+    assert payment.provider_ref == "finik-item-1"
+
+    verified_item = {
+        "id": "finik-item-1",
+        "fixedAmount": 12_000,
+        "paymentCount": 1,
+        "requiredFields": [{"fieldId": "paymentId", "value": str(payment_id)}],
+    }
+
+    with patch.object(
+        FinikPaymentProvider, "verify_finik_transaction", return_value=verified_item
+    ):
+        first = finik_callback(api_client, "finik-item-1", str(payment_id))
+        second = finik_callback(api_client, "finik-item-1", str(payment_id))
+
+    assert first.status_code == 200, first.data
+    assert second.status_code == 200
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.SUCCEEDED
+    # 12 000 кирпичей + 10 % бонуса, и ни кирпичом больше на повторный колбэк.
+    assert get_wallet(user).balance == 13_200
+    assert WalletTransaction.objects.filter(wallet__user=user).count() == 2
+
+
+@finik_settings
+def test_finik_callback_without_confirmation_does_not_credit(
+    auth: APIClient, user, api_client: APIClient
+):
+    """Колбэк, который Finik не подтвердил, не начисляет ничего."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    create_response = {"data": {"createItem": {"id": "finik-item-2"}}}
+    with patch("apps.billing.providers.finik._finik_graphql", return_value=create_response):
+        created = auth.post(
+            TOPUP_URL,
+            {"amount_kgs": 12_000},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY=uuid.uuid4().hex,
+        )
+
+    payment_id = created.data["payment_id"]
+
+    with patch.object(FinikPaymentProvider, "verify_finik_transaction", return_value=None):
+        response = finik_callback(api_client, "finik-item-2", str(payment_id))
+
+    assert response.status_code == 403
+    assert get_wallet(user).balance == 0
+    assert Payment.objects.get(pk=payment_id).status == PaymentStatus.PENDING

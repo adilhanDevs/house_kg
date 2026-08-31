@@ -154,6 +154,8 @@ class ListingAdmin(admin.ModelAdmin):
                     "rooms",
                     ("floor", "floors"),
                     "furniture",
+                    ("condition", "heating"),
+                    ("has_gas", "exchange_possible"),
                 ]
             },
         ),

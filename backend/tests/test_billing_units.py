@@ -464,17 +464,12 @@ def test_finik_provider_signature_and_webhook(settings):
         provider.verify_webhook(bad_request)
 
 
-def test_finik_provider_safa_callback_format(settings):
-    from apps.billing.providers.finik import FinikPaymentProvider
-
-    settings.FINIK_ACCOUNT_ID = "finik-account-123"
-    provider = FinikPaymentProvider()
-
-    callback_payload = {
+def _finik_callback_payload(**overrides):
+    payload = {
         "status": "SUCCEEDED",
         "accountId": "finik-account-123",
         "amount": "12000.00",
-        "transactionId": "test-transaction-123",
+        "transactionId": "trx-123",
         "item": {"id": "item-123"},
         "fields": {
             "paymentId": "550e8400-e29b-41d4-a716-446655440000",
@@ -482,19 +477,134 @@ def test_finik_provider_safa_callback_format(settings):
             "paymentKind": "wallet_topup",
         },
     }
+    payload.update(overrides)
+    return payload
 
-    request = Mock(headers={}, data=callback_payload)
-    result = provider.verify_webhook(request)
+
+def _finik_item(payment_id="550e8400-e29b-41d4-a716-446655440000", amount=12000):
+    return {
+        "id": "item-123",
+        "fixedAmount": amount,
+        "paymentCount": 1,
+        "transactionId": "trx-123",
+        "requiredFields": [{"fieldId": "paymentId", "value": payment_id}],
+    }
+
+
+def test_finik_unsigned_callback_is_accepted_after_verification(settings):
+    """Колбэк без подписи проходит, если Finik подтвердил транзакцию."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_ACCOUNT_ID = "finik-account-123"
+    settings.FINIK_API_KEY = "test-key"
+    settings.FINIK_SECRET_KEY = ""
+    settings.PAYMENT_WEBHOOK_SECRET = ""
+    provider = FinikPaymentProvider()
+
+    request = Mock(headers={}, data=_finik_callback_payload())
+    with patch.object(provider, "verify_finik_transaction", return_value=_finik_item()):
+        result = provider.verify_webhook(request)
 
     assert result.provider_ref == "item-123"
     assert result.status == "succeeded"
-    assert result.amount == Decimal("12000.00")
+    # Сумма взята из ответа Finik, а не из тела колбэка.
+    assert result.amount == Decimal("12000")
     assert result.raw["fields"]["paymentId"] == "550e8400-e29b-41d4-a716-446655440000"
 
-    # Несовпадение accountId
-    bad_account_payload = {**callback_payload, "accountId": "wrong-account"}
-    bad_request = Mock(headers={}, data=bad_account_payload)
+
+def test_finik_unsigned_callback_rejected_when_finik_denies(settings):
+    """Finik не знает такой транзакции — начислять нельзя."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_ACCOUNT_ID = "finik-account-123"
+    settings.FINIK_API_KEY = "test-key"
+    settings.FINIK_SECRET_KEY = ""
+    settings.PAYMENT_WEBHOOK_SECRET = ""
+    provider = FinikPaymentProvider()
+
+    request = Mock(headers={}, data=_finik_callback_payload())
+    with patch.object(provider, "verify_finik_transaction", return_value=None):
+        with pytest.raises(WebhookSignatureError):
+            provider.verify_webhook(request)
+
+
+def test_finik_unsigned_callback_rejected_when_gateway_unavailable(settings):
+    """Сверка не удалась — отказ, а не начисление на веру."""
+    from apps.billing.providers.finik import (
+        FinikPaymentProvider,
+        FinikVerificationUnavailable,
+    )
+
+    settings.FINIK_ACCOUNT_ID = "finik-account-123"
+    settings.FINIK_API_KEY = "test-key"
+    settings.FINIK_SECRET_KEY = ""
+    settings.PAYMENT_WEBHOOK_SECRET = ""
+    provider = FinikPaymentProvider()
+
+    request = Mock(headers={}, data=_finik_callback_payload())
+    with patch.object(
+        provider,
+        "verify_finik_transaction",
+        side_effect=FinikVerificationUnavailable("finik_timeout"),
+    ):
+        with pytest.raises(WebhookSignatureError):
+            provider.verify_webhook(request)
+
+
+def test_finik_unsigned_callback_rejected_without_transaction_id(settings):
+    """Раньше transactionId вида test-* пропускал сверку. Теперь — нет."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_ACCOUNT_ID = "finik-account-123"
+    settings.FINIK_API_KEY = "test-key"
+    settings.FINIK_SECRET_KEY = ""
+    settings.PAYMENT_WEBHOOK_SECRET = ""
+    provider = FinikPaymentProvider()
+
+    request = Mock(headers={}, data=_finik_callback_payload(transactionId=""))
     with pytest.raises(WebhookSignatureError):
-        provider.verify_webhook(bad_request)
+        provider.verify_webhook(request)
 
 
+def test_finik_callback_payment_id_must_match_finik(settings):
+    """Подменённый paymentId в теле колбэка не проходит сверку."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_ACCOUNT_ID = "finik-account-123"
+    settings.FINIK_API_KEY = "test-key"
+    settings.FINIK_SECRET_KEY = ""
+    settings.PAYMENT_WEBHOOK_SECRET = ""
+    provider = FinikPaymentProvider()
+
+    payload = _finik_callback_payload()
+    payload["fields"] = {**payload["fields"], "paymentId": "00000000-0000-0000-0000-000000000000"}
+    request = Mock(headers={}, data=payload)
+
+    with patch.object(provider, "verify_finik_transaction", return_value=_finik_item()):
+        with pytest.raises(WebhookSignatureError):
+            provider.verify_webhook(request)
+
+
+def test_finik_callback_account_mismatch(settings):
+    """Чужой accountId — чужой платёж."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_ACCOUNT_ID = "finik-account-123"
+    settings.FINIK_API_KEY = "test-key"
+    provider = FinikPaymentProvider()
+
+    request = Mock(headers={}, data=_finik_callback_payload(accountId="wrong-account"))
+    with pytest.raises(WebhookSignatureError):
+        provider.verify_webhook(request)
+
+
+def test_finik_create_payment_requires_configuration(settings):
+    """Без ключей Finik счёт не выставляется — раньше отдавался фиктивный."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    settings.FINIK_API_KEY = ""
+    settings.FINIK_ACCOUNT_ID = ""
+    provider = FinikPaymentProvider()
+
+    with pytest.raises(ImproperlyConfigured):
+        provider.create_payment(payment=Mock(pk="x", amount_kgs=Decimal("100")), return_url="")

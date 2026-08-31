@@ -318,8 +318,10 @@ class MockConfirmView(APIView):
 
     @extend_schema(exclude=True)
     def post(self, request: Request, payment_id: str) -> Response:
-        # В боевом окружении эндпоинта просто нет.
-        if not settings.DEBUG:
+        # Эндпоинт начисляет кирпичи без оплаты, поэтому доступен только там,
+        # где платежей и нет: DEBUG плюс mock-провайдер. Одного DEBUG мало —
+        # на боевом стенде его иногда оставляют включённым.
+        if not settings.DEBUG or settings.PAYMENT_PROVIDER != "mock":
             raise NotFound()
 
         payment = get_object_or_404(Payment, pk=payment_id, user=request.user)
@@ -363,6 +365,9 @@ def build_topup_response(payment: Payment, request: Request) -> dict[str, Any]:
         "total_bricks": payment.total_bricks,
         "payment_url": payment_url,
         "qr_code_url": intent.get("qr_code_url", ""),
+        # Строка для отрисовки QR на клиенте. Если провайдер её не дал —
+        # кодируем саму ссылку на оплату.
+        "qr_data": intent.get("qr_data", "") or payment_url,
         "expires_at": payment.expires_at,
         "providers": providers,
     }

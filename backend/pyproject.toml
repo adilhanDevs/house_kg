@@ -18,7 +18,10 @@ dependencies = [
     "django-celery-beat>=2.6",
     "redis>=5.0",
     "pillow>=10.4",
-    "phonenumbers>=9.0",
+    # phonenumberslite — тот же модуль `phonenumbers`, но без geodata/carrier/
+    # tz-метаданных (~4 МБ вместо ~47). Код использует только parse,
+    # is_valid_number и format_number — см. apps/users/phone.py.
+    "phonenumberslite>=9.0",
     "requests>=2.32",
     "python-magic>=0.4.27",
     "structlog>=24.4",
@@ -31,6 +34,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Sentry и FCM импортируются лениво и только когда заданы SENTRY_DSN /
+# кредлы FCM (apps/common/observability.py, apps/notifications/push.py).
+# Без этих extras включённая интеграция падает с ImportError.
+sentry = ["sentry-sdk>=2.0"]
+push = ["firebase-admin>=6.5"]
 dev = [
     "pytest>=8.3",
     "pytest-django>=4.9",

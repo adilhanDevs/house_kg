@@ -18,6 +18,7 @@ from typing import Any
 
 import requests
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from apps.billing.providers.base import (
     PaymentIntent,
@@ -101,7 +102,7 @@ class FinikVerificationUnavailable(Exception):
     def __init__(self, code: str, provider_message: str = "") -> None:
         super().__init__(code)
         self.code = code
-        self.provider_message = provider_message[:240]
+        self.provider_message = provider_message[:600]
 
 
 def _graphql_url() -> str:
@@ -132,6 +133,21 @@ def _required_field_map(item: dict[str, Any]) -> dict[str, str]:
     return result
 
 
+# Ключи, под которыми Finik может отдать готовую ссылку на оплату. Схема шлюза
+# в документации зафиксирована не полностью, поэтому берём первое, что похоже на
+# ссылку, и только если ничего нет — собираем адрес по шаблону из настроек.
+_URL_KEYS = ("paymentUrl", "payment_url", "checkoutUrl", "url", "link", "shortLink", "qrUrl")
+
+
+def _first_url(item: dict[str, Any]) -> str:
+    """Первая ссылка на оплату, которую вернул сам Finik. Пусто — если её нет."""
+    for key in _URL_KEYS:
+        value = str(item.get(key) or "").strip()
+        if value.startswith("http://") or value.startswith("https://"):
+            return value
+    return ""
+
+
 def _finik_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
     api_key = str(getattr(settings, "FINIK_API_KEY", "") or "").strip()
     if not api_key:
@@ -152,11 +168,18 @@ def _finik_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
         payload = response.json()
     except requests.HTTPError as exc:
         status_code = getattr(exc.response, "status_code", None) or "unknown"
-        raise FinikVerificationUnavailable(f"finik_http_{status_code}") from exc
+        body = ""
+        if exc.response is not None:
+            body = " ".join(str(exc.response.text or "").split())
+        raise FinikVerificationUnavailable(f"finik_http_{status_code}", body) from exc
     except requests.Timeout as exc:
-        raise FinikVerificationUnavailable("finik_timeout") from exc
+        raise FinikVerificationUnavailable("finik_timeout", str(exc)) from exc
     except (requests.RequestException, ValueError) as exc:
-        raise FinikVerificationUnavailable("finik_network_error") from exc
+        # Текст исключения обязателен: без него «сеть не работает» неотличимо
+        # от «нет DNS», «блокирует прокси» и «шлюз вернул не JSON».
+        raise FinikVerificationUnavailable(
+            "finik_network_error", f"{type(exc).__name__}: {exc}"
+        ) from exc
 
     if not isinstance(payload, dict):
         raise FinikVerificationUnavailable("finik_invalid_response")
@@ -183,9 +206,31 @@ class FinikPaymentProvider(PaymentProvider):
     def __init__(self) -> None:
         self.api_key = str(getattr(settings, "FINIK_API_KEY", "") or "").strip()
         self.account_id = str(getattr(settings, "FINIK_ACCOUNT_ID", "") or "").strip()
-        self.secret = getattr(settings, "FINIK_SECRET_KEY", "") or getattr(settings, "PAYMENT_WEBHOOK_SECRET", "")
+        # Только собственный секрет Finik. Общий PAYMENT_WEBHOOK_SECRET сюда не
+        # подставляем: чужой секрет отверг бы все настоящие подписи.
+        self.secret = str(getattr(settings, "FINIK_SECRET_KEY", "") or "")
         self.callback_url = str(getattr(settings, "FINIK_CALLBACK_URL", "") or "").strip()
         self.timeout = float(getattr(settings, "FINIK_TIMEOUT_SECONDS", 15))
+        self.checkout_template = str(
+            getattr(settings, "FINIK_CHECKOUT_URL_TEMPLATE", "")
+            or "https://pay.finik.kg/checkout/{item_id}"
+        )
+        # Колбэк без HMAC-подписи принимается только после сверки с Finik.
+        self.require_verification = bool(
+            getattr(settings, "FINIK_REQUIRE_VERIFICATION", True)
+        )
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self.api_key and self.account_id)
+
+    def checkout_url(self, item_id: str) -> str:
+        """Ссылка на оплату по идентификатору счёта Finik."""
+        try:
+            return self.checkout_template.format(item_id=item_id)
+        except (KeyError, IndexError, ValueError):
+            logger.error("Некорректный FINIK_CHECKOUT_URL_TEMPLATE: %r", self.checkout_template)
+            return f"https://pay.finik.kg/checkout/{item_id}"
 
     # -- Подпись (если Finik настроен на отправку HMAC) -----------------------
 
@@ -202,19 +247,20 @@ class FinikPaymentProvider(PaymentProvider):
 
     def create_payment(self, *, payment: Any, return_url: str) -> PaymentIntent:
         """Создаёт счёт в Finik Pay через GraphQL createItem."""
-        if not self.api_key or not self.account_id:
-            logger.info("Finik Pay: ключи не заданы, формируем mock intent для dev")
-            payment_id = f"fnk_mock_{payment.pk}"
-            return PaymentIntent(
-                payment_url=f"https://pay.finik.kg/checkout/{payment_id}",
-                qr_code_url=f"https://api.finik.kg/qr/{payment_id}.png",
-                provider_ref=payment_id,
-                extra={"mock": True, "amount": str(payment.amount_kgs)},
+        if not self.is_configured:
+            # Раньше здесь выдавался фиктивный счёт — клиент видел «оплату»,
+            # которой не было. Теперь это громкая ошибка конфигурации.
+            raise ImproperlyConfigured(
+                "Finik не настроен: задайте FINIK_API_KEY и FINIK_ACCOUNT_ID. "
+                "Для разработки используйте PAYMENT_PROVIDER=mock."
             )
 
         callback_url = self.callback_url or return_url
         item_name = f"House KG: Пополнение кошелька ({payment.amount_kgs} сом)"
-        description = f"Пополнение счёта House KG на {payment.amount_kgs} сом (+ бонус {payment.bonus_bricks} кирпичей)"
+        description = (
+            f"Пополнение счёта House KG на {payment.amount_kgs} сом "
+            f"(+ бонус {payment.bonus_bricks} кирпичей)"
+        )
 
         required_fields = [
             {
@@ -262,11 +308,21 @@ class FinikPaymentProvider(PaymentProvider):
                 },
             )
             item = (payload.get("data") or {}).get("createItem") or {}
-            item_id = str(item.get("id") or str(payment.pk))
+            if not item.get("id"):
+                raise FinikVerificationUnavailable("finik_create_item_no_id")
+
+            item_id = str(item["id"])
+            # Ответ Finik пишем в лог целиком (ключи, не значения полей клиента):
+            # по первому боевому счёту видно, отдаёт ли шлюз готовую ссылку.
+            logger.info("Finik createItem ok: item=%s, поля ответа=%s", item_id, sorted(item))
+
+            payment_url = _first_url(item) or self.checkout_url(item_id)
 
             return PaymentIntent(
-                payment_url=f"https://pay.finik.kg/checkout/{item_id}",
-                qr_code_url=f"https://api.finik.kg/qr/{item_id}.png",
+                payment_url=payment_url,
+                # Картинку QR Finik не отдаёт — клиент рисует код сам из qr_data.
+                qr_code_url=str(item.get("qrCodeUrl") or item.get("qrUrl") or ""),
+                qr_data=payment_url,
                 provider_ref=item_id,
                 extra=item,
             )
@@ -277,23 +333,37 @@ class FinikPaymentProvider(PaymentProvider):
     # -- Приём и верификация вебхука -----------------------------------------
 
     def verify_webhook(self, request: Any) -> WebhookResult:
-        """Проверяет вебхук/callback от Finik.
-        
-        Поддерживает:
-        1. Формат Finik Callback JSON (с полями accountId, amount, transactionId, item, fields).
-        2. HMAC-SHA256 подпись (если передана в X-Signature).
-        3. Серверную верификацию через GraphQL getItem.
+        """Проверяет колбэк Finik и разбирает его тело.
+
+        Колбэк начисляет деньги, поэтому доверяем ему только при одном из двух
+        доказательств подлинности:
+
+        1. HMAC-SHA256 подпись в заголовке X-Signature, сходящаяся с FINIK_SECRET_KEY;
+        2. обратный запрос в Finik (getItem по transactionId), подтверждающий,
+           что такая оплата действительно прошла.
+
+        Нет ни того, ни другого — WebhookSignatureError, вьюха ответит 403,
+        Finik повторит колбэк позже. Молча принять неподтверждённый колбэк
+        нельзя: это подарок любому, кто узнает адрес вебхука.
         """
         payload = self._payload(request)
         signature = request.headers.get(SIGNATURE_HEADER, "")
 
-        # 1. Проверка HMAC подписи, если передан заголовок подписи и задан секрет
-        if signature and self.secret:
+        # 1. Подпись, если она пришла.
+        signature_ok = False
+        if signature and not self.secret:
+            # Подпись пришла, а сверять не с чем. Не отказываем: ниже колбэк
+            # всё равно подтверждается обратным запросом в Finik.
+            logger.warning("Колбэк Finik подписан, но FINIK_SECRET_KEY не задан")
+        elif signature:
             expected = self.sign(payload)
-            if not hmac.compare_digest(signature.encode("utf-8", "ignore"), expected.encode("utf-8")):
+            if not hmac.compare_digest(
+                signature.encode("utf-8", "ignore"), expected.encode("utf-8")
+            ):
                 raise WebhookSignatureError("Подпись вебхука Finik не совпала")
+            signature_ok = True
 
-        # 2. Разбор полей колбэка Finik
+        # 2. Разбор полей колбэка Finik.
         fields = payload.get("fields") or {}
         payment_id = (
             fields.get("paymentId")
@@ -303,32 +373,107 @@ class FinikPaymentProvider(PaymentProvider):
             or ""
         )
         transaction_id = str(payload.get("transactionId") or payload.get("transaction_id") or "")
-        item_id = str((payload.get("item") or {}).get("id") or payload.get("itemId") or payload.get("item_id") or "")
+        item_id = str(
+            (payload.get("item") or {}).get("id")
+            or payload.get("itemId")
+            or payload.get("item_id")
+            or ""
+        )
         amount = self._amount(payload.get("amount"))
         status_raw = str(payload.get("status") or "succeeded").lower()
 
-        # 3. Проверка соответствия accountId
-        callback_account_id = str(payload.get("accountId") or payload.get("account_id") or "").strip()
-        if self.account_id and callback_account_id:
-            if callback_account_id != self.account_id:
-                logger.warning("Finik callback accountId mismatch: %s != %s", callback_account_id, self.account_id)
-                raise WebhookSignatureError("Неверный accountId в колбэке Finik")
+        # 3. Счёт должен принадлежать нашему аккаунту в Finik.
+        callback_account_id = str(
+            payload.get("accountId") or payload.get("account_id") or ""
+        ).strip()
+        if self.account_id and callback_account_id and callback_account_id != self.account_id:
+            logger.warning(
+                "Finik callback accountId mismatch: %s != %s",
+                callback_account_id,
+                self.account_id,
+            )
+            raise WebhookSignatureError("Неверный accountId в колбэке Finik")
+
+        # 4. Сверка с Finik. Без подписи она обязательна и не прощает сбоев.
+        verified_item = self._verify_or_fail(
+            transaction_id=transaction_id,
+            signature_ok=signature_ok,
+        )
+
+        if verified_item is not None:
+            # Сумму и ссылку берём из ответа Finik, а не из тела колбэка:
+            # тело мог подделать кто угодно, ответ шлюза — нет.
+            verified_amount = self._amount(verified_item.get("fixedAmount"))
+            if verified_amount is not None:
+                amount = verified_amount
+            verified_id = str(verified_item.get("id") or "")
+            if verified_id:
+                item_id = verified_id
+            verified_fields = _required_field_map(verified_item)
+            verified_payment_id = verified_fields.get("paymentId") or ""
+            if verified_payment_id:
+                if payment_id and str(payment_id) != verified_payment_id:
+                    logger.error(
+                        "Finik: paymentId в колбэке (%s) не совпал с paymentId в счёте (%s)",
+                        payment_id,
+                        verified_payment_id,
+                    )
+                    raise WebhookSignatureError("paymentId колбэка не совпал с данными Finik")
+                payment_id = verified_payment_id
 
         provider_ref = item_id or transaction_id or str(payment_id)
+        if not provider_ref:
+            raise WebhookSignatureError("В колбэке Finik нет ни item.id, ни transactionId")
 
-        # 4. Двойная сверка через Finik GraphQL (если заданы боевые ключи и есть transaction_id)
-        if self.api_key and transaction_id and not transaction_id.startswith("test-") and not transaction_id.startswith("mock_"):
-            try:
-                self.verify_finik_transaction(transaction_id)
-            except FinikVerificationUnavailable as e:
-                logger.warning("Finik GraphQL verification unavailable: %s", e)
+        raw = dict(payload)
+        if payment_id:
+            raw.setdefault("fields", {})
+            raw["fields"] = {**(raw.get("fields") or {}), "paymentId": str(payment_id)}
 
         return WebhookResult(
             provider_ref=provider_ref,
             status=FINIK_STATUS_MAP.get(status_raw, "failed"),
             amount=amount,
-            raw=payload,
+            raw=raw,
         )
+
+    def _verify_or_fail(
+        self, *, transaction_id: str, signature_ok: bool
+    ) -> dict[str, Any] | None:
+        """Сверяет транзакцию с Finik. Возвращает счёт или None, если сверка не нужна."""
+        if not self.require_verification:
+            # Только для тестов: FINIK_REQUIRE_VERIFICATION=0.
+            return None
+
+        if signature_ok:
+            # Подпись уже доказала подлинность; сверка полезна, но не обязательна.
+            if not (self.api_key and transaction_id):
+                return None
+            try:
+                return self.verify_finik_transaction(transaction_id)
+            except FinikVerificationUnavailable as exc:
+                logger.warning("Finik GraphQL verification unavailable: %s", exc.code)
+                return None
+
+        # Подписи нет — сверка единственное доказательство, сбой означает отказ.
+        if not self.api_key:
+            raise WebhookSignatureError(
+                "Колбэк без подписи, а FINIK_API_KEY не задан — подтвердить оплату нечем"
+            )
+        if not transaction_id:
+            raise WebhookSignatureError("Колбэк без подписи и без transactionId")
+
+        try:
+            item = self.verify_finik_transaction(transaction_id)
+        except FinikVerificationUnavailable as exc:
+            logger.error("Finik не подтвердил транзакцию %s: %s", transaction_id, exc.code)
+            raise WebhookSignatureError(f"Finik недоступен для сверки: {exc.code}") from exc
+
+        if item is None:
+            raise WebhookSignatureError(
+                f"Finik не подтвердил оплату по транзакции {transaction_id}"
+            )
+        return item
 
     def verify_finik_transaction(self, transaction_id: str) -> dict[str, Any] | None:
         """Серверная проверка транзакции в Finik по transactionId."""

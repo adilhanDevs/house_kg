@@ -37,4 +37,12 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Тесты никогда не ходят в платёжный шлюз: провайдер всегда mock, что бы ни
+# стояло в .env разработчика. Иначе локальный PAYMENT_PROVIDER=finik ломает
+# половину биллинговых тестов.
+PAYMENT_PROVIDER = "mock"
+FINIK_API_KEY = ""
+FINIK_ACCOUNT_ID = ""
+FINIK_SECRET_KEY = ""
+
 MEDIA_ROOT = env.str("TEST_MEDIA_ROOT", default="/tmp/house-kgz-test-media")

@@ -101,6 +101,11 @@ def mask_phone(value: str) -> str:
     if not digits.startswith("996"):
         digits = "996" + digits.lstrip("0")
 
+    # Последовательность из одних нулей после lstrip оставляет голый префикс —
+    # маскировать в ней нечего, а обращение к digits[3] роняло бы логгер.
+    if len(digits) < 4:
+        return REDACTED
+
     return f"+{digits[:3]} {digits[3]}XX XXX XX{digits[-1]}"
 
 

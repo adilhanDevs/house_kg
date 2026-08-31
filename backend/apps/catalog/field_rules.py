@@ -34,10 +34,13 @@ COMMON_FIELDS = frozenset(
         "allow_media_download",
         "contact_name",
         "contact_phone",
+        # Обмен возможен на объект любого типа, включая участок.
+        "exchange_possible",
     }
 )
 
-# Поквартирные площади и мебель — только там, где есть внутренние помещения.
+# Поквартирные площади, мебель и инженерия — только там, где есть внутренние
+# помещения: у участка ни ремонта, ни отопления быть не может.
 INTERIOR_FIELDS = frozenset(
     {
         "living_room_area",
@@ -48,6 +51,9 @@ INTERIOR_FIELDS = frozenset(
         "balcony_area",
         "bathroom_area",
         "furniture",
+        "condition",
+        "heating",
+        "has_gas",
     }
 )
 

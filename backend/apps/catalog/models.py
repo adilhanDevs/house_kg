@@ -28,6 +28,9 @@ from apps.catalog.enums import (
     BuildingLine,
     CommercialPurpose,
     Currency,
+    FurnitureKind,
+    HeatingKind,
+    ListingCondition,
     ListingStatus,
     MediaKind,
     MediaStatus,
@@ -243,7 +246,17 @@ class Listing(TimeStampedModel):
     bedroom_2_area = models.DecimalField("Спальная 2, м²", max_digits=6, decimal_places=2, blank=True, null=True)
     balcony_area = models.DecimalField("Балкон, м²", max_digits=6, decimal_places=2, blank=True, null=True)
     bathroom_area = models.DecimalField("Сан.узел, м²", max_digits=6, decimal_places=2, blank=True, null=True)
-    furniture = models.CharField("Мебель", max_length=50, blank=True, default="Полностью")
+    furniture = models.CharField(
+        "Мебель", max_length=16, choices=FurnitureKind.choices, blank=True
+    )
+    condition = models.CharField(
+        "Состояние и ремонт", max_length=16, choices=ListingCondition.choices, blank=True
+    )
+    heating = models.CharField(
+        "Отопление", max_length=16, choices=HeatingKind.choices, blank=True
+    )
+    has_gas = models.BooleanField("Наличие газа", default=False)
+    exchange_possible = models.BooleanField("Возможен обмен", default=False)
 
     land_area = models.DecimalField(
         "Площадь участка, соток", max_digits=8, decimal_places=2, blank=True, null=True

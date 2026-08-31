@@ -52,6 +52,7 @@ django==5.2.17
     #   django-filter
     #   django-otp
     #   django-prometheus
+    #   django-storages
     #   django-timezone-field
     #   djangorestframework
     #   djangorestframework-simplejwt
@@ -70,6 +71,8 @@ django-filter==26.1
 django-otp==1.7.0
     # via house-kgz-backend (pyproject.toml)
 django-prometheus==2.5.0
+    # via house-kgz-backend (pyproject.toml)
+django-storages==1.14.6
     # via house-kgz-backend (pyproject.toml)
 django-timezone-field==7.2.2
     # via django-celery-beat
@@ -96,7 +99,7 @@ packaging==26.3
     # via
     #   django-csp
     #   kombu
-phonenumbers==9.0.37
+phonenumberslite==9.0.38
     # via house-kgz-backend (pyproject.toml)
 pillow==12.3.0
     # via house-kgz-backend (pyproject.toml)

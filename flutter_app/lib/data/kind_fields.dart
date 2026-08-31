@@ -12,7 +12,8 @@ enum ListingField {
   series,
   isSecondary,
   builder,
-  interior, // площади комнат и мебель — показываются одним блоком
+  interior, // площади комнат, мебель, ремонт, отопление, газ — одним блоком
+  exchange, // возможен обмен — применим к любому типу
   landArea,
   redBook,
   plotPurpose,
@@ -24,6 +25,7 @@ enum ListingField {
 
 const Map<PropertyKind, Set<ListingField>> kindFields = {
   PropertyKind.apartment: {
+    ListingField.exchange,
     ListingField.rooms,
     ListingField.floor,
     ListingField.floors,
@@ -32,6 +34,7 @@ const Map<PropertyKind, Set<ListingField>> kindFields = {
     ListingField.interior,
   },
   PropertyKind.room: {
+    ListingField.exchange,
     ListingField.floor,
     ListingField.floors,
     ListingField.series,
@@ -39,6 +42,7 @@ const Map<PropertyKind, Set<ListingField>> kindFields = {
     ListingField.interior,
   },
   PropertyKind.house: {
+    ListingField.exchange,
     ListingField.rooms,
     ListingField.floors,
     ListingField.isSecondary,
@@ -47,6 +51,7 @@ const Map<PropertyKind, Set<ListingField>> kindFields = {
     ListingField.redBook,
   },
   PropertyKind.newBuilding: {
+    ListingField.exchange,
     ListingField.rooms,
     ListingField.floor,
     ListingField.floors,
@@ -54,11 +59,13 @@ const Map<PropertyKind, Set<ListingField>> kindFields = {
     ListingField.interior,
   },
   PropertyKind.plot: {
+    ListingField.exchange,
     ListingField.landArea,
     ListingField.redBook,
     ListingField.plotPurpose,
   },
   PropertyKind.commercial: {
+    ListingField.exchange,
     ListingField.floor,
     ListingField.floors,
     ListingField.commercialPurpose,

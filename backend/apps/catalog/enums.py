@@ -46,6 +46,37 @@ class BuildingLine(models.TextChoices):
     INSIDE = "inside", "Внутри квартала"
 
 
+class ListingCondition(models.TextChoices):
+    """Состояние и ремонт. Коды совпадают с теми, что уже шлёт ad_edit_page."""
+
+    EURO = "euro", "Евроремонт"
+    GOOD = "good", "Хорошее состояние"
+    SHELL = "shell", "Под самоотделку"
+    MEDIUM = "medium", "Среднее состояние"
+    NONE = "none", "Без ремонта"
+
+
+class HeatingKind(models.TextChoices):
+    """Тип отопления."""
+
+    CENTRAL = "central", "Центральное"
+    GAS = "gas", "Газовое"
+    ELECTRIC = "electric", "Электрическое"
+    AUTONOMOUS = "autonomous", "Автономное"
+
+
+class FurnitureKind(models.TextChoices):
+    """Меблировка.
+
+    Раньше поле хранило свободный текст («Полностью»), а клиент слал коды —
+    на детальной странице у части объявлений в графе «Мебель» стояло `full`.
+    """
+
+    FULL = "full", "Полностью меблирована"
+    PARTIAL = "partial", "Частично с мебелью"
+    NONE = "none", "Без мебели"
+
+
 class SellerKind(models.TextChoices):
     """Кто продаёт — три тумблера «Продавца» в «Фильтре»."""
 

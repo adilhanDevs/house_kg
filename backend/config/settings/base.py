@@ -127,6 +127,15 @@ DATABASES = {
 DATABASES["default"]["ATOMIC_REQUESTS"] = False
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DATABASE_CONN_MAX_AGE", default=60)
 
+# SQLite целевой БД быть не может (см. CLAUDE.md), но на демо-хостингах он
+# иногда всё же оказывается в DATABASE_URL. Долгоживущее соединение к файлу на
+# сетевой ФС там протухает и даёт «disk I/O error» на первой же записи, поэтому
+# соединение не переиспользуется, а блокировка ждёт, а не падает сразу.
+if "sqlite" in DATABASES["default"].get("ENGINE", ""):
+    DATABASES["default"]["CONN_MAX_AGE"] = 0
+    DATABASES["default"].setdefault("OPTIONS", {})
+    DATABASES["default"]["OPTIONS"].setdefault("timeout", 20)
+
 # ----------------------------------------------------------------------------
 # Кэш (Redis)
 # ----------------------------------------------------------------------------
@@ -299,11 +308,29 @@ BANK_PAYMENT_MERCHANT_ID = env.str("BANK_PAYMENT_MERCHANT_ID", default="")
 BANK_PAYMENT_SECRET = env.str("BANK_PAYMENT_SECRET", default="")
 BANK_PAYMENT_TIMEOUT = env.int("BANK_PAYMENT_TIMEOUT", default=15)
 
-# Шлюз Finik Pay (finik.kg)
-FINIK_API_URL = env.str("FINIK_API_URL", default="https://api.finik.kg/v1")
-FINIK_MERCHANT_ID = env.str("FINIK_MERCHANT_ID", default="")
+# Шлюз Finik Pay (finik.kg / averspay.kg).
+# Имена совпадают с тем, что читает apps/billing/providers/finik.py.
+# Ключ и идентификатор счёта выдаёт менеджер Finik.
+FINIK_API_KEY = env.str("FINIK_API_KEY", default="")
+FINIK_ACCOUNT_ID = env.str("FINIK_ACCOUNT_ID", default="")
+# Секрет для HMAC-подписи колбэка. Если Finik подпись не шлёт, оставьте пустым:
+# подлинность тогда проверяется обратным запросом в Finik (см. ниже).
 FINIK_SECRET_KEY = env.str("FINIK_SECRET_KEY", default="")
-FINIK_TIMEOUT = env.int("FINIK_TIMEOUT", default=15)
+# Адрес, который Finik дёргает после оплаты.
+FINIK_CALLBACK_URL = env.str("FINIK_CALLBACK_URL", default="")
+# Песочница Finik: beta-домены вместо боевых.
+FINIK_BETA = env.bool("FINIK_BETA", default=False)
+# Полный URL GraphQL. Задаётся, только если Finik выдал нестандартный адрес.
+FINIK_GRAPHQL_URL = env.str("FINIK_GRAPHQL_URL", default="")
+FINIK_TIMEOUT_SECONDS = env.int("FINIK_TIMEOUT_SECONDS", default=15)
+# Шаблон ссылки на оплату. Finik может выдать свой домен — тогда меняется здесь,
+# без правок кода. Подстановка: {item_id}.
+FINIK_CHECKOUT_URL_TEMPLATE = env.str(
+    "FINIK_CHECKOUT_URL_TEMPLATE", default="https://pay.finik.kg/checkout/{item_id}"
+)
+# Колбэк без HMAC-подписи принимается, только если Finik подтвердил транзакцию
+# обратным запросом. Выключать нельзя нигде, кроме тестов.
+FINIK_REQUIRE_VERIFICATION = env.bool("FINIK_REQUIRE_VERIFICATION", default=True)
 
 # ----------------------------------------------------------------------------
 # Push-уведомления (FCM)

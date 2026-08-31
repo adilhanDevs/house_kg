@@ -137,6 +137,7 @@ def create_topup(
         "intent": {
             "payment_url": intent.payment_url,
             "qr_code_url": intent.qr_code_url,
+            "qr_data": intent.qr_data,
             "provider_ref": intent.provider_ref,
             "extra": intent.extra,
         }

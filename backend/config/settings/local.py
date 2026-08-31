@@ -11,6 +11,11 @@ ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
+# За туннелем (ngrok и подобные) TLS обрывается на их стороне, а до Django
+# запрос доходит по http. Без этого build_absolute_uri отдаёт http-ссылки
+# на логотипы банков, и клиент грузит их не по той схеме.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Логи для человека, а не для агрегатора.
