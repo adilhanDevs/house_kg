@@ -13,6 +13,7 @@ import '../data/api_exceptions.dart';
 import '../data/ad_media.dart';
 import '../data/topup.dart';
 import '../data/kind_fields.dart';
+import '../data/listing_payload.dart';
 import '../data/listings.dart';
 import '../data/tariff.dart';
 
@@ -990,6 +991,21 @@ class AppState extends ChangeNotifier {
   bool draftSeparateEntrance = false;
   String draftBuildingLine = '';
   String draftCeilingHeight = '';
+  String draftAddress = '';
+  String draftDescription = '';
+  String draftSeries = '';
+  bool draftSecondary = false;
+  String draftFurniture = '';
+  String draftCondition = '';
+  String draftHeating = '';
+  bool draftHasGas = false;
+  bool draftExchange = false;
+  bool draftDirectSale = true;
+  bool draftMortgage = true;
+  String draftContactName = '';
+  String draftContactPhone = '';
+  final List<String> draftLandmarks = [];
+  final Map<String, String> draftRoomAreas = {};
   String draftPrice = '';
   bool draftUsd = true;
   bool draftOwner = true;
@@ -1033,6 +1049,15 @@ class AppState extends ChangeNotifier {
       draftBuildingLine = '';
       draftCeilingHeight = '';
     }
+    if (!showsField(kind, ListingField.series)) draftSeries = '';
+    if (!showsField(kind, ListingField.isSecondary)) draftSecondary = false;
+    if (!showsField(kind, ListingField.interior)) {
+      draftFurniture = '';
+      draftCondition = '';
+      draftHeating = '';
+      draftHasGas = false;
+      draftRoomAreas.clear();
+    }
     notifyListeners();
   }
 
@@ -1070,6 +1095,31 @@ class AppState extends ChangeNotifier {
         draftCeilingHeight = response['ceiling_height'].toString();
       }
       if (response['price'] != null) draftPrice = response['price'].toString();
+      draftAddress = response['address'] as String? ?? '';
+      draftDescription = response['description'] as String? ?? '';
+      draftSecondary = response['is_secondary'] as bool? ?? false;
+      draftFurniture = response['furniture'] as String? ?? '';
+      draftCondition = response['condition'] as String? ?? '';
+      draftHeating = response['heating'] as String? ?? '';
+      draftHasGas = response['has_gas'] as bool? ?? false;
+      draftExchange = response['exchange_possible'] as bool? ?? false;
+      draftDirectSale = response['has_direct_sale'] as bool? ?? true;
+      draftMortgage = response['has_mortgage'] as bool? ?? true;
+      draftContactName = response['contact_name'] as String? ?? '';
+      draftContactPhone = response['contact_phone'] as String? ?? '';
+      draftLandmarks
+        ..clear()
+        ..addAll((response['landmarks'] as List<dynamic>? ?? const [])
+            .map((e) => e.toString()));
+      draftRoomAreas.clear();
+      for (final key in roomAreaLabels.keys) {
+        final value = response[key];
+        if (value != null) draftRoomAreas[key] = value.toString();
+      }
+      if (response['series'] != null) {
+        final series = response['series'];
+        draftSeries = series is Map ? (series['code'] ?? '').toString() : series.toString();
+      }
       if (response['currency'] != null) draftUsd = response['currency'] == 'USD';
       if (response['district'] != null) {
         final d = response['district'];

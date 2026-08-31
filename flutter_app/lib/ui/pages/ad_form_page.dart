@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/kind_fields.dart';
+import '../../data/listing_payload.dart';
 import '../../data/listings.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
@@ -26,6 +27,12 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController? _floorsController;
   TextEditingController? _landAreaController;
   TextEditingController? _ceilingController;
+  TextEditingController? _addressController;
+  TextEditingController? _descriptionController;
+  TextEditingController? _contactNameController;
+  TextEditingController? _contactPhoneController;
+  TextEditingController? _landmarkController;
+  final Map<String, TextEditingController> _roomAreaControllers = {};
 
   TextEditingController get _effectiveAreaController => _areaController ??= TextEditingController();
   TextEditingController get _effectiveBuilderController => _builderController ??= TextEditingController();
@@ -35,8 +42,21 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController get _effectiveFloorsController => _floorsController ??= TextEditingController();
   TextEditingController get _effectiveLandAreaController => _landAreaController ??= TextEditingController();
   TextEditingController get _effectiveCeilingController => _ceilingController ??= TextEditingController();
+  TextEditingController get _effectiveAddressController => _addressController ??= TextEditingController();
+  TextEditingController get _effectiveDescriptionController => _descriptionController ??= TextEditingController();
+  TextEditingController get _effectiveContactNameController => _contactNameController ??= TextEditingController();
+  TextEditingController get _effectiveContactPhoneController => _contactPhoneController ??= TextEditingController();
+  TextEditingController get _effectiveLandmarkController => _landmarkController ??= TextEditingController();
+
+  /// Контроллер площади комнаты заводится по требованию и живёт до dispose.
+  TextEditingController _roomAreaController(String key) =>
+      _roomAreaControllers.putIfAbsent(key, TextEditingController.new);
   bool _isSaving = false;
   bool _initializedFromState = false;
+
+  // Необязательные поля свёрнуты: иначе форма превращается в ленту из
+  // двадцати с лишним секций и обязательные в ней теряются.
+  final Set<String> _openBlocks = {};
 
   @override
   void initState() {
@@ -104,6 +124,19 @@ class _AdFormPageState extends State<AdFormPage> {
     if (state.draftCeilingHeight.isNotEmpty) {
       _effectiveCeilingController.text = state.draftCeilingHeight;
     }
+    if (state.draftAddress.isNotEmpty) _effectiveAddressController.text = state.draftAddress;
+    if (state.draftDescription.isNotEmpty) {
+      _effectiveDescriptionController.text = state.draftDescription;
+    }
+    if (state.draftContactName.isNotEmpty) {
+      _effectiveContactNameController.text = state.draftContactName;
+    }
+    if (state.draftContactPhone.isNotEmpty) {
+      _effectiveContactPhoneController.text = state.draftContactPhone;
+    }
+    state.draftRoomAreas.forEach((key, value) {
+      _roomAreaController(key).text = value;
+    });
   }
 
   String _getDistrictLabel(AppState state) {
@@ -165,33 +198,41 @@ class _AdFormPageState extends State<AdFormPage> {
     final floorsVal = int.tryParse(_effectiveFloorsController.text.trim()) ?? (state.draftFloors > 0 ? state.draftFloors : (floorVal > 1 ? floorVal : 1));
     final sellerKindApi = state.draftOwner ? 'owner' : 'realtor';
 
-    // Неприменимые к типу поля не отправляем: сервер их всё равно отбросит
-    // (apps/catalog/field_rules.py), но и мусора в запросе быть не должно.
-    final data = <String, dynamic>{
-      'kind': kindApi,
-      'currency': state.draftUsd ? 'USD' : 'KGS',
-      'seller_kind': sellerKindApi,
-      'district': districtSlug,
-      'area': area,
-      'price': price,
-      if (showsField(kindEnum, ListingField.rooms)) 'rooms': roomsVal,
-      if (showsField(kindEnum, ListingField.floor)) 'floor': floorVal,
-      if (showsField(kindEnum, ListingField.floors)) 'floors': floorsVal,
-      if (showsField(kindEnum, ListingField.landArea) && state.draftLandArea.isNotEmpty)
-        'land_area': state.draftLandArea,
-      if (state.draftPlotPurpose.isNotEmpty) 'plot_purpose': state.draftPlotPurpose,
-      if (state.draftCommercialPurpose.isNotEmpty)
-        'commercial_purpose': state.draftCommercialPurpose,
-      if (showsField(kindEnum, ListingField.separateEntrance))
-        'has_separate_entrance': state.draftSeparateEntrance,
-      if (state.draftBuildingLine.isNotEmpty) 'building_line': state.draftBuildingLine,
-      if (state.draftCeilingHeight.isNotEmpty) 'ceiling_height': state.draftCeilingHeight,
-    };
-    if (builder.isNotEmpty) {
-      if (builder.toLowerCase().contains('elite')) {
-        data['builder'] = 'elite-house';
-      }
-    }
+    // Тело запроса собирает общий модуль — он же следит, чтобы имена ключей
+    // совпадали с ListingUpdateSerializer (см. lib/data/listing_payload.dart).
+    final data = buildListingPayload(
+      kind: kindEnum,
+      districtSlug: districtSlug,
+      address: state.draftAddress,
+      description: state.draftDescription,
+      usd: state.draftUsd,
+      sellerKind: sellerKindApi,
+      price: price,
+      area: area,
+      landArea: state.draftLandArea,
+      rooms: roomsVal,
+      floor: floorVal,
+      floors: floorsVal,
+      seriesCode: state.draftSeries,
+      builderSlug: builder.toLowerCase().contains('elite') ? 'elite-house' : null,
+      isSecondary: state.draftSecondary,
+      furniture: state.draftFurniture,
+      condition: state.draftCondition,
+      heating: state.draftHeating,
+      hasGas: state.draftHasGas,
+      exchangePossible: state.draftExchange,
+      hasDirectSale: state.draftDirectSale,
+      hasMortgage: state.draftMortgage,
+      plotPurpose: state.draftPlotPurpose,
+      commercialPurpose: state.draftCommercialPurpose,
+      separateEntrance: state.draftSeparateEntrance,
+      buildingLine: state.draftBuildingLine,
+      ceilingHeight: state.draftCeilingHeight,
+      contactName: state.draftContactName,
+      contactPhone: state.draftContactPhone,
+      landmarks: state.draftLandmarks,
+      roomAreas: state.draftRoomAreas,
+    );
 
     setState(() => _isSaving = true);
     try {
@@ -218,6 +259,14 @@ class _AdFormPageState extends State<AdFormPage> {
     _areaController?.dispose();
     _landAreaController?.dispose();
     _ceilingController?.dispose();
+    _addressController?.dispose();
+    _descriptionController?.dispose();
+    _contactNameController?.dispose();
+    _contactPhoneController?.dispose();
+    _landmarkController?.dispose();
+    for (final controller in _roomAreaControllers.values) {
+      controller.dispose();
+    }
     _builderController?.dispose();
     _priceController?.dispose();
     _roomsController?.dispose();
@@ -374,6 +423,11 @@ class _AdFormPageState extends State<AdFormPage> {
     final floorsCtrl = _effectiveFloorsController;
     final landAreaCtrl = _effectiveLandAreaController;
     final ceilingCtrl = _effectiveCeilingController;
+    final addressCtrl = _effectiveAddressController;
+    final descriptionCtrl = _effectiveDescriptionController;
+    final contactNameCtrl = _effectiveContactNameController;
+    final contactPhoneCtrl = _effectiveContactPhoneController;
+    final landmarkCtrl = _effectiveLandmarkController;
 
     // Набор секций зависит от типа: у участка нет комнат и этажей, у
     // коммерции — свои параметры (см. lib/data/kind_fields.dart).
@@ -785,6 +839,198 @@ class _AdFormPageState extends State<AdFormPage> {
                 const SizedBox(height: 24.0),
               ],
 
+              // ——— Необязательное: свёрнуто, чтобы форма не разрасталась ———
+              _buildBlock(
+                title: 'Подробнее об объекте',
+                subtitle: 'Адрес, описание, ремонт, отопление',
+                children: [
+                  _buildSectionTitle('Адрес'),
+                  const SizedBox(height: 10.0),
+                  _buildInputField(
+                    controller: addressCtrl,
+                    hintText: 'Улица и номер дома',
+                    onChanged: (val) => state.setDraft(() => state.draftAddress = val),
+                  ),
+                  const SizedBox(height: 20.0),
+                  _buildSectionTitle('Описание'),
+                  const SizedBox(height: 10.0),
+                  TextField(
+                    controller: descriptionCtrl,
+                    maxLines: 5,
+                    onChanged: (val) => state.setDraft(() => state.draftDescription = val),
+                    decoration: InputDecoration(
+                      hintText: 'Расскажите об объекте: ремонт, окружение, что рядом',
+                      hintStyle: const TextStyle(fontSize: 15.0, color: Color(0x993c3c43)),
+                      filled: true,
+                      fillColor: const Color(0xfff5f5f7),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20.0),
+                  if (showsField(formKind, ListingField.interior)) ...[
+                    _buildChoiceRow(
+                      title: 'Мебель',
+                      options: furnitureLabels,
+                      selected: state.draftFurniture,
+                      onSelect: (val) => state.setDraft(() => state.draftFurniture = val),
+                    ),
+                    _buildChoiceRow(
+                      title: 'Состояние и ремонт',
+                      options: conditionLabels,
+                      selected: state.draftCondition,
+                      onSelect: (val) => state.setDraft(() => state.draftCondition = val),
+                    ),
+                    _buildChoiceRow(
+                      title: 'Отопление',
+                      options: heatingLabels,
+                      selected: state.draftHeating,
+                      onSelect: (val) => state.setDraft(() => state.draftHeating = val),
+                    ),
+                    _buildToggleRow(
+                      label: 'Наличие газа',
+                      value: state.draftHasGas,
+                      onChanged: (val) => state.setDraft(() => state.draftHasGas = val),
+                    ),
+                    const SizedBox(height: 12.0),
+                  ],
+                  if (showsField(formKind, ListingField.isSecondary)) ...[
+                    _buildToggleRow(
+                      label: 'Вторичное жильё',
+                      value: state.draftSecondary,
+                      onChanged: (val) => state.setDraft(() => state.draftSecondary = val),
+                    ),
+                    const SizedBox(height: 12.0),
+                  ],
+                  _buildToggleRow(
+                    label: 'Возможен обмен',
+                    value: state.draftExchange,
+                    onChanged: (val) => state.setDraft(() => state.draftExchange = val),
+                  ),
+                  const SizedBox(height: 12.0),
+                  _buildToggleRow(
+                    label: 'Прямая покупка',
+                    value: state.draftDirectSale,
+                    onChanged: (val) => state.setDraft(() => state.draftDirectSale = val),
+                  ),
+                  const SizedBox(height: 12.0),
+                  _buildToggleRow(
+                    label: 'Возможна ипотека',
+                    value: state.draftMortgage,
+                    onChanged: (val) => state.setDraft(() => state.draftMortgage = val),
+                  ),
+                ],
+              ),
+
+              if (showsField(formKind, ListingField.interior))
+                _buildBlock(
+                  title: 'Площади комнат',
+                  subtitle: 'Показываются в карточке объекта',
+                  children: [
+                    for (final entry in roomAreaLabels.entries) ...[
+                      _buildSectionTitle(entry.value),
+                      const SizedBox(height: 8.0),
+                      _buildInputField(
+                        controller: _roomAreaController(entry.key),
+                        hintText: 'м²',
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) => state.setDraft(() {
+                          if (val.trim().isEmpty) {
+                            state.draftRoomAreas.remove(entry.key);
+                          } else {
+                            state.draftRoomAreas[entry.key] = val.trim();
+                          }
+                        }),
+                      ),
+                      const SizedBox(height: 16.0),
+                    ],
+                  ],
+                ),
+
+              _buildBlock(
+                title: 'Контакты и ключевые места',
+                subtitle: 'Кому звонить и что рядом с объектом',
+                children: [
+                  _buildSectionTitle('Имя для связи'),
+                  const SizedBox(height: 10.0),
+                  _buildInputField(
+                    controller: contactNameCtrl,
+                    hintText: 'Если отличается от профиля',
+                    onChanged: (val) => state.setDraft(() => state.draftContactName = val),
+                  ),
+                  const SizedBox(height: 20.0),
+                  _buildSectionTitle('Телефон для связи'),
+                  const SizedBox(height: 10.0),
+                  _buildInputField(
+                    controller: contactPhoneCtrl,
+                    hintText: '+996 700 123 456',
+                    keyboardType: TextInputType.phone,
+                    onChanged: (val) => state.setDraft(() => state.draftContactPhone = val),
+                  ),
+                  const SizedBox(height: 20.0),
+                  _buildSectionTitle('Ключевые места'),
+                  const SizedBox(height: 6.0),
+                  const Text(
+                    'Школа, парк, остановка — что рядом с объектом',
+                    style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+                  ),
+                  const SizedBox(height: 10.0),
+                  for (final landmark in state.draftLandmarks)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 44.0,
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              alignment: Alignment.centerLeft,
+                              decoration: BoxDecoration(
+                                color: const Color(0xfff5f5f7),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: Text(
+                                landmark,
+                                style: const TextStyle(fontSize: 15.0),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 20, color: Color(0xff7d7d7d)),
+                            onPressed: () =>
+                                state.setDraft(() => state.draftLandmarks.remove(landmark)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInputField(
+                          controller: landmarkCtrl,
+                          hintText: 'Например, школа №61',
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      _buildChip(
+                        label: 'Добавить',
+                        selected: landmarkCtrl.text.trim().isNotEmpty,
+                        onTap: () {
+                          final value = landmarkCtrl.text.trim();
+                          if (value.isEmpty) return;
+                          state.setDraft(() => state.draftLandmarks.add(value));
+                          landmarkCtrl.clear();
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
               // 8. Цена
               _buildSectionTitle('Цена'),
               const SizedBox(height: 10.0),
@@ -866,6 +1112,86 @@ class _AdFormPageState extends State<AdFormPage> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Свёрнутый блок необязательных полей. Заголовок оформлен как обычная
+  /// секция формы, поэтому раскрытый блок от неё неотличим.
+  Widget _buildBlock({
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+  }) {
+    final isOpen = _openBlocks.contains(title);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() {
+            isOpen ? _openBlocks.remove(title) : _openBlocks.add(title);
+          }),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle(title),
+                      const SizedBox(height: 2.0),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  color: const Color(0xffea812e),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isOpen) ...[
+          const SizedBox(height: 14.0),
+          ...children,
+        ],
+        const SizedBox(height: 24.0),
+      ],
+    );
+  }
+
+  /// Выбор одного значения из словаря «код → подпись» чипами.
+  Widget _buildChoiceRow({
+    required String title,
+    required Map<String, String> options,
+    required String selected,
+    required ValueChanged<String> onSelect,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle(title),
+        const SizedBox(height: 10.0),
+        Wrap(
+          spacing: 8.0,
+          runSpacing: 8.0,
+          children: [
+            for (final entry in options.entries)
+              _buildChip(
+                label: entry.value,
+                selected: selected == entry.key,
+                onTap: () => onSelect(selected == entry.key ? '' : entry.key),
+              ),
+          ],
+        ),
+        const SizedBox(height: 20.0),
+      ],
     );
   }
 

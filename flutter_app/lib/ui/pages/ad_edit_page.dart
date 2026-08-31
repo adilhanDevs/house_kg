@@ -7,6 +7,8 @@ import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/ad_media.dart';
 import '../../data/api_client.dart';
+import '../../data/kind_fields.dart';
+import '../../data/listing_payload.dart';
 import '../../data/listings.dart';
 
 class AdEditPage extends StatefulWidget {
@@ -52,6 +54,10 @@ class _AdEditPageState extends State<AdEditPage> {
   String _selectedDistrictName = 'Асанбай';
   int _selectedRooms = 3;
   String _selectedSeries = '106';
+  /// Тип объекта приходит с сервера: от него зависит, какие поля вообще
+  /// имеет смысл отправлять (см. lib/data/kind_fields.dart).
+  PropertyKind _kind = PropertyKind.apartment;
+
   String _selectedCondition = 'good';
   String _selectedFurniture = 'full';
   String _selectedHeating = 'central';
@@ -154,12 +160,16 @@ class _AdEditPageState extends State<AdEditPage> {
   }
 
   void _populateFields(Map<String, dynamic> data) {
+    _kind = PropertyKind.values.firstWhere(
+      (k) => propertyKindCode(k) == data['kind'],
+      orElse: () => PropertyKind.apartment,
+    );
     _addressController.text = (data['address'] ?? '').toString();
     final rawArea = data['area'];
     _areaController.text = rawArea is num ? (rawArea % 1 == 0 ? rawArea.toInt().toString() : rawArea.toString()) : (rawArea ?? '').toString();
     _priceController.text = (data['price'] ?? data['price_usd'] ?? '').toString();
     _floorController.text = (data['floor'] ?? '').toString();
-    _floorsController.text = (data['floors_total'] ?? data['floors'] ?? '').toString();
+    _floorsController.text = (data['floors'] ?? '').toString();
     _builderController.text = (data['builder'] is Map ? data['builder']['name'] : data['builder'] ?? '').toString();
     _descriptionController.text = (data['description'] ?? '').toString();
 
@@ -190,11 +200,14 @@ class _AdEditPageState extends State<AdEditPage> {
       _selectedSeries = (data['series'] is Map ? data['series']['code'] : data['series']).toString();
     }
 
-    _selectedCondition = (data['condition'] ?? 'good').toString();
-    _selectedFurniture = (data['furniture'] ?? 'full').toString();
-    _selectedHeating = (data['heating'] ?? 'central').toString();
+    // Пустое значение с сервера означает «не указано» — подставлять сюда
+    // 'good'/'full'/'central' нельзя, иначе первое же сохранение припишет
+    // объявлению характеристики, которых владелец не выбирал.
+    _selectedCondition = (data['condition'] ?? '').toString();
+    _selectedFurniture = (data['furniture'] ?? '').toString();
+    _selectedHeating = (data['heating'] ?? '').toString();
     _hasGas = data['has_gas'] == true;
-    _mortgageReady = data['mortgage_ready'] == true;
+    _mortgageReady = data['has_mortgage'] == true;
     _exchangePossible = data['exchange_possible'] == true;
 
     // Photos & Video
@@ -327,66 +340,54 @@ class _AdEditPageState extends State<AdEditPage> {
     setState(() => _isSaving = true);
     final state = AppScope.read(context);
 
-    final payload = <String, dynamic>{
-      'district': _selectedDistrict,
-      'address': _addressController.text.trim(),
-      'rooms': _selectedRooms,
-      'area': double.tryParse(_areaController.text.trim()) ?? 100.0,
-      'floor': int.tryParse(_floorController.text.trim()) ?? 1,
-      'floors_total': int.tryParse(_floorsController.text.trim()) ?? 1,
-      'price': int.tryParse(_priceController.text.trim()) ?? 100000,
-      'description': _descriptionController.text.trim(),
-      'condition': _selectedCondition,
-      'furniture': _selectedFurniture,
-      'heating': _selectedHeating,
-      'has_gas': _hasGas,
-      'mortgage_ready': _mortgageReady,
-      'exchange_possible': _exchangePossible,
+    final roomAreas = <String, String>{
+      'kitchen_area': _kitchenAreaController.text.trim(),
+      'living_room_area': _livingAreaController.text.trim(),
+      'hall_area': _hallAreaController.text.trim(),
+      'bedroom_area': _bedroomAreaController.text.trim(),
+      'bedroom_2_area': _bedroom2AreaController.text.trim(),
+      'bathroom_area': _bathroomAreaController.text.trim(),
+      'balcony_area': _balconyAreaController.text.trim(),
+    }..removeWhere((_, value) => value.isEmpty);
+
+    // Серию отправляем только если она есть в справочнике. Раньше здесь
+    // подставлялась «первая попавшаяся», что тихо подменяло данные владельца.
+    final availableSeries = _getSeriesList(state);
+    final seriesCode =
+        availableSeries.any((item) => item['code'] == _selectedSeries) ? _selectedSeries : null;
+
+    final bText = _builderController.text.trim().toLowerCase();
+    final builderSlug = switch (bText) {
+      _ when bText.contains('elite') => 'elite-house',
+      _ when bText.contains('ihlas') || bText.contains('ихлас') => 'ihlas',
+      _ when bText.contains('avangard') || bText.contains('авангард') => 'avangard-stil',
+      _ when bText.contains('emakom') || bText.contains('эмаком') => 'ema-com',
+      _ => null,
     };
 
-    // Series validation against available series in DB
-    final availableSeries = _getSeriesList(state);
-    if (availableSeries.any((s) => s['code'] == _selectedSeries)) {
-      payload['series'] = _selectedSeries;
-    } else if (availableSeries.isNotEmpty) {
-      payload['series'] = availableSeries.first['code'];
-    }
-
-    // Builder slug validation
-    if (_builderController.text.trim().isNotEmpty) {
-      final bText = _builderController.text.trim().toLowerCase();
-      if (bText.contains('elite')) {
-        payload['builder'] = 'elite-house';
-      } else if (bText.contains('ihlas') || bText.contains('ихлас')) {
-        payload['builder'] = 'ihlas';
-      } else if (bText.contains('avangard') || bText.contains('авангард')) {
-        payload['builder'] = 'avangard-stil';
-      } else if (bText.contains('emakom') || bText.contains('эмаком')) {
-        payload['builder'] = 'ema-com';
-      }
-    }
-
-    if (_kitchenAreaController.text.isNotEmpty) {
-      payload['kitchen_area'] = double.tryParse(_kitchenAreaController.text.trim());
-    }
-    if (_livingAreaController.text.isNotEmpty) {
-      payload['living_room_area'] = double.tryParse(_livingAreaController.text.trim());
-    }
-    if (_hallAreaController.text.isNotEmpty) {
-      payload['hall_area'] = double.tryParse(_hallAreaController.text.trim());
-    }
-    if (_bedroomAreaController.text.isNotEmpty) {
-      payload['bedroom_area'] = double.tryParse(_bedroomAreaController.text.trim());
-    }
-    if (_bedroom2AreaController.text.isNotEmpty) {
-      payload['bedroom_2_area'] = double.tryParse(_bedroom2AreaController.text.trim());
-    }
-    if (_bathroomAreaController.text.isNotEmpty) {
-      payload['bathroom_area'] = double.tryParse(_bathroomAreaController.text.trim());
-    }
-    if (_balconyAreaController.text.isNotEmpty) {
-      payload['balcony_area'] = double.tryParse(_balconyAreaController.text.trim());
-    }
+    // Тело запроса собирает общий модуль: раньше этот экран слал floors_total
+    // вместо floors и ещё пять несуществующих полей — сервер отвечал 200,
+    // а данные исчезали.
+    final payload = buildListingPayload(
+      kind: _kind,
+      districtSlug: _selectedDistrict,
+      address: _addressController.text,
+      description: _descriptionController.text,
+      price: int.tryParse(_priceController.text.trim()),
+      area: double.tryParse(_areaController.text.trim()),
+      rooms: _selectedRooms,
+      floor: int.tryParse(_floorController.text.trim()),
+      floors: int.tryParse(_floorsController.text.trim()),
+      seriesCode: seriesCode,
+      builderSlug: builderSlug,
+      furniture: _selectedFurniture,
+      condition: _selectedCondition,
+      heating: _selectedHeating,
+      hasGas: _hasGas,
+      hasMortgage: _mortgageReady,
+      exchangePossible: _exchangePossible,
+      roomAreas: roomAreas,
+    );
 
     try {
       // 1. Update listing fields with automatic validation retry
@@ -1189,7 +1190,10 @@ class _AdEditPageState extends State<AdEditPage> {
     required Map<String, String> items,
     required ValueChanged<String?> onChanged,
   }) {
-    final displayValue = items.containsKey(value) ? value : items.keys.first;
+    // Пустое значение — это «не указано», а не первый пункт списка: показывать
+    // «Евроремонт» там, где владелец ничего не выбирал, значит врать.
+    final options = {'': 'Не указано', ...items};
+    final displayValue = options.containsKey(value) ? value : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1200,7 +1204,7 @@ class _AdEditPageState extends State<AdEditPage> {
           DropdownButton<String>(
             value: displayValue,
             underline: const SizedBox.shrink(),
-            items: items.entries.map((e) {
+            items: options.entries.map((e) {
               return DropdownMenuItem<String>(
                 value: e.key,
                 child: Text(e.value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xffea812e))),
