@@ -32,7 +32,8 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController? _contactNameController;
   TextEditingController? _contactPhoneController;
   TextEditingController? _landmarkController;
-  final Map<String, TextEditingController> _roomAreaControllers = {};
+  TextEditingController? _roomNameController;
+  TextEditingController? _roomAreaController;
 
   TextEditingController get _effectiveAreaController => _areaController ??= TextEditingController();
   TextEditingController get _effectiveBuilderController => _builderController ??= TextEditingController();
@@ -47,10 +48,8 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController get _effectiveContactNameController => _contactNameController ??= TextEditingController();
   TextEditingController get _effectiveContactPhoneController => _contactPhoneController ??= TextEditingController();
   TextEditingController get _effectiveLandmarkController => _landmarkController ??= TextEditingController();
-
-  /// Контроллер площади комнаты заводится по требованию и живёт до dispose.
-  TextEditingController _roomAreaController(String key) =>
-      _roomAreaControllers.putIfAbsent(key, TextEditingController.new);
+  TextEditingController get _effectiveRoomNameController => _roomNameController ??= TextEditingController();
+  TextEditingController get _effectiveRoomAreaController => _roomAreaController ??= TextEditingController();
   bool _isSaving = false;
   bool _initializedFromState = false;
 
@@ -116,7 +115,14 @@ class _AdFormPageState extends State<AdFormPage> {
     _initializedFromState = true;
     if (state.draftArea.isNotEmpty) _effectiveAreaController.text = state.draftArea;
     if (state.draftBuilder.isNotEmpty) _effectiveBuilderController.text = state.draftBuilder;
-    if (state.draftPrice.isNotEmpty) _effectivePriceController.text = state.draftPrice;
+    if (state.draftPrice.isNotEmpty) {
+      final parsed = double.tryParse(state.draftPrice.replaceAll(' ', '').replaceAll(',', '.'));
+      if (parsed != null && parsed > 0) {
+        _effectivePriceController.text = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toString();
+      } else {
+        _effectivePriceController.text = state.draftPrice;
+      }
+    }
     if (state.draftRooms > 5) _effectiveRoomsController.text = state.draftRooms.toString();
     if (state.draftFloor > 5) _effectiveFloorController.text = state.draftFloor.toString();
     if (state.draftFloors > 5) _effectiveFloorsController.text = state.draftFloors.toString();
@@ -134,9 +140,6 @@ class _AdFormPageState extends State<AdFormPage> {
     if (state.draftContactPhone.isNotEmpty) {
       _effectiveContactPhoneController.text = state.draftContactPhone;
     }
-    state.draftRoomAreas.forEach((key, value) {
-      _roomAreaController(key).text = value;
-    });
   }
 
   String _getDistrictLabel(AppState state) {
@@ -151,8 +154,18 @@ class _AdFormPageState extends State<AdFormPage> {
   }
 
   Future<void> _submitForm(AppState state) async {
-    final area = double.tryParse(_effectiveAreaController.text.trim()) ?? (double.tryParse(state.draftArea) ?? 0.0);
-    final price = int.tryParse(_effectivePriceController.text.trim()) ?? (int.tryParse(state.draftPrice) ?? 0);
+    final cleanPriceText = _effectivePriceController.text.trim().replaceAll(' ', '').replaceAll(',', '.');
+    final cleanDraftPrice = state.draftPrice.replaceAll(' ', '').replaceAll(',', '.');
+    final price = double.tryParse(cleanPriceText)?.round() ?? (double.tryParse(cleanDraftPrice)?.round() ?? 0);
+
+    final kindEnum = state.draftKinds.isNotEmpty ? state.draftKinds.first : PropertyKind.apartment;
+    final isPlot = kindEnum == PropertyKind.plot;
+
+    final area = double.tryParse(_effectiveAreaController.text.trim().replaceAll(' ', '').replaceAll(',', '.')) ??
+        (double.tryParse(state.draftArea.replaceAll(' ', '').replaceAll(',', '.')) ?? 0.0);
+    final landArea = double.tryParse(_effectiveLandAreaController.text.trim().replaceAll(' ', '').replaceAll(',', '.')) ??
+        (double.tryParse(state.draftLandArea.replaceAll(' ', '').replaceAll(',', '.')) ?? 0.0);
+
     final builder = _effectiveBuilderController.text.trim().isNotEmpty ? _effectiveBuilderController.text.trim() : state.draftBuilder;
 
     if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') {
@@ -161,9 +174,15 @@ class _AdFormPageState extends State<AdFormPage> {
       );
       return;
     }
-    if (area <= 0) {
+    if (!isPlot && area <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Пожалуйста, укажите квадратуру объекта')),
+      );
+      return;
+    }
+    if (isPlot && landArea <= 0 && area <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, укажите площадь участка')),
       );
       return;
     }
@@ -183,7 +202,6 @@ class _AdFormPageState extends State<AdFormPage> {
       }
     }
 
-    final kindEnum = state.draftKinds.isNotEmpty ? state.draftKinds.first : PropertyKind.apartment;
     final kindApi = switch (kindEnum) {
       PropertyKind.house => 'house',
       PropertyKind.apartment => 'apartment',
@@ -231,7 +249,7 @@ class _AdFormPageState extends State<AdFormPage> {
       contactName: state.draftContactName,
       contactPhone: state.draftContactPhone,
       landmarks: state.draftLandmarks,
-      roomAreas: state.draftRoomAreas,
+      roomsBreakdown: state.draftRoomList,
     );
 
     setState(() => _isSaving = true);
@@ -264,9 +282,8 @@ class _AdFormPageState extends State<AdFormPage> {
     _contactNameController?.dispose();
     _contactPhoneController?.dispose();
     _landmarkController?.dispose();
-    for (final controller in _roomAreaControllers.values) {
-      controller.dispose();
-    }
+    _roomNameController?.dispose();
+    _roomAreaController?.dispose();
     _builderController?.dispose();
     _priceController?.dispose();
     _roomsController?.dispose();
@@ -428,6 +445,8 @@ class _AdFormPageState extends State<AdFormPage> {
     final contactNameCtrl = _effectiveContactNameController;
     final contactPhoneCtrl = _effectiveContactPhoneController;
     final landmarkCtrl = _effectiveLandmarkController;
+    final roomNameCtrl = _effectiveRoomNameController;
+    final roomAreaCtrl = _effectiveRoomAreaController;
 
     // Набор секций зависит от типа: у участка нет комнат и этажей, у
     // коммерции — свои параметры (см. lib/data/kind_fields.dart).
@@ -927,25 +946,112 @@ class _AdFormPageState extends State<AdFormPage> {
               if (showsField(formKind, ListingField.interior))
                 _buildBlock(
                   title: 'Площади комнат',
-                  subtitle: 'Показываются в карточке объекта',
+                  subtitle: 'Добавьте только те комнаты, которые есть',
                   children: [
-                    for (final entry in roomAreaLabels.entries) ...[
-                      _buildSectionTitle(entry.value),
-                      const SizedBox(height: 8.0),
-                      _buildInputField(
-                        controller: _roomAreaController(entry.key),
-                        hintText: 'м²',
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) => state.setDraft(() {
-                          if (val.trim().isEmpty) {
-                            state.draftRoomAreas.remove(entry.key);
-                          } else {
-                            state.draftRoomAreas[entry.key] = val.trim();
-                          }
-                        }),
+                    for (var i = 0; i < state.draftRoomList.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Container(
+                                height: 44.0,
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                alignment: Alignment.centerLeft,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xfff5f5f7),
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
+                                child: Text(
+                                  state.draftRoomList[i].name,
+                                  style: const TextStyle(fontSize: 15.0),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8.0),
+                            Expanded(
+                              flex: 2,
+                              child: Container(
+                                height: 44.0,
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                alignment: Alignment.centerLeft,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xfff5f5f7),
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
+                                child: Text(
+                                  '${state.draftRoomList[i].area} м²',
+                                  style: const TextStyle(fontSize: 15.0),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 20, color: Color(0xff7d7d7d)),
+                              onPressed: () =>
+                                  state.setDraft(() => state.draftRoomList.removeAt(i)),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16.0),
-                    ],
+                    const SizedBox(height: 8.0),
+                    const Text(
+                      'Выберите комнату или впишите свою',
+                      style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+                    ),
+                    const SizedBox(height: 10.0),
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      children: [
+                        for (final name in roomNameSuggestions)
+                          _buildChip(
+                            label: name,
+                            selected: roomNameCtrl.text.trim() == name,
+                            onTap: () => setState(() => roomNameCtrl.text = name),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12.0),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: _buildInputField(
+                            controller: roomNameCtrl,
+                            hintText: 'Название комнаты',
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 8.0),
+                        Expanded(
+                          flex: 2,
+                          child: _buildInputField(
+                            controller: roomAreaCtrl,
+                            hintText: 'м²',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10.0),
+                    _buildChip(
+                      label: 'Добавить комнату',
+                      selected: roomNameCtrl.text.trim().isNotEmpty &&
+                          roomAreaCtrl.text.trim().isNotEmpty,
+                      onTap: () {
+                        final name = roomNameCtrl.text.trim();
+                        final area = roomAreaCtrl.text.trim();
+                        if (name.isEmpty || double.tryParse(area) == null) return;
+                        state.setDraft(
+                          () => state.draftRoomList.add(DraftRoom(name: name, area: area)),
+                        );
+                        roomNameCtrl.clear();
+                        roomAreaCtrl.clear();
+                        setState(() {});
+                      },
+                    ),
                   ],
                 ),
 

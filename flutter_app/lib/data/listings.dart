@@ -141,13 +141,6 @@ class Listing {
     this.viewsCount = 0,
     this.sellerPhone,
     this.isFavourite = false,
-    this.livingRoomArea,
-    this.hallArea,
-    this.kitchenArea,
-    this.bedroomArea,
-    this.bedroom2Area,
-    this.balconyArea,
-    this.bathroomArea,
     this.furniture = 'Полностью',
     List<String>? landmarks,
     this.latitude,
@@ -160,6 +153,7 @@ class Listing {
     this.hasSeparateEntrance = false,
     this.buildingLine = '',
     this.ceilingHeight,
+    this.status = 'active',
     List<ListingRoom>? roomsBreakdown,
     this.viewedAt,
   })  : _landmarks = landmarks,
@@ -174,6 +168,13 @@ class Listing {
   final bool hasSeparateEntrance;
   final String buildingLine;
   final double? ceilingHeight;
+  final String status;
+
+  bool get isArchived => status == 'archived';
+  bool get isDraft => status == 'draft';
+  bool get isPending => status == 'pending';
+  bool get isRejected => status == 'rejected';
+  bool get isSold => status == 'sold';
 
   String get coverPhoto => photo;
   String get videoUrl => videos.isNotEmpty ? videos.first.url : '';
@@ -281,50 +282,13 @@ class Listing {
     final ownerMap = json['owner'] as Map?;
     final sellerName = sellerMap?['name'] as String? ?? ownerMap?['name'] as String? ?? 'Адилхан Сатымкулов';
 
-    final roomsBreakdownRaw = json['rooms_breakdown'] as List<dynamic>?;
-    final List<ListingRoom> parsedRooms;
-    if (roomsBreakdownRaw != null && roomsBreakdownRaw.isNotEmpty) {
-      parsedRooms = roomsBreakdownRaw
-          .whereType<Map>()
-          .map((m) => ListingRoom.fromJson(Map<String, dynamic>.from(m)))
-          .toList();
-    } else {
-      final legacyList = <ListingRoom>[];
-      if (json['living_room_area'] != null) {
-        legacyList.add(ListingRoom(name: 'Гостинная', area: parseDoubleOrNull(json['living_room_area']) ?? 35.0));
-      }
-      if (json['hall_area'] != null) {
-        legacyList.add(ListingRoom(name: 'Холл', area: parseDoubleOrNull(json['hall_area']) ?? 23.0));
-      }
-      if (json['kitchen_area'] != null) {
-        legacyList.add(ListingRoom(name: 'Кухня', area: parseDoubleOrNull(json['kitchen_area']) ?? 17.0));
-      }
-      if (json['bedroom_area'] != null) {
-        legacyList.add(ListingRoom(name: 'Спальная', area: parseDoubleOrNull(json['bedroom_area']) ?? 25.0));
-      }
-      if (json['bedroom_2_area'] != null) {
-        legacyList.add(ListingRoom(name: 'Спальная 2', area: parseDoubleOrNull(json['bedroom_2_area']) ?? 15.0));
-      }
-      if (json['balcony_area'] != null) {
-        legacyList.add(ListingRoom(name: 'Балкон', area: parseDoubleOrNull(json['balcony_area']) ?? 7.0));
-      }
-      if (json['bathroom_area'] != null) {
-        legacyList.add(ListingRoom(name: 'Сан.узел', area: parseDoubleOrNull(json['bathroom_area']) ?? 10.0));
-      }
-      if (legacyList.isNotEmpty) {
-        parsedRooms = legacyList;
-      } else {
-        parsedRooms = const [
-          ListingRoom(name: 'Гостинная', area: 35.0),
-          ListingRoom(name: 'Холл', area: 23.0),
-          ListingRoom(name: 'Кухня', area: 17.0),
-          ListingRoom(name: 'Спальная', area: 25.0),
-          ListingRoom(name: 'Спальная 2', area: 15.0),
-          ListingRoom(name: 'Балкон', area: 7.0),
-          ListingRoom(name: 'Сан.узел', area: 10.0),
-        ];
-      }
-    }
+    // Экспликация помещений приходит списком: у одной квартиры есть холл и
+    // две спальни, у другой только кухня и балкон. Подставлять недостающие
+    // комнаты значениями по умолчанию нельзя — это выдуманные данные.
+    final parsedRooms = (json['rooms_breakdown'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map((m) => ListingRoom.fromJson(Map<String, dynamic>.from(m)))
+        .toList();
 
     return Listing(
       id: slug,
@@ -357,6 +321,7 @@ class Listing {
       hasSeparateEntrance: json['has_separate_entrance'] as bool? ?? false,
       buildingLine: json['building_line'] as String? ?? '',
       ceilingHeight: parseDoubleOrNull(json['ceiling_height']),
+      status: json['status']?.toString() ?? 'active',
       description: json['description'] as String? ?? kFillerDescription,
       address: json['address'] as String? ?? 'Бишкек, Октябрьский район,\nул.Бакаева 178/4',
       viewsCount: parseInt(json['views_count']),
@@ -369,13 +334,6 @@ class Listing {
           .toList() ??
           const [],
       isFavourite: json['is_favourite'] as bool? ?? false,
-      livingRoomArea: parseDoubleOrNull(json['living_room_area']),
-      hallArea: parseDoubleOrNull(json['hall_area']),
-      kitchenArea: parseDoubleOrNull(json['kitchen_area']),
-      bedroomArea: parseDoubleOrNull(json['bedroom_area']),
-      bedroom2Area: parseDoubleOrNull(json['bedroom_2_area']),
-      balconyArea: parseDoubleOrNull(json['balcony_area']),
-      bathroomArea: parseDoubleOrNull(json['bathroom_area']),
       landmarks: (json['landmarks'] is List && (json['landmarks'] as List).isNotEmpty)
           ? (json['landmarks'] as List)
               .map((e) => e?.toString() ?? '')
@@ -431,13 +389,8 @@ class Listing {
   final int viewsCount;
   final String? sellerPhone;
 
-  final double? livingRoomArea;
-  final double? hallArea;
-  final double? kitchenArea;
-  final double? bedroomArea;
-  final double? bedroom2Area;
-  final double? balconyArea;
-  final double? bathroomArea;
+  // Площади помещений живут в roomsBreakdown: набор комнат у каждого
+  // объекта свой, фиксированных полей под них быть не должно.
   final String furniture;
   final List<String>? _landmarks;
   final double? latitude;

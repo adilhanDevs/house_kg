@@ -58,7 +58,7 @@ Map<String, dynamic> buildListingPayload({
   String? contactName,
   String? contactPhone,
   List<String>? landmarks,
-  Map<String, String>? roomAreas,
+  List<DraftRoom>? roomsBreakdown,
 }) {
   final data = <String, dynamic>{'kind': propertyKindCode(kind)};
 
@@ -115,22 +115,45 @@ Map<String, dynamic> buildListingPayload({
     put('condition', condition);
     put('heating', heating);
     if (hasGas != null) data['has_gas'] = hasGas;
-    roomAreas?.forEach(put);
+    if (roomsBreakdown != null) {
+      // Список заменяет прежний целиком — так его и обрабатывает сервер.
+      data['rooms_breakdown'] = [
+        for (var i = 0; i < roomsBreakdown.length; i++)
+          {
+            'name': roomsBreakdown[i].name,
+            'area': roomsBreakdown[i].area,
+            'order': i,
+          },
+      ];
+    }
   }
 
   return data;
 }
 
-/// Ключи площадей комнат — те же имена, что в модели.
-const Map<String, String> roomAreaLabels = {
-  'living_room_area': 'Гостиная',
-  'hall_area': 'Холл',
-  'kitchen_area': 'Кухня',
-  'bedroom_area': 'Спальная',
-  'bedroom_2_area': 'Спальная 2',
-  'balcony_area': 'Балкон',
-  'bathroom_area': 'Сан.узел',
-};
+/// Комната в форме: название и площадь. Название свободное — «Гардеробная»,
+/// «Терраса», «Котельная» встречаются не реже кухни.
+class DraftRoom {
+  DraftRoom({required this.name, required this.area});
+
+  final String name;
+  final String area;
+
+  Map<String, dynamic> toJson() => {'name': name, 'area': area};
+}
+
+/// Подсказки для быстрого добавления. Это именно подсказки, а не список
+/// обязательных комнат: любую можно не добавлять, а своё название — ввести.
+const List<String> roomNameSuggestions = [
+  'Гостиная',
+  'Кухня',
+  'Спальная',
+  'Балкон',
+  'Сан.узел',
+  'Холл',
+  'Гардеробная',
+  'Терраса',
+];
 
 /// Подписи меблировки — значения совпадают с `FurnitureKind` на бэкенде.
 const Map<String, String> furnitureLabels = {

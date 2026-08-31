@@ -1005,7 +1005,9 @@ class AppState extends ChangeNotifier {
   String draftContactName = '';
   String draftContactPhone = '';
   final List<String> draftLandmarks = [];
-  final Map<String, String> draftRoomAreas = {};
+  /// Экспликация помещений черновика: владелец сам решает, какие комнаты
+  /// добавить. Фиксированного набора нет.
+  final List<DraftRoom> draftRoomList = [];
   String draftPrice = '';
   bool draftUsd = true;
   bool draftOwner = true;
@@ -1056,7 +1058,7 @@ class AppState extends ChangeNotifier {
       draftCondition = '';
       draftHeating = '';
       draftHasGas = false;
-      draftRoomAreas.clear();
+      draftRoomList.clear();
     }
     notifyListeners();
   }
@@ -1074,9 +1076,9 @@ class AppState extends ChangeNotifier {
       final response = await apiClient.getDraft();
       draftSlug = response['slug'] as String?;
       if (response['kind'] != null) {
-        final kindStr = response['kind'] as String;
+        final kindStr = (response['kind'] as String).replaceAll('-', '_');
         final kind = PropertyKind.values.firstWhere(
-          (k) => k.name == kindStr,
+          (k) => propertyKindCode(k) == kindStr || k.name == kindStr,
           orElse: () => PropertyKind.apartment,
         );
         draftKinds.clear();
@@ -1094,7 +1096,20 @@ class AppState extends ChangeNotifier {
       if (response['ceiling_height'] != null) {
         draftCeilingHeight = response['ceiling_height'].toString();
       }
-      if (response['price'] != null) draftPrice = response['price'].toString();
+      if (response['price'] != null) {
+        final rawPrice = response['price'];
+        if (rawPrice is num) {
+          draftPrice = rawPrice % 1 == 0 ? rawPrice.toInt().toString() : rawPrice.toString();
+        } else {
+          final pStr = rawPrice.toString();
+          final parsed = double.tryParse(pStr.replaceAll(' ', '').replaceAll(',', '.'));
+          if (parsed != null) {
+            draftPrice = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toString();
+          } else {
+            draftPrice = pStr;
+          }
+        }
+      }
       draftAddress = response['address'] as String? ?? '';
       draftDescription = response['description'] as String? ?? '';
       draftSecondary = response['is_secondary'] as bool? ?? false;
@@ -1111,11 +1126,14 @@ class AppState extends ChangeNotifier {
         ..clear()
         ..addAll((response['landmarks'] as List<dynamic>? ?? const [])
             .map((e) => e.toString()));
-      draftRoomAreas.clear();
-      for (final key in roomAreaLabels.keys) {
-        final value = response[key];
-        if (value != null) draftRoomAreas[key] = value.toString();
-      }
+      draftRoomList
+        ..clear()
+        ..addAll((response['rooms_breakdown'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((m) => DraftRoom(
+                  name: (m['name'] ?? '').toString(),
+                  area: (m['area'] ?? '').toString(),
+                )));
       if (response['series'] != null) {
         final series = response['series'];
         draftSeries = series is Map ? (series['code'] ?? '').toString() : series.toString();

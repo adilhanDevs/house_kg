@@ -49,7 +49,15 @@ from apps.catalog.enums import (
     SellerKind,
 )
 from apps.catalog.field_rules import REQUIRED_BY_KIND
-from apps.catalog.models import Builder, City, District, HouseSeries, Listing, ListingMedia
+from apps.catalog.models import (
+    Builder,
+    City,
+    District,
+    HouseSeries,
+    Listing,
+    ListingMedia,
+    ListingRoom,
+)
 from apps.catalog.stats import bump_stat
 from apps.common.audit import audit
 from apps.common.cache import safe_cache_call
@@ -818,10 +826,29 @@ def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
 
     previous_price = listing.price
 
+    # Экспликация помещений — не поле модели, а связанный список; форма
+    # присылает его целиком, поэтому прежний набор заменяется, а не
+    # дополняется: удалённая владельцем комната иначе осталась бы навсегда.
+    rooms = data.pop("rooms_breakdown", None)
+
     for field, value in data.items():
         setattr(listing, field, value)
 
     listing.save()
+
+    if rooms is not None:
+        listing.rooms_data.all().delete()
+        ListingRoom.objects.bulk_create(
+            [
+                ListingRoom(
+                    listing=listing,
+                    name=room["name"],
+                    area=room["area"],
+                    order=room.get("order", index),
+                )
+                for index, room in enumerate(rooms)
+            ]
+        )
 
     if new_price is not None and previous_price != new_price:
         # Цена — то, ради чего объявление и открывают; её изменения должны

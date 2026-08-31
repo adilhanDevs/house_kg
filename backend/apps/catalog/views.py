@@ -396,6 +396,11 @@ class ListingDetailView(RetrieveUpdateDestroyAPIView):
                 from django.contrib.auth import get_user_model
                 user = get_user_model().objects.first()
             return owned_listing_queryset(user)
+        user = self.request.user
+        if user and user.is_authenticated:
+            return self.public_queryset(only_active=False).filter(
+                Q(status=ListingStatus.ACTIVE) | Q(owner=user)
+            )
         return self.public_queryset()
 
     def update(self, request: Request, *args: Any, **kwargs: Any) -> Response:

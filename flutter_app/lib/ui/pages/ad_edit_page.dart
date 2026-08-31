@@ -41,13 +41,12 @@ class _AdEditPageState extends State<AdEditPage> {
   final _descriptionController = TextEditingController();
 
   // Room area breakdown
-  final _kitchenAreaController = TextEditingController();
-  final _livingAreaController = TextEditingController();
-  final _hallAreaController = TextEditingController();
-  final _bedroomAreaController = TextEditingController();
-  final _bedroom2AreaController = TextEditingController();
-  final _bathroomAreaController = TextEditingController();
-  final _balconyAreaController = TextEditingController();
+  // Экспликация помещений: список, который владелец собирает сам. Раньше
+  // здесь было семь фиксированных полей, хотя холла и второй спальни у
+  // большинства квартир нет.
+  final List<DraftRoom> _rooms = [];
+  final _roomNameController = TextEditingController();
+  final _roomAreaController = TextEditingController();
 
   // Selection states
   String _selectedDistrict = 'asanbay';
@@ -114,13 +113,8 @@ class _AdEditPageState extends State<AdEditPage> {
     _floorsController.dispose();
     _builderController.dispose();
     _descriptionController.dispose();
-    _kitchenAreaController.dispose();
-    _livingAreaController.dispose();
-    _hallAreaController.dispose();
-    _bedroomAreaController.dispose();
-    _bedroom2AreaController.dispose();
-    _bathroomAreaController.dispose();
-    _balconyAreaController.dispose();
+    _roomNameController.dispose();
+    _roomAreaController.dispose();
     super.dispose();
   }
 
@@ -174,13 +168,14 @@ class _AdEditPageState extends State<AdEditPage> {
     _descriptionController.text = (data['description'] ?? '').toString();
 
     // Area breakdown
-    _kitchenAreaController.text = (data['kitchen_area'] ?? '').toString();
-    _livingAreaController.text = (data['living_room_area'] ?? '').toString();
-    _hallAreaController.text = (data['hall_area'] ?? '').toString();
-    _bedroomAreaController.text = (data['bedroom_area'] ?? '').toString();
-    _bedroom2AreaController.text = (data['bedroom_2_area'] ?? '').toString();
-    _bathroomAreaController.text = (data['bathroom_area'] ?? '').toString();
-    _balconyAreaController.text = (data['balcony_area'] ?? '').toString();
+    _rooms
+      ..clear()
+      ..addAll((data['rooms_breakdown'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((m) => DraftRoom(
+                name: (m['name'] ?? '').toString(),
+                area: (m['area'] ?? '').toString(),
+              )));
 
     // Selections
     if (data['district'] != null) {
@@ -340,16 +335,6 @@ class _AdEditPageState extends State<AdEditPage> {
     setState(() => _isSaving = true);
     final state = AppScope.read(context);
 
-    final roomAreas = <String, String>{
-      'kitchen_area': _kitchenAreaController.text.trim(),
-      'living_room_area': _livingAreaController.text.trim(),
-      'hall_area': _hallAreaController.text.trim(),
-      'bedroom_area': _bedroomAreaController.text.trim(),
-      'bedroom_2_area': _bedroom2AreaController.text.trim(),
-      'bathroom_area': _bathroomAreaController.text.trim(),
-      'balcony_area': _balconyAreaController.text.trim(),
-    }..removeWhere((_, value) => value.isEmpty);
-
     // Серию отправляем только если она есть в справочнике. Раньше здесь
     // подставлялась «первая попавшаяся», что тихо подменяло данные владельца.
     final availableSeries = _getSeriesList(state);
@@ -373,8 +358,8 @@ class _AdEditPageState extends State<AdEditPage> {
       districtSlug: _selectedDistrict,
       address: _addressController.text,
       description: _descriptionController.text,
-      price: int.tryParse(_priceController.text.trim()),
-      area: double.tryParse(_areaController.text.trim()),
+      price: double.tryParse(_priceController.text.trim().replaceAll(' ', '').replaceAll(',', '.'))?.round(),
+      area: double.tryParse(_areaController.text.trim().replaceAll(' ', '').replaceAll(',', '.')),
       rooms: _selectedRooms,
       floor: int.tryParse(_floorController.text.trim()),
       floors: int.tryParse(_floorsController.text.trim()),
@@ -386,7 +371,7 @@ class _AdEditPageState extends State<AdEditPage> {
       hasGas: _hasGas,
       hasMortgage: _mortgageReady,
       exchangePossible: _exchangePossible,
-      roomAreas: roomAreas,
+      roomsBreakdown: _rooms,
     );
 
     try {
@@ -787,34 +772,109 @@ class _AdEditPageState extends State<AdEditPage> {
                       ]),
                       const SizedBox(height: 24),
 
-                      // 5. Экспликация комнат
-                      _buildSectionTitle('Площади отдельных зон (м²)'),
-                      const SizedBox(height: 12),
+                      // 5. Экспликация комнат — список, а не фиксированный набор
+                      _buildSectionTitle('Площади комнат'),
+                      const SizedBox(height: 6),
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'Добавьте только те комнаты, которые есть',
+                          style: TextStyle(fontSize: 13, color: Color(0xff7d7d7d)),
+                        ),
+                      ),
                       _buildCardWrapper([
-                        Row(
-                          children: [
-                            Expanded(child: _buildTextField(controller: _kitchenAreaController, label: 'Кухня', hint: '16', keyboardType: TextInputType.number)),
-                            Container(width: 1, height: 48, color: const Color(0xffe5e5ea)),
-                            Expanded(child: _buildTextField(controller: _livingAreaController, label: 'Гостиная', hint: '32', keyboardType: TextInputType.number)),
-                          ],
-                        ),
-                        const Divider(height: 1),
-                        Row(
-                          children: [
-                            Expanded(child: _buildTextField(controller: _bedroomAreaController, label: 'Спальня 1', hint: '20', keyboardType: TextInputType.number)),
-                            Container(width: 1, height: 48, color: const Color(0xffe5e5ea)),
-                            Expanded(child: _buildTextField(controller: _bedroom2AreaController, label: 'Спальня 2', hint: '18', keyboardType: TextInputType.number)),
-                          ],
-                        ),
-                        const Divider(height: 1),
-                        Row(
-                          children: [
-                            Expanded(child: _buildTextField(controller: _hallAreaController, label: 'Прихожая', hint: '12', keyboardType: TextInputType.number)),
-                            Container(width: 1, height: 48, color: const Color(0xffe5e5ea)),
-                            Expanded(child: _buildTextField(controller: _bathroomAreaController, label: 'Санузел', hint: '8', keyboardType: TextInputType.number)),
-                            Container(width: 1, height: 48, color: const Color(0xffe5e5ea)),
-                            Expanded(child: _buildTextField(controller: _balconyAreaController, label: 'Балкон', hint: '6', keyboardType: TextInputType.number)),
-                          ],
+                        for (var i = 0; i < _rooms.length; i++) ...[
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _rooms[i].name,
+                                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                  ),
+                                ),
+                                Text(
+                                  '${_rooms[i].area} м²',
+                                  style: const TextStyle(fontSize: 14, color: Color(0xff7d7d7d)),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 18, color: Color(0xff7d7d7d)),
+                                  onPressed: () => setState(() => _rooms.removeAt(i)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1),
+                        ],
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final name in roomNameSuggestions)
+                                    GestureDetector(
+                                      onTap: () =>
+                                          setState(() => _roomNameController.text = name),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xfff5f5f7),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          name,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: _buildTextField(
+                                      controller: _roomNameController,
+                                      label: 'Комната',
+                                      hint: 'Например, гардеробная',
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: _buildTextField(
+                                      controller: _roomAreaController,
+                                      label: 'м²',
+                                      hint: '12',
+                                      keyboardType: TextInputType.number,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add_circle,
+                                        color: Color(0xffea812e)),
+                                    onPressed: () {
+                                      final name = _roomNameController.text.trim();
+                                      final area = _roomAreaController.text.trim();
+                                      if (name.isEmpty || double.tryParse(area) == null) {
+                                        return;
+                                      }
+                                      setState(() {
+                                        _rooms.add(DraftRoom(name: name, area: area));
+                                        _roomNameController.clear();
+                                        _roomAreaController.clear();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ]),
                       const SizedBox(height: 24),

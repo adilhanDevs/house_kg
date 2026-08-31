@@ -645,6 +645,22 @@ class ListingApiClient {
     }
   }
 
+  Future<void> restoreListing(String listingSlug) async {
+    final uri = Uri.parse('$baseUrl/api/v1/listings/$listingSlug/restore/');
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {'Accept': 'application/json'},
+      );
+      _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getTariffs() async {
     final uri = Uri.parse('$baseUrl/api/v1/tariffs/');
     try {

@@ -41,6 +41,8 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
     return buffer.toString();
   }
 
+  bool _isRestoring = false;
+
   Future<void> _loadData() async {
     final state = AppScope.read(context);
     final targetSlug = widget.slug ?? state.draftSlug;
@@ -52,7 +54,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
 
     Map<String, dynamic>? data;
 
-    // 1. Попытка получить через детальный эндпоинт (для активных объявлений)
+    // 1. Попытка получить через детальный эндпоинт
     if (targetSlug != null && targetSlug.isNotEmpty && targetSlug != 'draft-slug') {
       try {
         data = await state.apiClient.getListingDetails(targetSlug);
@@ -61,8 +63,25 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
       }
     }
 
-    // 2. Если объект не опубликован или 404 — запрашиваем черновик с бэкенда
-    if (data == null) {
+    // 2. Если не получен по getListingDetails, ищем среди объявлений пользователя
+    if (data == null && targetSlug != null && targetSlug.isNotEmpty && targetSlug != 'draft-slug') {
+      try {
+        final myListings = await state.apiClient.getMyListings();
+        final results = myListings['results'] as List<dynamic>? ?? [];
+        final match = results.firstWhere(
+          (m) => (m is Map) && (m['slug'] == targetSlug || m['id']?.toString() == targetSlug),
+          orElse: () => null,
+        );
+        if (match != null && match is Map) {
+          data = Map<String, dynamic>.from(match);
+        }
+      } catch (e) {
+        debugPrint('getMyListings search error: $e');
+      }
+    }
+
+    // 3. Только если конкретный объект НЕ был указан, открываем текущий черновик
+    if (data == null && widget.slug == null) {
       try {
         final draftData = await state.apiClient.getDraft();
         if (draftData.isNotEmpty) {
@@ -74,27 +93,6 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
       } catch (e) {
         debugPrint('getDraft error: $e');
       }
-    }
-
-    // 3. Поиск в списке объявлений
-    if (data == null && targetSlug != null) {
-      try {
-        final listResp = await state.apiClient.getListings();
-        final results = listResp['results'] as List<dynamic>? ?? [];
-        final match = results.firstWhere(
-          (m) => (m is Map) && (m['slug'] == targetSlug || m['id']?.toString() == targetSlug),
-          orElse: () => null,
-        );
-        if (match != null && match is Map) {
-          if (mounted) {
-            setState(() {
-              _listing = Listing.fromJson(Map<String, dynamic>.from(match));
-              _isLoading = false;
-            });
-            return;
-          }
-        }
-      } catch (_) {}
     }
 
     if (data != null) {
@@ -110,6 +108,34 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
           _isLoading = false;
           _error = 'Не удалось загрузить данные объявления';
         });
+      }
+    }
+  }
+
+  Future<void> _restoreListing() async {
+    if (_listing == null) return;
+    setState(() => _isRestoring = true);
+    final state = AppScope.read(context);
+    try {
+      await state.apiClient.restoreListing(_listing!.slug);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Объявление возвращено из архива и опубликовано!'),
+            backgroundColor: Color(0xff4dba17),
+          ),
+        );
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка публикации: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRestoring = false);
       }
     }
   }
@@ -147,7 +173,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
               backgroundColor: Color(0xffea812e),
             ),
           );
-          Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+          _loadData();
         }
       } catch (e) {
         if (mounted) {
@@ -270,23 +296,47 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
             const SizedBox(height: 12.0),
           ],
 
-          SizedBox(
-            width: double.infinity,
-            height: 48.0,
-            child: OutlinedButton(
-              onPressed: _isArchiving ? null : _confirmArchive,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xffe5e5ea)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+          if (item.isArchived) ...[
+            SizedBox(
+              width: double.infinity,
+              height: 48.0,
+              child: ElevatedButton.icon(
+                onPressed: _isRestoring ? null : _restoreListing,
+                icon: const Icon(Icons.unarchive_outlined, color: Colors.white),
+                label: _isRestoring
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text(
+                        'Опубликовать снова',
+                        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: orangeColor,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                ),
               ),
-              child: _isArchiving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text(
-                      'Снять с публикации (в архив)',
-                      style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600, color: Color(0xffd32f2f)),
-                    ),
             ),
-          ),
+            const SizedBox(height: 12.0),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              height: 48.0,
+              child: OutlinedButton(
+                onPressed: _isArchiving ? null : _confirmArchive,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xffe5e5ea)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                ),
+                child: _isArchiving
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text(
+                        'Снять с публикации (в архив)',
+                        style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600, color: Color(0xffd32f2f)),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 12.0),
+          ],
           const SizedBox(height: 24.0),
         ],
       ),
@@ -295,6 +345,42 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
 
   Widget _buildListingCard(Listing item, Color orangeColor) {
     final photo = item.coverPhoto;
+
+    final String statusText;
+    final Color statusColor;
+    final IconData statusIcon;
+
+    switch (item.status) {
+      case 'archived':
+        statusText = 'В архиве';
+        statusColor = const Color(0xff8e8e93);
+        statusIcon = Icons.archive_outlined;
+        break;
+      case 'pending':
+        statusText = 'На модерации';
+        statusColor = const Color(0xff1976d2);
+        statusIcon = Icons.hourglass_top_rounded;
+        break;
+      case 'draft':
+        statusText = 'Черновик';
+        statusColor = const Color(0xffea812e);
+        statusIcon = Icons.edit_note_rounded;
+        break;
+      case 'rejected':
+        statusText = 'Отклонено';
+        statusColor = const Color(0xffd32f2f);
+        statusIcon = Icons.cancel_outlined;
+        break;
+      case 'sold':
+        statusText = 'Продано';
+        statusColor = const Color(0xff5c6bc0);
+        statusIcon = Icons.done_all_rounded;
+        break;
+      default:
+        statusText = 'Опубликовано';
+        statusColor = const Color(0xff4dba17);
+        statusIcon = Icons.check_circle;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -337,17 +423,17 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xff4dba17),
+                    color: statusColor,
                     borderRadius: BorderRadius.circular(20.0),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, size: 13, color: Colors.white),
-                      SizedBox(width: 4),
+                      Icon(statusIcon, size: 13, color: Colors.white),
+                      const SizedBox(width: 4),
                       Text(
-                        'Опубликовано',
-                        style: TextStyle(
+                        statusText,
+                        style: const TextStyle(
                           fontSize: 12.0,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,

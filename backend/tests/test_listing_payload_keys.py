@@ -20,10 +20,8 @@ PAYLOAD_DART = (
     Path(__file__).resolve().parents[2] / "flutter_app" / "lib" / "data" / "listing_payload.dart"
 )
 
-# Ключи площадей комнат объявлены отдельной константой-словарём.
 KEY_RE = re.compile(r"""(?:put|putIf)\([^)]*?['"]([a-z_0-9]+)['"]""")
 DATA_KEY_RE = re.compile(r"""data\[['"]([a-z_0-9]+)['"]\]\s*=""")
-ROOM_AREA_RE = re.compile(r"""^\s*'([a-z_0-9]+)':\s*'[^']+',\s*$""", re.M)
 # Начальный литерал карты: <String, dynamic>{'kind': ...}
 LITERAL_KEY_RE = re.compile(r"""<String, dynamic>\{['"]([a-z_0-9]+)['"]:""")
 
@@ -36,11 +34,6 @@ def _client_keys() -> set[str]:
         | set(DATA_KEY_RE.findall(source))
         | set(LITERAL_KEY_RE.findall(source))
     )
-
-    # roomAreaLabels — ключи площадей уходят в payload как есть.
-    block = source[source.index("const Map<String, String> roomAreaLabels") :]
-    block = block[: block.index("};")]
-    keys |= set(ROOM_AREA_RE.findall(block))
 
     return keys
 
@@ -62,4 +55,8 @@ def test_payload_module_covers_the_fields_we_expect():
     keys = _client_keys()
 
     assert {"kind", "district", "price", "area", "floors", "landmarks"} <= keys
+    assert "rooms_breakdown" in keys
     assert "floors_total" not in keys
+    # Семь фиксированных колонок площадей удалены из модели: если они снова
+    # появятся в клиенте, сервер молча их отбросит.
+    assert not {"living_room_area", "hall_area", "bedroom_2_area"} & keys

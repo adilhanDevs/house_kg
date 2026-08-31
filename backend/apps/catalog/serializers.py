@@ -312,6 +312,7 @@ class ListingListSerializer(serializers.ModelSerializer):
             "is_promoted",
             "is_favourite",
             "is_available",
+            "status",
             "published_at",
         ]
         read_only_fields = fields
@@ -350,12 +351,26 @@ class ListingReelsSerializer(ListingListSerializer):
 
 
 class ListingRoomSerializer(serializers.ModelSerializer):
-    """Помещение / комната в объекте."""
+    """Помещение / комната в объекте (чтение)."""
 
     class Meta:
         model = ListingRoom
         fields = ["id", "name", "area", "order"]
         read_only_fields = fields
+
+
+class ListingRoomWriteSerializer(serializers.ModelSerializer):
+    """Комната в форме объявления.
+
+    Набор комнат у каждого объекта свой: у одной квартиры есть холл и две
+    спальни, у другой — только кухня и балкон. Поэтому это список, который
+    владелец собирает сам, а не фиксированный набор полей.
+    """
+
+    class Meta:
+        model = ListingRoom
+        fields = ["name", "area", "order"]
+        extra_kwargs = {"order": {"required": False}}
 
 
 class ListingDetailSerializer(ListingListSerializer):
@@ -374,13 +389,6 @@ class ListingDetailSerializer(ListingListSerializer):
             "address",
             "latitude",
             "longitude",
-            "living_room_area",
-            "hall_area",
-            "kitchen_area",
-            "bedroom_area",
-            "bedroom_2_area",
-            "balcony_area",
-            "bathroom_area",
             "furniture",
             "condition",
             "heating",
@@ -494,23 +502,22 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
     builder = serializers.SlugRelatedField(
         slug_field="slug", queryset=Builder.objects.all(), required=False, allow_null=True
     )
+    rooms_breakdown = ListingRoomWriteSerializer(
+        many=True,
+        required=False,
+        help_text="Экспликация помещений. Присланный список заменяет прежний целиком.",
+    )
 
     class Meta:
         model = Listing
         fields = [
             "kind",
+            "rooms_breakdown",
             "district",
             "city",
             "address",
             "rooms",
             "area",
-            "living_room_area",
-            "hall_area",
-            "kitchen_area",
-            "bedroom_area",
-            "bedroom_2_area",
-            "balcony_area",
-            "bathroom_area",
             "furniture",
             "condition",
             "heating",

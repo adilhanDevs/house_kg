@@ -239,13 +239,8 @@ class Listing(TimeStampedModel):
 
     rooms = models.PositiveSmallIntegerField("Комнат", default=0)
     area = models.DecimalField("Площадь, м²", max_digits=8, decimal_places=2, blank=True, null=True)
-    living_room_area = models.DecimalField("Гостинная, м²", max_digits=6, decimal_places=2, blank=True, null=True)
-    hall_area = models.DecimalField("Холл, м²", max_digits=6, decimal_places=2, blank=True, null=True)
-    kitchen_area = models.DecimalField("Кухня, м²", max_digits=6, decimal_places=2, blank=True, null=True)
-    bedroom_area = models.DecimalField("Спальная, м²", max_digits=6, decimal_places=2, blank=True, null=True)
-    bedroom_2_area = models.DecimalField("Спальная 2, м²", max_digits=6, decimal_places=2, blank=True, null=True)
-    balcony_area = models.DecimalField("Балкон, м²", max_digits=6, decimal_places=2, blank=True, null=True)
-    bathroom_area = models.DecimalField("Сан.узел, м²", max_digits=6, decimal_places=2, blank=True, null=True)
+    # Площади помещений живут в ListingRoom: набор комнат у каждого объекта
+    # свой, фиксированного списка «гостиная / холл / спальня 2» не бывает.
     furniture = models.CharField(
         "Мебель", max_length=16, choices=FurnitureKind.choices, blank=True
     )

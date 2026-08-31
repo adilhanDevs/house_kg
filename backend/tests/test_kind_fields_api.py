@@ -143,8 +143,10 @@ def test_patch_saves_previously_unreachable_fields(district, pro_user, pro_clien
             "contact_phone": "+996700123456",
             "is_secondary": True,
             "has_direct_sale": False,
-            "kitchen_area": "12.50",
-            "living_room_area": "24.00",
+            "rooms_breakdown": [
+                {"name": "Кухня", "area": "12.50"},
+                {"name": "Гардеробная", "area": "4.00"},
+            ],
         },
         format="json",
     )
@@ -156,7 +158,8 @@ def test_patch_saves_previously_unreachable_fields(district, pro_user, pro_clien
     assert flat.contact_name == "Азамат"
     assert flat.is_secondary is True
     assert flat.has_direct_sale is False
-    assert str(flat.kitchen_area) == "12.50"
+    rooms = list(flat.rooms_data.order_by("order").values_list("name", flat=True))
+    assert rooms == ["Кухня", "Гардеробная"]
 
 
 @pytest.mark.django_db
@@ -202,3 +205,59 @@ def test_plot_does_not_keep_heating_or_condition(district, pro_user, pro_client:
     assert plot.heating == ""
     # Обмен применим к любому типу, включая участок.
     assert plot.exchange_possible is True
+
+
+@pytest.mark.django_db
+def test_rooms_breakdown_replaces_the_whole_list(district, pro_user, pro_client: APIClient):  # noqa: ANN001
+    """Удалённая владельцем комната не должна оставаться в базе."""
+    flat = _make(district, pro_user, kind=PropertyKind.APARTMENT)
+    url = f"/api/v1/listings/{flat.slug}/"
+
+    pro_client.patch(
+        url,
+        {"rooms_breakdown": [{"name": "Кухня", "area": "12"}, {"name": "Балкон", "area": "4"}]},
+        format="json",
+    )
+    response = pro_client.patch(
+        url, {"rooms_breakdown": [{"name": "Кухня", "area": "13"}]}, format="json"
+    )
+
+    assert response.status_code == 200, response.content
+    rooms = list(flat.rooms_data.values_list("name", "area"))
+    assert len(rooms) == 1
+    assert rooms[0][0] == "Кухня"
+    assert str(rooms[0][1]) == "13.00"
+
+
+@pytest.mark.django_db
+def test_arbitrary_room_names_are_accepted(district, pro_user, pro_client: APIClient):  # noqa: ANN001
+    """Название комнаты — свободное: гардеробная, терраса, котельная."""
+    house = _make(district, pro_user, kind=PropertyKind.HOUSE)
+
+    response = pro_client.patch(
+        f"/api/v1/listings/{house.slug}/",
+        {
+            "rooms_breakdown": [
+                {"name": "Терраса", "area": "18.00"},
+                {"name": "Котельная", "area": "6.50"},
+            ]
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200, response.content
+    assert house.rooms_data.count() == 2
+
+
+@pytest.mark.django_db
+def test_plot_cannot_have_rooms_breakdown(district, pro_user, pro_client: APIClient):  # noqa: ANN001
+    plot = _make(district, pro_user, kind=PropertyKind.PLOT)
+
+    response = pro_client.patch(
+        f"/api/v1/listings/{plot.slug}/",
+        {"rooms_breakdown": [{"name": "Кухня", "area": "12"}]},
+        format="json",
+    )
+
+    assert response.status_code == 200, response.content
+    assert plot.rooms_data.count() == 0

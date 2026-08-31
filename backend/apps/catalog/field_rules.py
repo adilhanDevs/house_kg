@@ -39,17 +39,14 @@ COMMON_FIELDS = frozenset(
     }
 )
 
-# Поквартирные площади, мебель и инженерия — только там, где есть внутренние
+# Экспликация помещений, мебель и инженерия — только там, где есть внутренние
 # помещения: у участка ни ремонта, ни отопления быть не может.
+#
+# `rooms_breakdown` — список комнат (ListingRoom), который владелец собирает
+# сам: набор помещений у каждой квартиры свой, фиксированным он быть не может.
 INTERIOR_FIELDS = frozenset(
     {
-        "living_room_area",
-        "hall_area",
-        "kitchen_area",
-        "bedroom_area",
-        "bedroom_2_area",
-        "balcony_area",
-        "bathroom_area",
+        "rooms_breakdown",
         "furniture",
         "condition",
         "heating",
