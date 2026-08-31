@@ -1061,6 +1061,14 @@ class AppState extends ChangeNotifier {
       if (response['floor'] != null) draftFloor = response['floor'] as int;
       if (response['floors'] != null) draftFloors = response['floors'] as int;
       if (response['area'] != null) draftArea = response['area'].toString();
+      if (response['land_area'] != null) draftLandArea = response['land_area'].toString();
+      draftPlotPurpose = response['plot_purpose'] as String? ?? '';
+      draftCommercialPurpose = response['commercial_purpose'] as String? ?? '';
+      draftSeparateEntrance = response['has_separate_entrance'] as bool? ?? false;
+      draftBuildingLine = response['building_line'] as String? ?? '';
+      if (response['ceiling_height'] != null) {
+        draftCeilingHeight = response['ceiling_height'].toString();
+      }
       if (response['price'] != null) draftPrice = response['price'].toString();
       if (response['currency'] != null) draftUsd = response['currency'] == 'USD';
       if (response['district'] != null) {

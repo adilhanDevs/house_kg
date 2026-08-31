@@ -100,6 +100,10 @@ class _AdFormPageState extends State<AdFormPage> {
     if (state.draftRooms > 5) _effectiveRoomsController.text = state.draftRooms.toString();
     if (state.draftFloor > 5) _effectiveFloorController.text = state.draftFloor.toString();
     if (state.draftFloors > 5) _effectiveFloorsController.text = state.draftFloors.toString();
+    if (state.draftLandArea.isNotEmpty) _effectiveLandAreaController.text = state.draftLandArea;
+    if (state.draftCeilingHeight.isNotEmpty) {
+      _effectiveCeilingController.text = state.draftCeilingHeight;
+    }
   }
 
   String _getDistrictLabel(AppState state) {
