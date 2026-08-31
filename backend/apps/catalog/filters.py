@@ -93,6 +93,18 @@ class ListingFilterSet(filters.FilterSet):
 
     builder = filters.CharFilter(field_name="builder__slug", label="Застройщик")
 
+    # Параметры, применимые только к отдельным типам (apps/catalog/field_rules.py).
+    plot_purpose = CharInFilter(
+        field_name="plot_purpose", lookup_expr="in", label="Назначение участка"
+    )
+    commercial_purpose = CharInFilter(
+        field_name="commercial_purpose", lookup_expr="in", label="Назначение помещения"
+    )
+    building_line = CharInFilter(field_name="building_line", lookup_expr="in", label="Линия")
+    has_separate_entrance = filters.BooleanFilter(
+        field_name="has_separate_entrance", label="Отдельный вход"
+    )
+
     class Meta:
         model = Listing
         fields: list[str] = []

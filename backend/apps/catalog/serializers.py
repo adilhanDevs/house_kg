@@ -7,6 +7,7 @@ from rest_framework import serializers
 
 from apps.catalog.constants import MAX_FILES_PER_REQUEST
 from apps.catalog.enums import ListingStatus, MediaKind
+from apps.catalog.field_rules import strip_inapplicable
 from apps.catalog.models import (
     Builder,
     City,
@@ -103,6 +104,9 @@ class FilterOptionsSerializer(serializers.Serializer):
     rooms = serializers.ListField(child=serializers.IntegerField())
     area_ranges = AreaRangeSerializer(many=True)
     series = HouseSeriesOptionSerializer(many=True)
+    plot_purposes = ChoiceOptionSerializer(many=True)
+    commercial_purposes = ChoiceOptionSerializer(many=True)
+    building_lines = ChoiceOptionSerializer(many=True)
     districts = DistrictSerializer(many=True)
     price_range = PriceRangeSerializer()
 
@@ -295,6 +299,7 @@ class ListingListSerializer(serializers.ModelSerializer):
             "old_price",
             "rooms",
             "area",
+            "land_area",
             "floor",
             "floors",
             "cover_url",
@@ -377,6 +382,11 @@ class ListingDetailSerializer(ListingListSerializer):
             "balcony_area",
             "bathroom_area",
             "furniture",
+            "plot_purpose",
+            "commercial_purpose",
+            "has_separate_entrance",
+            "building_line",
+            "ceiling_height",
             "has_direct_sale",
             "has_mortgage",
             "landmarks",
@@ -506,6 +516,11 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
             "floors",
             "series",
             "builder",
+            "plot_purpose",
+            "commercial_purpose",
+            "has_separate_entrance",
+            "building_line",
+            "ceiling_height",
             "price",
             "currency",
             "seller_kind",
@@ -524,7 +539,13 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
         district = attrs.get("district")
         if district is not None and "city" not in attrs:
             attrs["city"] = district.city
-        return attrs
+
+        # Тип берём из запроса, а если его там нет — из уже сохранённого
+        # объявления: клиент шлёт форму по частям.
+        kind = attrs.get("kind") or getattr(self.instance, "kind", "")
+        # Неприменимое отбрасываем молча: 400 на остаточном `rooms` от
+        # предыдущего выбора типа сломал бы обычное заполнение формы.
+        return strip_inapplicable(kind, attrs)
 
 
 class MyListingSerializer(ListingListSerializer):

@@ -38,14 +38,18 @@ from rest_framework.exceptions import Throttled
 
 from apps.catalog.constants import MAX_PHOTOS_PER_LISTING, MAX_VIDEOS_PER_LISTING
 from apps.catalog.enums import (
+    BuildingLine,
+    CommercialPurpose,
     Currency,
     ListingStatus,
     MediaKind,
     MediaStatus,
+    PlotPurpose,
     PropertyKind,
     SellerKind,
 )
-from apps.catalog.models import City, District, HouseSeries, Listing, ListingMedia
+from apps.catalog.field_rules import REQUIRED_BY_KIND
+from apps.catalog.models import Builder, City, District, HouseSeries, Listing, ListingMedia
 from apps.catalog.stats import bump_stat
 from apps.common.audit import audit
 from apps.common.cache import safe_cache_call
@@ -128,6 +132,7 @@ def _price_range(city: City | None) -> dict[str, Any]:
 def build_filter_options(city: City | None) -> dict[str, Any]:
     """Собирает ответ экрана фильтра."""
     series = HouseSeries.objects.filter(is_active=True).order_by("order", "code")
+    builders = Builder.objects.filter(is_active=True).order_by("order", "name")
 
     return {
         "property_kinds": _choices_payload(PropertyKind.choices),
@@ -137,6 +142,10 @@ def build_filter_options(city: City | None) -> dict[str, Any]:
             {"from": start, "to": end, "label": f"{start}-{end}"} for start, end in AREA_RANGES
         ],
         "series": [{"code": item.code, "name": item.name} for item in series],
+        "plot_purposes": _choices_payload(PlotPurpose.choices),
+        "commercial_purposes": _choices_payload(CommercialPurpose.choices),
+        "building_lines": _choices_payload(BuildingLine.choices),
+        "builders": [{"slug": item.slug, "name": item.name} for item in builders],
         "districts": _districts_payload(city),
         "price_range": _price_range(city),
     }
@@ -706,8 +715,9 @@ EDITABLE_FIELDS = (
 )
 
 # Что обязательно для публикации.
-REQUIRED_FOR_PUBLISH = ("kind", "district", "price", "area")
-REQUIRED_FOR_BUILDINGS = ("rooms", "floor", "floors")
+# Поля, где 0 — это «не заполнено»: модель хранит их как PositiveSmallInteger
+# с default=0, отличить «ноль» от «пусто» больше нечем.
+ZERO_MEANS_EMPTY = frozenset({"rooms", "floor", "floors"})
 
 
 def get_or_create_draft(user: Any) -> Listing:
@@ -736,16 +746,20 @@ def _is_blank(listing: Listing, name: str) -> bool:
     """Пустое ли поле формы. Для связей смотрим на *_id, чтобы не тянуть объект."""
     if name in RELATION_FIELDS:
         return getattr(listing, f"{name}_id", None) is None
-    return getattr(listing, name, None) in (None, "")
+    value = getattr(listing, name, None)
+    if name in ZERO_MEANS_EMPTY:
+        return not value
+    return value in (None, "")
 
 
 def missing_fields_for_publish(listing: Listing) -> list[str]:
-    """Чего не хватает, чтобы объявление можно было опубликовать."""
-    missing = [name for name in REQUIRED_FOR_PUBLISH if _is_blank(listing, name)]
+    """Чего не хватает, чтобы объявление можно было опубликовать.
 
-    if not listing.is_plot:
-        # У участка нет ни комнат, ни этажей — требовать их незачем.
-        missing += [name for name in REQUIRED_FOR_BUILDINGS if not getattr(listing, name, 0)]
+    Набор обязательных полей зависит от типа: у участка нет ни комнат, ни
+    этажей, зато обязательна площадь участка (apps/catalog/field_rules.py).
+    """
+    required = REQUIRED_BY_KIND.get(listing.kind, ())
+    missing = [name for name in required if _is_blank(listing, name)]
 
     if not listing.media.filter(kind=MediaKind.PHOTO).exists():
         missing.append("photos")
