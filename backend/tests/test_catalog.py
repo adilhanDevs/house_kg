@@ -5,7 +5,14 @@ from decimal import Decimal
 import pytest
 from rest_framework.test import APIClient
 
-from apps.catalog.enums import ListingStatus, PropertyKind, SellerKind
+from apps.catalog.enums import (
+    BuildingLine,
+    CommercialPurpose,
+    ListingStatus,
+    PlotPurpose,
+    PropertyKind,
+    SellerKind,
+)
 from apps.catalog.models import City, District
 from tests.factories import BuilderFactory, CityFactory, DistrictFactory, ListingFactory
 
@@ -117,6 +124,11 @@ def test_filter_options_returns_full_structure(
         "rooms",
         "area_ranges",
         "series",
+        "builders",
+        # Словари параметров, применимых только к отдельным типам.
+        "plot_purposes",
+        "commercial_purposes",
+        "building_lines",
         "districts",
         "price_range",
     }
@@ -131,6 +143,11 @@ def test_filter_options_returns_full_structure(
     assert body["area_ranges"][0] == {"from": 35, "to": 45, "label": "35-45"}
     assert [item["label"] for item in body["area_ranges"]] == ["35-45", "45-55", "65-75", "75-85"]
     assert body["series"] == [{"code": "103", "name": "103 серия"}]
+    assert [option["value"] for option in body["plot_purposes"]] == list(PlotPurpose.values)
+    assert [option["value"] for option in body["commercial_purposes"]] == list(
+        CommercialPurpose.values
+    )
+    assert [option["value"] for option in body["building_lines"]] == list(BuildingLine.values)
     assert [district["slug"] for district in body["districts"]] == ["technopark"]
     # Черновик в границы цены не попадает.
     assert body["price_range"] == {"currency": "USD", "min": 45000, "max": 102000}
