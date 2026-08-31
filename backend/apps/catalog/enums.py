@@ -18,6 +18,34 @@ class PropertyKind(models.TextChoices):
     COMMERCIAL = "commercial", "Коммерция"
 
 
+class PlotPurpose(models.TextChoices):
+    """Назначение участка — показывается только для kind=plot."""
+
+    IHS = "ihs", "ИЖС"
+    GARDEN = "garden", "Садовый"
+    AGRICULTURAL = "agricultural", "Сельхозназначение"
+    COMMERCIAL = "commercial", "Коммерческий"
+
+
+class CommercialPurpose(models.TextChoices):
+    """Назначение помещения — показывается только для kind=commercial."""
+
+    OFFICE = "office", "Офис"
+    SHOP = "shop", "Магазин"
+    WAREHOUSE = "warehouse", "Склад"
+    PRODUCTION = "production", "Производство"
+    CATERING = "catering", "Общепит"
+    FREE = "free", "Свободного назначения"
+
+
+class BuildingLine(models.TextChoices):
+    """Расположение относительно дороги — важно для торговых помещений."""
+
+    FIRST = "first", "Первая линия"
+    SECOND = "second", "Вторая линия"
+    INSIDE = "inside", "Внутри квартала"
+
+
 class SellerKind(models.TextChoices):
     """Кто продаёт — три тумблера «Продавца» в «Фильтре»."""
 

@@ -25,11 +25,14 @@ from apps.catalog.constants import (
     SLUG_SUFFIX_LENGTH,
 )
 from apps.catalog.enums import (
+    BuildingLine,
+    CommercialPurpose,
     Currency,
     ListingStatus,
     MediaKind,
     MediaStatus,
     ModerationStatus,
+    PlotPurpose,
     PropertyKind,
     ReportReason,
     SellerKind,
@@ -270,6 +273,23 @@ class Listing(TimeStampedModel):
     red_book = models.BooleanField("Красная книга", default=False)
     has_direct_sale = models.BooleanField("Прямая покупка", default=True)
     has_mortgage = models.BooleanField("Ипотека", default=True)
+
+    # -- параметры, применимые только к отдельным типам ----------------------
+    #
+    # Какое поле к какому типу относится — в apps/catalog/field_rules.py.
+    plot_purpose = models.CharField(
+        "Назначение участка", max_length=16, choices=PlotPurpose.choices, blank=True
+    )
+    commercial_purpose = models.CharField(
+        "Назначение помещения", max_length=16, choices=CommercialPurpose.choices, blank=True
+    )
+    has_separate_entrance = models.BooleanField("Отдельный вход", default=False)
+    building_line = models.CharField(
+        "Линия", max_length=8, choices=BuildingLine.choices, blank=True
+    )
+    ceiling_height = models.DecimalField(
+        "Высота потолков, м", max_digits=4, decimal_places=2, blank=True, null=True
+    )
 
     landmarks = models.JSONField("Ключевые места", default=list, blank=True)
 
