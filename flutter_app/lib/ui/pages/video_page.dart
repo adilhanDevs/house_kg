@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../app/app_state.dart';
+import '../../app/route_observer.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/api_client.dart';
@@ -670,12 +671,17 @@ class _VideoPlayerItem extends StatefulWidget {
   State<_VideoPlayerItem> createState() => _VideoPlayerItemState();
 }
 
-class _VideoPlayerItemState extends State<_VideoPlayerItem> {
+class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _isPlaying = true;
   bool _userPaused = false;
   bool _forceFill = false;
+
+  /// Экран рилсов сейчас наверху стека. Пока это не так, автовозобновление
+  /// в [_onControllerUpdate] запрещено — иначе видео играет под открытой
+  /// поверх карточкой объявления.
+  bool _routeOnTop = true;
 
   bool get isPlaying => _isPlaying;
 
@@ -777,7 +783,7 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   void _onControllerUpdate() {
     if (_controller == null || !mounted) return;
     final isPlaying = _controller!.value.isPlaying;
-    if (widget.isActive && !_userPaused && !isPlaying && _isInitialized) {
+    if (_routeOnTop && widget.isActive && !_userPaused && !isPlaying && _isInitialized) {
       _controller!.play();
     }
     if (_isPlaying != isPlaying) {
@@ -795,10 +801,29 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    final route = ModalRoute.of(context);
+    if (route != null) appRouteObserver.subscribe(this, route);
+    final isCurrent = route?.isCurrent ?? true;
+    _routeOnTop = isCurrent;
     if (!isCurrent) {
       pauseVideo();
     } else if (widget.isActive && _isInitialized && _controller != null && !_controller!.value.isPlaying) {
+      _playWithAutoplayFallback(_controller!);
+    }
+  }
+
+  /// Поверх рилсов открыли другой экран — видео останавливается.
+  @override
+  void didPushNext() {
+    _routeOnTop = false;
+    pauseVideo();
+  }
+
+  /// Вернулись обратно на рилсы — продолжаем с того же места.
+  @override
+  void didPopNext() {
+    _routeOnTop = true;
+    if (widget.isActive && !_userPaused && _isInitialized && _controller != null) {
       _playWithAutoplayFallback(_controller!);
     }
   }
@@ -837,6 +862,7 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _controller?.removeListener(_onControllerUpdate);
     _controller?.dispose();
     super.dispose();

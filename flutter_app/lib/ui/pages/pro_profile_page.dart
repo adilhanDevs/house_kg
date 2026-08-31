@@ -12,6 +12,7 @@ import 'category_page.dart';
 
 import '../../data/listing_repository.dart';
 import '../object_card.dart';
+import '../widgets/profile_identity.dart';
 
 class ProProfilePage extends StatefulWidget {
   const ProProfilePage({super.key});
@@ -24,6 +25,10 @@ class _ProProfilePageState extends State<ProProfilePage> {
   late final ListingRepository _repository;
   List<Listing> _listings = [];
   bool _isLoading = true;
+  // Nullable: на вебе после hot reload поле, добавленное в живой State,
+  // приходит неинициализированным, и `??` ниже это гасит.
+  int? _activeCount;
+  int? _soldCount;
 
   @override
   void initState() {
@@ -31,6 +36,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
     final state = AppScope.read(context);
     _repository = ListingRepository(state.apiClient);
     _loadListings();
+    state.fetchProfile();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         AppScope.read(context).pro = true;
@@ -40,16 +46,42 @@ class _ProProfilePageState extends State<ProProfilePage> {
 
   Future<void> _loadListings() async {
     try {
-      final response = await _repository.getListings();
+      // Профиль продавца показывает только его собственные объекты —
+      // все статусы, включая черновики и объявления на модерации.
+      final mine = await _repository.getMyListings();
       if (mounted) {
         setState(() {
-          _listings = response.results;
+          _listings = mine.results;
+          _activeCount = mine.count ?? mine.results.length;
           _isLoading = false;
         });
+      }
+      final sold = await _repository.getMyListings(status: 'sold');
+      if (mounted) {
+        setState(() => _soldCount = sold.count ?? sold.results.length);
       }
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Имя на первой строке, фамилия — на второй.
+  static String _nameLines(String? name) {
+    final value = (name ?? '').trim();
+    if (value.isEmpty) return 'Без имени';
+    final space = value.indexOf(' ');
+    if (space < 0) return value;
+    return '${value.substring(0, space)}\n${value.substring(space + 1).trim()}';
+  }
+
+  /// «8 объектов недвижимости» — с правильной формой слова.
+  static String _objectsLabel(int count) {
+    final mod100 = count % 100;
+    final mod10 = count % 10;
+    if (mod100 >= 11 && mod100 <= 14) return '$count объектов недвижимости';
+    if (mod10 == 1) return '$count объект недвижимости';
+    if (mod10 >= 2 && mod10 <= 4) return '$count объекта недвижимости';
+    return '$count объектов недвижимости';
   }
 
   Future<void> _confirmLogOut(BuildContext context) async {
@@ -84,11 +116,95 @@ class _ProProfilePageState extends State<ProProfilePage> {
     const dangerColor = Color(0xffd93025);
     final state = AppScope.of(context);
 
-    return FigStage(
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadListings();
+        await AppScope.read(context).fetchProfile();
+      },
+      color: const Color(0xffea812e),
+      child: FigStage(
       frame: frame('38'),
       bottomBar: const AppTabBar(active: 4),
       background: const Color(0xfffefefe),
       overlays: [
+        // ——— Настоящая шапка профиля вместо статичной из макета ———
+        // Аватар пользователя (в кадре — картинка, Y=166).
+        Positioned(
+          left: 25.0,
+          top: 166.0,
+          child: ProfileAvatar(
+            url: state.userAvatarUrl,
+            initials: state.userInitials,
+            size: 64.0,
+            radius: 12.0,
+          ),
+        ),
+
+        // Маска поверх имени, счётчиков и плашки роли из макета (Y=238).
+        const Positioned(
+          left: 25.0,
+          top: 232.0,
+          width: 325.0,
+          height: 84.0,
+          child: ColoredBox(color: Color(0xffffffff)),
+        ),
+
+        // Имя и статистика по объектам продавца.
+        Positioned(
+          left: 25.0,
+          top: 234.0,
+          width: 210.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Имя и фамилия — каждая на своей строке.
+              Text(
+                _nameLines(state.userName),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 21.0,
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                  letterSpacing: -0.21,
+                  color: Color(0xff000000),
+                ),
+              ),
+              const SizedBox(height: 4.0),
+              Text(
+                _objectsLabel(_activeCount ?? 0),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w500,
+                  height: 1.15,
+                  color: Color(0xff7d7d7d),
+                ),
+              ),
+              const SizedBox(height: 2.0),
+              Text(
+                'Продано: ${_soldCount ?? 0}',
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w500,
+                  height: 1.15,
+                  color: Color(0xff7d7d7d),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Плашка роли — реальный тип продавца из профиля.
+        Positioned(
+          left: 240.0,
+          top: 236.0,
+          child: RoleBadge(label: state.roleLabel),
+        ),
+
         // Табы категорий (Y=318): Новостройки, Квартиры, Коммерция
         Positioned(
           left: 25.0,
@@ -367,6 +483,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
       ],
+    ),
     );
   }
 }

@@ -196,6 +196,52 @@ class ListingApiClient {
     }
   }
 
+  /// Выставляет счёт на пополнение кошелька.
+  ///
+  /// Ключ идемпотентности обязателен: повторный запрос с тем же ключом в
+  /// течение суток вернёт тот же счёт, а не создаст второй.
+  Future<Map<String, dynamic>> createTopup({
+    required int amountKgs,
+    required String idempotencyKey,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/wallet/topup/');
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: jsonEncode({'amount_kgs': amountKgs}),
+      );
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  /// Статус счёта. Единственный способ узнать, прошла ли оплата на самом деле:
+  /// кирпичи начисляет вебхук провайдера, а не клиент.
+  Future<Map<String, dynamic>> getTopupStatus(String paymentId) async {
+    final uri = Uri.parse('$baseUrl/api/v1/wallet/topup/$paymentId/');
+    try {
+      final response = await _client.get(
+        uri,
+        headers: {'Accept': 'application/json'},
+      );
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> promoteListing(String slug, int days, String idempotencyKey) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$slug/promote/');
     try {
@@ -249,6 +295,26 @@ class ListingApiClient {
         headers: {'Accept': 'application/json'},
       );
       return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  /// GET /api/v1/users/me/listings/ — объявления текущего пользователя.
+  Future<Map<String, dynamic>> getMyListings({String? status, String? cursor}) async {
+    final queryParameters = <String, String>{};
+    if (status != null && status.isNotEmpty) queryParameters['status'] = status;
+    if (cursor != null && cursor.isNotEmpty) queryParameters['cursor'] = cursor;
+
+    final uri = Uri.parse('$baseUrl/api/v1/users/me/listings/').replace(
+      queryParameters: queryParameters.isNotEmpty ? queryParameters : null,
+    );
+    try {
+      final response = await _client.get(uri, headers: {'Accept': 'application/json'});
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
     } catch (e) {
       if (e is ApiException || e is NetworkException) rethrow;
       throw NetworkException(e.toString());

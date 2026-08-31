@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_state.dart';
-import '../../data/finik_payment_service.dart';
+import '../../data/topup.dart';
 import '../../data/tariff.dart';
 
 class FinikBankOption {
@@ -122,15 +123,28 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
   String _selectedBankId = 'mbank';
   bool _isProcessing = false;
   bool _isSuccess = false;
-  FinikPaymentResponse? _invoice;
-  int _secondsLeft = 899; // 14:59
+  bool _isDisposed = false;
+
+  /// Счёт, выставленный бэкендом. Пока его нет — платить нечем.
+  TopupIntent? _intent;
+  String? _error;
+  String? _statusText;
+  int _creditedBricks = 0;
+
+  int _secondsLeft = 0;
+  Timer? _ticker;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initPayment();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initPayment());
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _ticker?.cancel();
+    super.dispose();
   }
 
   String get _formattedTimer {
@@ -139,76 +153,163 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
     return '$m:$s';
   }
 
+  /// Выставляет счёт на бэкенде и запускает отсчёт до его истечения.
   Future<void> _initPayment() async {
-    final state = widget.state;
+    setState(() {
+      _error = null;
+      _statusText = null;
+    });
+
     try {
-      final invoice = await state.createFinikTopup(widget.amountSom);
-      if (mounted) {
-        setState(() => _invoice = invoice);
-      }
+      final intent = await widget.state.createTopup(widget.amountSom);
+      if (!mounted) return;
+
+      setState(() {
+        _intent = intent;
+        _secondsLeft = intent.secondsLeft;
+        // Первым предлагаем банк, который бэкенд отдал первым.
+        if (intent.providers.isNotEmpty) {
+          _selectedBankId = intent.providers.first.code;
+        }
+      });
+      _startTicker();
     } catch (e) {
-      debugPrint('Error init Finik invoice: $e');
+      if (!mounted) return;
+      setState(() => _error = widget.state.topupError ?? 'Не удалось выставить счёт');
     }
+  }
+
+  void _startTicker() {
+    _ticker?.cancel();
+    if (_secondsLeft <= 0) return;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _secondsLeft = _intent?.secondsLeft ?? (_secondsLeft > 0 ? _secondsLeft - 1 : 0);
+      });
+      if (_secondsLeft <= 0) timer.cancel();
+    });
+  }
+
+  /// Ссылка, по которой уходим платить: диплинк выбранного банка, если бэкенд
+  /// его дал, иначе страница оплаты провайдера.
+  String _payTarget() {
+    final intent = _intent;
+    if (intent == null) return '';
+
+    for (final provider in intent.providers) {
+      if (provider.code == _selectedBankId && provider.deeplink.isNotEmpty) {
+        return provider.deeplink;
+      }
+    }
+    return intent.paymentUrl;
   }
 
   Future<void> _handlePay() async {
     if (_isProcessing) return;
 
-    setState(() => _isProcessing = true);
-    final state = widget.state;
+    final intent = _intent;
+    if (intent == null) {
+      await _initPayment();
+      return;
+    }
 
-    try {
-      // 1. Попытка открыть приложение выбранного банка через диплинк (на реальном устройстве)
-      final selectedBank = kFinikBanks.firstWhere(
-        (b) => b.id == _selectedBankId,
-        orElse: () => kFinikBanks.first,
-      );
+    setState(() {
+      _isProcessing = true;
+      _error = null;
+    });
 
-      if (selectedBank.deepLinkScheme != null && _invoice != null) {
-        try {
-          final uri = Uri.parse('${selectedBank.deepLinkScheme}?orderId=${_invoice!.orderId}&amount=${widget.amountSom}');
-          launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) => false);
-        } catch (_) {}
+    // На вкладке «Банки» уводим пользователя в приложение банка. На вкладке QR
+    // он уже оплатил сканированием — там только ждём подтверждения.
+    if (_tabIndex == 0) {
+      // Диплинк банка настраивается в админке и может не открыться (нет
+      // приложения, устаревшая схема). Тогда уходим на страницу оплаты
+      // провайдера — она работает в любом браузере.
+      var opened = await _openPayTarget(_payTarget());
+      if (!opened && intent.paymentUrl.isNotEmpty) {
+        opened = await _openPayTarget(intent.paymentUrl);
       }
 
-      // 2. Подтверждаем и сверяем платёж через Finik Pay
-      final invoice = _invoice ?? await state.createFinikTopup(widget.amountSom);
-      await state.confirmFinikTopup(invoice);
-
-      // Если это покупка тарифа, активируем тариф
-      if (widget.tariff != null) {
-        try {
-          await state.buySubscription(widget.tariff!, withBricks: false);
-        } catch (e) {
-          debugPrint('Error buying subscription in sheet: $e');
-        }
-      }
-
-      if (mounted) {
+      if (!opened) {
+        if (!mounted) return;
         setState(() {
           _isProcessing = false;
-          _isSuccess = true;
+          _error = 'Не удалось открыть страницу оплаты. '
+              'Воспользуйтесь QR-кодом.';
         });
-      }
-
-      await Future.delayed(const Duration(milliseconds: 600));
-
-      if (mounted) {
-        widget.onSuccess?.call();
-        Navigator.of(context).pop(true);
-      }
-    } catch (e, st) {
-      debugPrint('Payment sheet error: $e\n$st');
-      if (mounted) {
-        setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка оплаты: ${e.toString()}'),
-            backgroundColor: const Color(0xffd32f2f),
-          ),
-        );
+        return;
       }
     }
+
+    await _waitForConfirmation(intent);
+  }
+
+  Future<bool> _openPayTarget(String target) async {
+    if (target.isEmpty) return false;
+    final uri = Uri.tryParse(target);
+    if (uri == null) return false;
+
+    try {
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Не удалось открыть $target: $e');
+      return false;
+    }
+  }
+
+  /// Ждёт, пока бэкенд не подтвердит оплату вебхуком провайдера.
+  ///
+  /// Успех показывается только по статусу `succeeded` — приложение не решает
+  /// само, что деньги пришли.
+  Future<void> _waitForConfirmation(TopupIntent intent) async {
+    if (!mounted) return;
+    setState(() => _statusText = 'Ждём подтверждения оплаты…');
+
+    final result = await widget.state.waitForTopup(
+      intent.paymentId,
+      isCancelled: () => _isDisposed,
+    );
+
+    if (!mounted) return;
+
+    if (!result.status.isSuccess) {
+      setState(() {
+        _isProcessing = false;
+        _statusText = null;
+        _error = switch (result.status) {
+          TopupStatus.failed => 'Оплата не прошла. Попробуйте ещё раз.',
+          TopupStatus.expired => 'Счёт истёк. Выставьте новый.',
+          _ => 'Подтверждение пока не пришло. Если деньги списаны, '
+              'баланс обновится автоматически.',
+        };
+      });
+      return;
+    }
+
+    // Тариф подключаем только после подтверждённой оплаты.
+    if (widget.tariff != null) {
+      try {
+        await widget.state.buySubscription(widget.tariff!, withBricks: true);
+      } catch (e) {
+        debugPrint('Не удалось активировать тариф после оплаты: $e');
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isProcessing = false;
+      _statusText = null;
+      _creditedBricks = result.creditedBricks;
+      _isSuccess = true;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    widget.onSuccess?.call();
+    Navigator.of(context).pop(true);
   }
 
   @override
@@ -255,7 +356,9 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
           Text(
             widget.tariff != null
                 ? 'Тариф «${widget.tariff!.name}» успешно подключён'
-                : 'Кошелёк пополнен на ${widget.amountSom} сом',
+                : _creditedBricks > 0
+                    ? 'Начислено $_creditedBricks кирпичей'
+                    : 'Кошелёк пополнен на ${widget.amountSom} сом',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 15, color: Color(0xff666668)),
           ),
@@ -484,6 +587,31 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
           ),
         ),
 
+        // Ошибка или ход подтверждения
+        if (_error != null || _statusText != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: _error != null ? const Color(0xfffef2f2) : const Color(0xfff3f4f6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _error != null ? const Color(0xfffecaca) : const Color(0xffe5e7eb),
+                ),
+              ),
+              child: Text(
+                _error ?? _statusText!,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.35,
+                  color: _error != null ? const Color(0xffb91c1c) : const Color(0xff4b5563),
+                ),
+              ),
+            ),
+          ),
+
         // Bottom CTA Button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -493,6 +621,7 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xffea812e),
+                disabledBackgroundColor: const Color(0xffe5c9ab),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -506,9 +635,11 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
                       child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                     )
                   : Text(
-                      _tabIndex == 0
-                          ? 'Оплатить ${widget.amountSom} сом'
-                          : 'Я отсканировал и оплатил',
+                      _intent == null
+                          ? 'Выставить счёт'
+                          : _tabIndex == 0
+                              ? 'Оплатить ${widget.amountSom} сом'
+                              : 'Я отсканировал и оплатил',
                       style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
             ),
@@ -518,9 +649,41 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
     );
   }
 
+  /// Способы оплаты приходят с бэкенда (`providers` в ответе на счёт).
+  /// Локальный список нужен только ради иконки и цвета; если бэкенд банк не
+  /// прислал — платить по нему нельзя, поэтому и показывать его незачем.
+  List<FinikBankOption> get _bankOptions {
+    final providers = _intent?.providers ?? const <TopupProvider>[];
+    if (providers.isEmpty) return kFinikBanks;
+
+    return providers.map((provider) {
+      final matches = kFinikBanks.where((b) => b.id == provider.code);
+      final design = matches.isEmpty ? null : matches.first;
+      return FinikBankOption(
+        id: provider.code,
+        name: provider.name.isNotEmpty ? provider.name : (design?.name ?? provider.code),
+        subtitle: design?.subtitle ?? 'Оплата через ${provider.name}',
+        primaryColor: design?.primaryColor ?? const Color(0xff2d3142),
+        icon: design?.icon ?? Icons.account_balance,
+      );
+    }).toList();
+  }
+
   Widget _buildBanksList() {
+    final banks = _bankOptions;
+    if (banks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Text(
+          'Способы оплаты не настроены. Воспользуйтесь QR-кодом.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: Color(0xff6b7280)),
+        ),
+      );
+    }
+
     return Column(
-      children: kFinikBanks.map((bank) {
+      children: banks.map((bank) {
         final isSelected = _selectedBankId == bank.id;
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -579,6 +742,8 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
   }
 
   Widget _buildQrCodeView() {
+    final payload = _intent?.qrPayload ?? '';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -600,33 +765,52 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
                 BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
               ],
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // QR representation pattern
-                CustomPaint(
-                  size: const Size(146, 146),
-                  painter: _QrPatternPainter(),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+            // Код кодирует ссылку на оплату, выданную платёжным шлюзом.
+            // Пока счёт не выставлен, показывать нечего.
+            child: payload.isEmpty
+                ? const Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xffea812e)),
+                      ),
+                    ),
+                  )
+                : QrImageView(
+                    data: payload,
+                    version: QrVersions.auto,
+                    size: 146,
+                    padding: EdgeInsets.zero,
+                    backgroundColor: Colors.white,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Color(0xff1f2024),
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Color(0xff1f2024),
+                    ),
+                    errorStateBuilder: (context, error) => const Center(
+                      child: Text(
+                        'Не удалось построить QR',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 11, color: Color(0xffb91c1c)),
+                      ),
+                    ),
                   ),
-                  child: const Text('⚡', style: TextStyle(fontSize: 16)),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 14),
           const Text(
-            'Национальный стандарт QR (ELQR / Finik)',
+            'QR для оплаты через банковское приложение',
+            textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xff18181b)),
           ),
           const SizedBox(height: 4),
           const Text(
-            'Откройте MBank, Optima24, Bakai или О!Деньги\nи наведите камеру на QR-код',
+            'Откройте MBank, Optima24, Bakai или О!Деньги\n'
+            'и наведите камеру на QR-код',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: Color(0xff6b7280), height: 1.3),
           ),
@@ -634,44 +818,4 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
       ),
     );
   }
-}
-
-class _QrPatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xff1f2024)
-      ..style = PaintingStyle.fill;
-
-    // Corner finder patterns
-    void drawFinder(double x, double y) {
-      canvas.drawRect(Rect.fromLTWH(x, y, 36, 36), paint);
-      final whitePaint = Paint()..color = Colors.white;
-      canvas.drawRect(Rect.fromLTWH(x + 6, y + 6, 24, 24), whitePaint);
-      canvas.drawRect(Rect.fromLTWH(x + 11, y + 11, 14, 14), paint);
-    }
-
-    drawFinder(0, 0);
-    drawFinder(size.width - 36, 0);
-    drawFinder(0, size.height - 36);
-
-    // Grid dots
-    final step = 8.0;
-    for (double x = 0; x < size.width; x += step) {
-      for (double y = 0; y < size.height; y += step) {
-        if ((x < 42 && y < 42) || (x > size.width - 42 && y < 42) || (x < 42 && y > size.height - 42)) {
-          continue;
-        }
-        if ((x.toInt() * 7 + y.toInt() * 13) % 19 < 9) {
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(Rect.fromLTWH(x + 1, y + 1, step - 2, step - 2), const Radius.circular(1.5)),
-            paint,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

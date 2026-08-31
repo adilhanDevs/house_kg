@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../../data/kind_fields.dart';
 import '../../data/listings.dart';
 import '../fig_controls.dart';
 
@@ -174,11 +175,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xff000000), size: 20),
           onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (r) => false);
-            }
+            Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (r) => false);
           },
         ),
         title: const Text(
@@ -406,26 +403,43 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                 // Параметры (комнаты, кв.м, этаж)
                 Row(
                   children: [
-                    Text(
-                      '${item.rooms}-комн.',
-                      style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6.0),
-                      child: Text('•', style: TextStyle(color: Color(0xffd9d9d9))),
-                    ),
+                    // Комнаты и этаж есть не у всех типов: у участка их нет
+                    // вовсе (см. lib/data/kind_fields.dart).
+                    if (showsField(item.kind, ListingField.rooms)) ...[
+                      Text(
+                        '${item.rooms}-комн.',
+                        style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6.0),
+                        child: Text('•', style: TextStyle(color: Color(0xffd9d9d9))),
+                      ),
+                    ],
                     Text(
                       '${item.area.toStringAsFixed(0)} м²',
                       style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6.0),
-                      child: Text('•', style: TextStyle(color: Color(0xffd9d9d9))),
-                    ),
-                    Text(
-                      '${item.floor}/${item.floors} эт.',
-                      style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
-                    ),
+                    if (showsField(item.kind, ListingField.landArea) &&
+                        item.landArea != null) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6.0),
+                        child: Text('•', style: TextStyle(color: Color(0xffd9d9d9))),
+                      ),
+                      Text(
+                        '${item.landArea!.toStringAsFixed(0)} сот.',
+                        style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
+                      ),
+                    ],
+                    if (showsField(item.kind, ListingField.floor) && item.floors > 0) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6.0),
+                        child: Text('•', style: TextStyle(color: Color(0xffd9d9d9))),
+                      ),
+                      Text(
+                        '${item.floor}/${item.floors} эт.',
+                        style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16.0),

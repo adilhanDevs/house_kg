@@ -28,44 +28,46 @@ class _TopUpPageState extends State<TopUpPage> {
     } else if (_step == 2) {
       setState(() => _step = 3);
     } else if (_step == 3) {
-      final parsed = int.tryParse(_amountController.text.trim()) ?? 12000;
-      final amount = parsed > 0 ? parsed : 12000;
-      state.setTopupAmount(amount);
-      await state.createFinikTopup(amount);
-      setState(() => _step = 4);
-    } else if (_step == 4) {
-      await _selectBankAndPay(context, state);
+      await _startPayment(context, state);
     } else {
       _finishFlow(context, state);
     }
   }
 
-  Future<void> _selectBankAndPay(BuildContext context, AppState state, [String? bankName]) async {
-    final parsed = int.tryParse(_amountController.text.trim());
-    final amount = (parsed != null && parsed > 0) ? parsed : state.topupAmount;
+  int get _enteredAmount {
+    final parsed = int.tryParse(_amountController.text.trim()) ?? 0;
+    return parsed > 0 ? parsed : 12000;
+  }
+
+  /// Открывает оплату. Экран «Спасибо» показывается только после того, как
+  /// бэкенд подтвердил зачисление — раньше сюда попадали по нажатию на макет.
+  Future<void> _startPayment(BuildContext context, AppState state) async {
+    final amount = _enteredAmount;
     state.setTopupAmount(amount);
 
-    final payment = state.currentFinikPayment ??
-        await state.createFinikTopup(state.topupAmount);
-
-    // Подтверждаем оплату через Finik Pay
-    await state.confirmFinikTopup(payment);
+    final paid = await showFinikPaymentSheet(
+      context: context,
+      amountSom: amount,
+      purposeTitle: 'Пополнение кошелька House KG',
+      state: state,
+    );
 
     if (!mounted) return;
-    setState(() {
-      _step = 5;
-    });
+    if (paid == true) {
+      setState(() => _step = 5);
+    }
   }
 
   void _finishFlow(BuildContext context, AppState state) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Кошелёк успешно пополнен на ${state.topupAmount} сом через Finik Pay!'),
+        content: Text('Кошелёк пополнен на ${state.topupAmount} сом'),
         duration: const Duration(seconds: 2),
         backgroundColor: const Color(0xff4dba17),
       ),
     );
 
+    state.resetTopup();
     Navigator.of(context).pushNamedAndRemoveUntil(
       Routes.home,
       (route) => false,
@@ -75,11 +77,12 @@ class _TopUpPageState extends State<TopUpPage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    // Кадр 44 (поп-ап банков из макета) больше не показывается: выбор банка
+    // и оплата живут в реальном платёжном окне.
     final String frameId = switch (_step) {
       1 => '41',
       2 => '42',
       3 => '43',
-      4 => '44',
       5 => '45',
       _ => '45',
     };
@@ -124,8 +127,7 @@ class _TopUpPageState extends State<TopUpPage> {
             ),
           ),
 
-        // На шагах 1, 2, 3 и 5 — кнопка [ Далее ] (Y=711)
-        if (_step != 4)
+        // Кнопка [ Далее ] (Y=711)
           Positioned(
             left: 25.0,
             top: 711.0,
@@ -137,44 +139,7 @@ class _TopUpPageState extends State<TopUpPage> {
             ),
           ),
 
-        // На шаге 4 (QR-код и поп-ап банков)
-        if (_step == 4) ...[
-          // Клик вверху мимо модального окна — закрытие и возврат на шаг 3
-          Positioned(
-            left: 0.0,
-            top: 0.0,
-            width: 375.0,
-            height: 149.0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _step = 3),
-            ),
-          ),
-          // Крестик закрытия X в модальном окне (справа вверху модалки Y=160, X=310)
-          Positioned(
-            left: 300.0,
-            top: 155.0,
-            width: 60.0,
-            height: 50.0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _step = 3),
-            ),
-          ),
-          // Клик по любому из банков — завершение оплаты и переход на Шаг 5 (Спасибо за пополнение!)
-          Positioned(
-            left: 30.0,
-            top: 480.0,
-            width: 315.0,
-            height: 270.0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _selectBankAndPay(context, state),
-            ),
-          ),
-        ],
-
-        if (state.isFinikLoading)
+        if (state.isTopupLoading)
           Positioned.fill(
             child: Container(
               color: const Color(0x66000000),

@@ -72,7 +72,7 @@ class _TariffsPageState extends State<TariffsPage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xfff5222d),
+              backgroundColor: const Color(0xffea812e),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
@@ -129,20 +129,20 @@ class _TariffsPageState extends State<TariffsPage> {
   }
 
   Widget _buildFeatureIcon(TariffFeatureIcon iconType) {
-    const redColor = Color(0xfff5222d);
+    const brandColor = Color(0xffea812e);
     switch (iconType) {
       case TariffFeatureIcon.promotion:
-        return const Icon(Icons.bar_chart_rounded, color: redColor, size: 28);
+        return const Icon(Icons.bar_chart_rounded, color: brandColor, size: 28);
       case TariffFeatureIcon.posts:
-        return const Icon(Icons.article_outlined, color: redColor, size: 28);
+        return const Icon(Icons.article_outlined, color: brandColor, size: 28);
       case TariffFeatureIcon.reels:
-        return const Icon(Icons.videocam_outlined, color: redColor, size: 28);
+        return const Icon(Icons.videocam_outlined, color: brandColor, size: 28);
       case TariffFeatureIcon.bricks:
-        return const Icon(Icons.account_balance_wallet_outlined, color: redColor, size: 28);
+        return const Icon(Icons.account_balance_wallet_outlined, color: brandColor, size: 28);
       case TariffFeatureIcon.catalog:
-        return const Icon(Icons.menu_book_outlined, color: redColor, size: 28);
+        return const Icon(Icons.menu_book_outlined, color: brandColor, size: 28);
       case TariffFeatureIcon.whatsapp:
-        return const Icon(Icons.chat_bubble_outline_rounded, color: redColor, size: 28);
+        return const Icon(Icons.chat_bubble_outline_rounded, color: brandColor, size: 28);
     }
   }
 
@@ -162,12 +162,12 @@ class _TariffsPageState extends State<TariffsPage> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isCurrent ? const Color(0xfff5222d) : const Color(0xffe8e8ed),
+                color: isCurrent ? const Color(0xffea812e) : const Color(0xffe8e8ed),
                 width: isCurrent ? 2.0 : 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isCurrent ? const Color(0x1af5222d) : const Color(0x0a000000),
+                  color: isCurrent ? const Color(0x1aea812e) : const Color(0x0a000000),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -221,7 +221,7 @@ class _TariffsPageState extends State<TariffsPage> {
                               ),
                               child: const Text(
                                 'Активен',
-                                style: TextStyle(color: Color(0xfff5222d), fontSize: 11, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: Color(0xffea812e), fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ),
                         ],
@@ -265,8 +265,8 @@ class _TariffsPageState extends State<TariffsPage> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isCurrent
-                                ? const Color(0xfff5222d)
-                                : (plan.isFree ? const Color(0xff48484a) : const Color(0xfff5222d)),
+                                ? const Color(0xffea812e)
+                                : (plan.isFree ? const Color(0xff48484a) : const Color(0xffea812e)),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -375,7 +375,7 @@ class _TariffsPageState extends State<TariffsPage> {
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xfff5222d)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xffea812e)))
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(

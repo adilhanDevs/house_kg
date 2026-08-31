@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../../data/kind_fields.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../widgets/safe_image.dart';
@@ -647,8 +648,24 @@ class _ListingPageState extends State<ListingPage> {
                   _buildInfoRow('Общая квадратура', '${listing.area}м²'),
                   for (final room in listing.roomsBreakdown)
                     _buildInfoRow(room.name, '${room.area.toStringAsFixed(0)}м²'),
-                  _buildInfoRow('Мебель', listing.furniture.isNotEmpty ? listing.furniture : 'Полностью', isPlain: true),
-                  _buildInfoRow('Этаж', '${listing.floor} из ${listing.floors > 0 ? listing.floors : 12}', isPlain: true),
+                  if (showsField(listing.kind, ListingField.interior))
+                    _buildInfoRow('Мебель', listing.furniture.isNotEmpty ? listing.furniture : 'Полностью', isPlain: true),
+                  // Фолбэка «из 12» здесь быть не должно: у участка этажей нет
+                  // вообще, а у дома их столько, сколько указал владелец.
+                  if (showsField(listing.kind, ListingField.floor) && listing.floors > 0)
+                    _buildInfoRow('Этаж', '${listing.floor} из ${listing.floors}', isPlain: true),
+                  if (showsField(listing.kind, ListingField.landArea) && listing.landArea != null)
+                    _buildInfoRow('Площадь участка', '${listing.landArea!.toStringAsFixed(0)} соток', isPlain: true),
+                  if (listing.plotPurpose.isNotEmpty)
+                    _buildInfoRow('Назначение', plotPurposeLabels[listing.plotPurpose] ?? listing.plotPurpose, isPlain: true),
+                  if (listing.commercialPurpose.isNotEmpty)
+                    _buildInfoRow('Назначение', commercialPurposeLabels[listing.commercialPurpose] ?? listing.commercialPurpose, isPlain: true),
+                  if (listing.buildingLine.isNotEmpty)
+                    _buildInfoRow('Линия', buildingLineLabels[listing.buildingLine] ?? listing.buildingLine, isPlain: true),
+                  if (showsField(listing.kind, ListingField.separateEntrance))
+                    _buildInfoRow('Отдельный вход', listing.hasSeparateEntrance ? 'Есть' : 'Нет', isPlain: true),
+                  if (listing.ceilingHeight != null)
+                    _buildInfoRow('Высота потолков', '${listing.ceilingHeight} м', isPlain: true),
                 ],
               ),
             ),
@@ -931,21 +948,25 @@ class _Specs extends StatelessWidget {
       color: _spec,
     );
 
-    final String rooms = (listing.roomsLabel.isNotEmpty && !listing.isPlot)
-        ? listing.roomsLabel
-        : '3-комн.';
+    // Подставлять «3-комн.» и «8 этаж» там, где их нет, нельзя: это выдуманные
+    // данные. Показываем только то, что применимо к типу объекта.
+    final showRooms =
+        showsField(listing.kind, ListingField.rooms) && listing.roomsLabel.isNotEmpty;
+    final showFloor =
+        showsField(listing.kind, ListingField.floor) && listing.floorLong.isNotEmpty;
+    final showLand =
+        showsField(listing.kind, ListingField.landArea) && listing.landArea != null;
     final String area = listing.areaLabel;
-    final String floor = (listing.floorLong.isNotEmpty && !listing.isPlot)
-        ? listing.floorLong
-        : '8 этаж';
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       spacing: 7,
       children: [
-        FigText(noWrap: true, span: TextSpan(text: rooms, style: style)),
-        const _Dot(),
+        if (showRooms) ...[
+          FigText(noWrap: true, span: TextSpan(text: listing.roomsLabel, style: style)),
+          const _Dot(),
+        ],
         FigText(
           span: TextSpan(
             style: style,
@@ -955,8 +976,20 @@ class _Specs extends StatelessWidget {
             ],
           ),
         ),
-        const _Dot(),
-        FigText(noWrap: true, span: TextSpan(text: floor, style: style)),
+        if (showLand) ...[
+          const _Dot(),
+          FigText(
+            noWrap: true,
+            span: TextSpan(
+              text: '${listing.landArea!.toStringAsFixed(0)} сот.',
+              style: style,
+            ),
+          ),
+        ],
+        if (showFloor) ...[
+          const _Dot(),
+          FigText(noWrap: true, span: TextSpan(text: listing.floorLong, style: style)),
+        ],
       ],
     );
   }

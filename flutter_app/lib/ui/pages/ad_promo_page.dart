@@ -465,12 +465,21 @@ class _AdPromoPageState extends State<AdPromoPage> {
           ),
         ),
 
+        // Маска для скрытия нарисованной на фоне кнопки "Далее"
+        const Positioned(
+          left: 20.0,
+          top: 710.0,
+          width: 335.0,
+          height: 60.0,
+          child: ColoredBox(color: Color(0xffffffff)),
+        ),
+
         // Кнопка «Далее» (Завершить создание и опубликовать)
         Positioned(
           left: 25.0,
-          top: 720.0,
+          top: 690.0,
           width: 325.0,
-          height: 48.0,
+          height: 44.0,
           child: ElevatedButton(
             onPressed: _isPublishing ? null : _onNext,
             style: ElevatedButton.styleFrom(
@@ -490,6 +499,31 @@ class _AdPromoPageState extends State<AdPromoPage> {
                       color: Colors.white,
                     ),
                   ),
+          ),
+        ),
+
+        // Кнопка «Продолжить без продвижения»
+        Positioned(
+          left: 25.0,
+          top: 744.0,
+          width: 325.0,
+          height: 44.0,
+          child: OutlinedButton(
+            onPressed: _isPublishing ? null : () => _publishListing(withPromo: false),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: orangeColor),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+            ),
+            child: const Text(
+              'Продолжить без продвижения',
+              style: TextStyle(
+                fontSize: 15.0,
+                fontWeight: FontWeight.bold,
+                color: orangeColor,
+              ),
+            ),
           ),
         ),
       ],

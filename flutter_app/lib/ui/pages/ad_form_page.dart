@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/kind_fields.dart';
 import '../../data/listings.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
@@ -23,6 +24,8 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController? _roomsController;
   TextEditingController? _floorController;
   TextEditingController? _floorsController;
+  TextEditingController? _landAreaController;
+  TextEditingController? _ceilingController;
 
   TextEditingController get _effectiveAreaController => _areaController ??= TextEditingController();
   TextEditingController get _effectiveBuilderController => _builderController ??= TextEditingController();
@@ -30,6 +33,8 @@ class _AdFormPageState extends State<AdFormPage> {
   TextEditingController get _effectiveRoomsController => _roomsController ??= TextEditingController();
   TextEditingController get _effectiveFloorController => _floorController ??= TextEditingController();
   TextEditingController get _effectiveFloorsController => _floorsController ??= TextEditingController();
+  TextEditingController get _effectiveLandAreaController => _landAreaController ??= TextEditingController();
+  TextEditingController get _effectiveCeilingController => _ceilingController ??= TextEditingController();
   bool _isSaving = false;
   bool _initializedFromState = false;
 
@@ -156,16 +161,27 @@ class _AdFormPageState extends State<AdFormPage> {
     final floorsVal = int.tryParse(_effectiveFloorsController.text.trim()) ?? (state.draftFloors > 0 ? state.draftFloors : (floorVal > 1 ? floorVal : 1));
     final sellerKindApi = state.draftOwner ? 'owner' : 'realtor';
 
+    // Неприменимые к типу поля не отправляем: сервер их всё равно отбросит
+    // (apps/catalog/field_rules.py), но и мусора в запросе быть не должно.
     final data = <String, dynamic>{
       'kind': kindApi,
       'currency': state.draftUsd ? 'USD' : 'KGS',
       'seller_kind': sellerKindApi,
       'district': districtSlug,
-      'rooms': roomsVal,
       'area': area,
-      'floor': floorVal,
-      'floors': floorsVal,
       'price': price,
+      if (showsField(kindEnum, ListingField.rooms)) 'rooms': roomsVal,
+      if (showsField(kindEnum, ListingField.floor)) 'floor': floorVal,
+      if (showsField(kindEnum, ListingField.floors)) 'floors': floorsVal,
+      if (showsField(kindEnum, ListingField.landArea) && state.draftLandArea.isNotEmpty)
+        'land_area': state.draftLandArea,
+      if (state.draftPlotPurpose.isNotEmpty) 'plot_purpose': state.draftPlotPurpose,
+      if (state.draftCommercialPurpose.isNotEmpty)
+        'commercial_purpose': state.draftCommercialPurpose,
+      if (showsField(kindEnum, ListingField.separateEntrance))
+        'has_separate_entrance': state.draftSeparateEntrance,
+      if (state.draftBuildingLine.isNotEmpty) 'building_line': state.draftBuildingLine,
+      if (state.draftCeilingHeight.isNotEmpty) 'ceiling_height': state.draftCeilingHeight,
     };
     if (builder.isNotEmpty) {
       if (builder.toLowerCase().contains('elite')) {
@@ -196,12 +212,95 @@ class _AdFormPageState extends State<AdFormPage> {
   @override
   void dispose() {
     _areaController?.dispose();
+    _landAreaController?.dispose();
+    _ceilingController?.dispose();
     _builderController?.dispose();
     _priceController?.dispose();
     _roomsController?.dispose();
     _floorController?.dispose();
     _floorsController?.dispose();
     super.dispose();
+  }
+
+  List<Map<String, String>> _getBuildersList(AppState state) {
+    if (state.filterOptions['builders'] != null) {
+      final list = state.filterOptions['builders'] as List;
+      return list.map((item) {
+        if (item is Map) {
+          final slug = item['slug']?.toString() ?? '';
+          final name = item['name']?.toString() ?? '';
+          return {'slug': slug, 'name': name};
+        }
+        return {'slug': item.toString(), 'name': item.toString()};
+      }).toList();
+    }
+    return [];
+  }
+
+  String _getBuilderLabel(AppState state) {
+    if (state.draftBuilder.isEmpty) return 'Выберите застройщика';
+    final list = _getBuildersList(state);
+    for (final item in list) {
+      if (item['slug'] == state.draftBuilder || item['name'] == state.draftBuilder) {
+        return item['name']!;
+      }
+    }
+    return state.draftBuilder;
+  }
+
+  void _showBuilderPicker(BuildContext context, AppState state) {
+    if (state.filterOptions['builders'] == null || (state.filterOptions['builders'] as List).isEmpty) {
+      state.fetchFilterOptions('bishkek');
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
+      ),
+      builder: (context) {
+        final builders = _getBuildersList(state);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                child: Text(
+                  'Выберите застройщика',
+                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: builders.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final item = builders[index];
+                    final slug = item['slug']!;
+                    final label = item['name']!;
+                    final isSelected = state.draftBuilder == slug || state.draftBuilder == label;
+                    return ListTile(
+                      title: Text(label),
+                      trailing: isSelected
+                          ? const Icon(Icons.check, color: Color(0xffea812e))
+                          : null,
+                      onTap: () {
+                        state.setDraft(() {
+                          state.draftBuilder = slug;
+                          _effectiveBuilderController.text = label;
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showDistrictPicker(BuildContext context, AppState state) {
@@ -269,6 +368,13 @@ class _AdFormPageState extends State<AdFormPage> {
     final roomsCtrl = _effectiveRoomsController;
     final floorCtrl = _effectiveFloorController;
     final floorsCtrl = _effectiveFloorsController;
+    final landAreaCtrl = _effectiveLandAreaController;
+    final ceilingCtrl = _effectiveCeilingController;
+
+    // Набор секций зависит от типа: у участка нет комнат и этажей, у
+    // коммерции — свои параметры (см. lib/data/kind_fields.dart).
+    final formKind =
+        state.draftKinds.isNotEmpty ? state.draftKinds.first : PropertyKind.apartment;
 
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
@@ -329,13 +435,7 @@ class _AdFormPageState extends State<AdFormPage> {
                     _buildChip(
                       label: kind.label,
                       selected: state.draftKinds.contains(kind),
-                      onTap: () => state.setDraft(() {
-                        if (state.draftKinds.contains(kind)) {
-                          if (state.draftKinds.length > 1) state.draftKinds.remove(kind);
-                        } else {
-                          state.draftKinds.add(kind);
-                        }
-                      }),
+                      onTap: () => state.setDraftKind(kind),
                     ),
                 ],
               ),
@@ -373,42 +473,44 @@ class _AdFormPageState extends State<AdFormPage> {
               const SizedBox(height: 24.0),
 
               // 3. Количество комнат
-              _buildSectionTitle('Количество комнат'),
-              const SizedBox(height: 10.0),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (int index = 0; index < 5; index++) ...[
-                      if (index > 0) const SizedBox(width: 8.0),
-                      _buildChip(
-                        label: '${index + 1} ком.',
-                        selected: state.draftRooms == index + 1 && roomsCtrl.text.isEmpty,
-                        onTap: () {
-                          roomsCtrl.clear();
-                          state.setDraft(() => state.draftRooms = index + 1);
-                        },
+              if (showsField(formKind, ListingField.rooms)) ...[
+                _buildSectionTitle('Количество комнат'),
+                const SizedBox(height: 10.0),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (int index = 0; index < 5; index++) ...[
+                        if (index > 0) const SizedBox(width: 8.0),
+                        _buildChip(
+                          label: '${index + 1} ком.',
+                          selected: state.draftRooms == index + 1 && roomsCtrl.text.isEmpty,
+                          onTap: () {
+                            roomsCtrl.clear();
+                            state.setDraft(() => state.draftRooms = index + 1);
+                          },
+                        ),
+                      ],
+                      const SizedBox(width: 8.0),
+                      SizedBox(
+                        width: 190.0,
+                        child: _buildInputField(
+                          controller: roomsCtrl,
+                          hintText: 'Введите свое значение',
+                          keyboardType: TextInputType.number,
+                          onChanged: (val) {
+                            final parsed = int.tryParse(val.replaceAll(' ', ''));
+                            if (parsed != null && parsed > 0) {
+                              state.setDraft(() => state.draftRooms = parsed);
+                            }
+                          },
+                        ),
                       ),
                     ],
-                    const SizedBox(width: 8.0),
-                    SizedBox(
-                      width: 190.0,
-                      child: _buildInputField(
-                        controller: roomsCtrl,
-                        hintText: 'Введите свое значение',
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) {
-                          final parsed = int.tryParse(val.replaceAll(' ', ''));
-                          if (parsed != null && parsed > 0) {
-                            state.setDraft(() => state.draftRooms = parsed);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24.0),
+                const SizedBox(height: 24.0),
+              ],
 
               // 4. Квадратура
               _buildSectionTitle('Квадратура'),
@@ -423,105 +525,261 @@ class _AdFormPageState extends State<AdFormPage> {
                       onChanged: (val) => state.setDraft(() => state.draftArea = val),
                     ),
                   ),
-                  const SizedBox(width: 8.0),
-                  _buildChip(label: '45-55', selected: false, onTap: () {}),
-                  const SizedBox(width: 8.0),
-                  _buildChip(label: '65-75', selected: false, onTap: () {}),
                 ],
               ),
               const SizedBox(height: 24.0),
 
               // 5. Этаж
-              _buildSectionTitle('Этаж'),
-              const SizedBox(height: 10.0),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (int index = 0; index < 5; index++) ...[
-                      if (index > 0) const SizedBox(width: 8.0),
+              if (showsField(formKind, ListingField.floor)) ...[
+                _buildSectionTitle('Этаж'),
+                const SizedBox(height: 10.0),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (int index = 0; index < 5; index++) ...[
+                        if (index > 0) const SizedBox(width: 8.0),
+                        SizedBox(
+                          width: 44.0,
+                          child: _buildChip(
+                            label: '${index + 1}',
+                            selected: state.draftFloor == index + 1 && floorCtrl.text.isEmpty,
+                            onTap: () {
+                              floorCtrl.clear();
+                              state.setDraft(() {
+                                state.draftFloor = index + 1;
+                                if (state.draftFloor > state.draftFloors) {
+                                  state.draftFloors = state.draftFloor;
+                                  if (floorsCtrl.text.isNotEmpty) {
+                                    floorsCtrl.text = state.draftFloors.toString();
+                                  }
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: 8.0),
                       SizedBox(
-                        width: 44.0,
-                        child: _buildChip(
-                          label: '${index + 1}',
-                          selected: state.draftFloor == index + 1 && floorCtrl.text.isEmpty,
-                          onTap: () {
-                            floorCtrl.clear();
-                            state.setDraft(() => state.draftFloor = index + 1);
+                        width: 190.0,
+                        child: _buildInputField(
+                          controller: floorCtrl,
+                          hintText: 'Введите свое значение',
+                          keyboardType: TextInputType.number,
+                          onChanged: (val) {
+                            final parsed = int.tryParse(val.replaceAll(' ', ''));
+                            if (parsed != null && parsed > 0) {
+                              state.setDraft(() {
+                                state.draftFloor = parsed;
+                                if (state.draftFloor > state.draftFloors) {
+                                  state.draftFloors = state.draftFloor;
+                                  if (floorsCtrl.text.isNotEmpty) {
+                                    floorsCtrl.text = state.draftFloors.toString();
+                                  }
+                                }
+                              });
+                            }
                           },
                         ),
                       ),
                     ],
-                    const SizedBox(width: 8.0),
-                    SizedBox(
-                      width: 190.0,
-                      child: _buildInputField(
-                        controller: floorCtrl,
-                        hintText: 'Введите свое значение',
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) {
-                          final parsed = int.tryParse(val.replaceAll(' ', ''));
-                          if (parsed != null && parsed > 0) {
-                            state.setDraft(() => state.draftFloor = parsed);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24.0),
+                const SizedBox(height: 24.0),
+              ],
 
               // 6. Кол-во этажей в здании
-              _buildSectionTitle('Кол-во этажей в здании'),
-              const SizedBox(height: 10.0),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (int index = 0; index < 5; index++) ...[
-                      if (index > 0) const SizedBox(width: 8.0),
+              if (showsField(formKind, ListingField.floors)) ...[
+                _buildSectionTitle('Кол-во этажей в здании'),
+                const SizedBox(height: 10.0),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (int index = 0; index < 5; index++) ...[
+                        if (index > 0) const SizedBox(width: 8.0),
+                        SizedBox(
+                          width: 44.0,
+                          child: _buildChip(
+                            label: '${index + 1}',
+                            selected: state.draftFloors == index + 1 && floorsCtrl.text.isEmpty,
+                            onTap: () {
+                              floorsCtrl.clear();
+                              state.setDraft(() {
+                                state.draftFloors = index + 1;
+                                if (state.draftFloor > state.draftFloors) {
+                                  state.draftFloor = state.draftFloors;
+                                  if (floorCtrl.text.isNotEmpty) {
+                                    floorCtrl.text = state.draftFloor.toString();
+                                  }
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: 8.0),
                       SizedBox(
-                        width: 44.0,
-                        child: _buildChip(
-                          label: '${index + 1}',
-                          selected: state.draftFloors == index + 1 && floorsCtrl.text.isEmpty,
-                          onTap: () {
-                            floorsCtrl.clear();
-                            state.setDraft(() => state.draftFloors = index + 1);
+                        width: 190.0,
+                        child: _buildInputField(
+                          controller: floorsCtrl,
+                          hintText: 'Введите свое значение',
+                          keyboardType: TextInputType.number,
+                          onChanged: (val) {
+                            final parsed = int.tryParse(val.replaceAll(' ', ''));
+                            if (parsed != null && parsed > 0) {
+                              state.setDraft(() {
+                                state.draftFloors = parsed;
+                                if (state.draftFloor > state.draftFloors) {
+                                  state.draftFloor = state.draftFloors;
+                                  if (floorCtrl.text.isNotEmpty) {
+                                    floorCtrl.text = state.draftFloor.toString();
+                                  }
+                                }
+                              });
+                            }
                           },
                         ),
                       ),
                     ],
-                    const SizedBox(width: 8.0),
-                    SizedBox(
-                      width: 190.0,
-                      child: _buildInputField(
-                        controller: floorsCtrl,
-                        hintText: 'Введите свое значение',
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) {
-                          final parsed = int.tryParse(val.replaceAll(' ', ''));
-                          if (parsed != null && parsed > 0) {
-                            state.setDraft(() => state.draftFloors = parsed);
-                          }
-                        },
+                  ),
+                ),
+                const SizedBox(height: 24.0),
+              ],
+
+              // 7. Строительная компания
+              if (showsField(formKind, ListingField.builder)) ...[
+                _buildSectionTitle('Строительная компания'),
+                const SizedBox(height: 10.0),
+                GestureDetector(
+                  onTap: () => _showBuilderPicker(context, state),
+                  child: Container(
+                    height: 48.0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xfff5f5f7),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          state.draftBuilder.isEmpty ? 'Выберите застройщика' : _getBuilderLabel(state),
+                          style: TextStyle(
+                            fontSize: 15.0,
+                            color: state.draftBuilder.isEmpty
+                                ? const Color(0x993c3c43)
+                                : const Color(0xff000000),
+                          ),
+                        ),
+                        const Icon(Icons.keyboard_arrow_down, color: orangeColor),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24.0),
+              ],
+
+              // Параметры, применимые только к отдельным типам.
+              if (showsField(formKind, ListingField.landArea)) ...[
+                _buildSectionTitle('Площадь участка, соток'),
+                const SizedBox(height: 10.0),
+                _buildInputField(
+                  controller: landAreaCtrl,
+                  hintText: 'Например, 8',
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) => state.setDraft(() => state.draftLandArea = val),
+                ),
+                const SizedBox(height: 24.0),
+              ],
+
+              if (showsField(formKind, ListingField.plotPurpose)) ...[
+                _buildSectionTitle('Назначение участка'),
+                const SizedBox(height: 10.0),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: [
+                    for (final entry in plotPurposeLabels.entries)
+                      _buildChip(
+                        label: entry.value,
+                        selected: state.draftPlotPurpose == entry.key,
+                        onTap: () => state.setDraft(() => state.draftPlotPurpose = entry.key),
                       ),
+                  ],
+                ),
+                const SizedBox(height: 24.0),
+              ],
+
+              if (showsField(formKind, ListingField.commercialPurpose)) ...[
+                _buildSectionTitle('Назначение помещения'),
+                const SizedBox(height: 10.0),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: [
+                    for (final entry in commercialPurposeLabels.entries)
+                      _buildChip(
+                        label: entry.value,
+                        selected: state.draftCommercialPurpose == entry.key,
+                        onTap: () =>
+                            state.setDraft(() => state.draftCommercialPurpose = entry.key),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24.0),
+              ],
+
+              if (showsField(formKind, ListingField.buildingLine)) ...[
+                _buildSectionTitle('Линия'),
+                const SizedBox(height: 10.0),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: [
+                    for (final entry in buildingLineLabels.entries)
+                      _buildChip(
+                        label: entry.value,
+                        selected: state.draftBuildingLine == entry.key,
+                        onTap: () => state.setDraft(() => state.draftBuildingLine = entry.key),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24.0),
+              ],
+
+              if (showsField(formKind, ListingField.separateEntrance)) ...[
+                _buildSectionTitle('Отдельный вход'),
+                const SizedBox(height: 10.0),
+                Wrap(
+                  spacing: 8.0,
+                  children: [
+                    _buildChip(
+                      label: 'Есть',
+                      selected: state.draftSeparateEntrance,
+                      onTap: () => state.setDraft(() => state.draftSeparateEntrance = true),
+                    ),
+                    _buildChip(
+                      label: 'Нет',
+                      selected: !state.draftSeparateEntrance,
+                      onTap: () => state.setDraft(() => state.draftSeparateEntrance = false),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24.0),
+                const SizedBox(height: 24.0),
+              ],
 
-              // 7. Строительная компания
-              _buildSectionTitle('Строительная компания'),
-              const SizedBox(height: 10.0),
-              _buildInputField(
-                controller: builderCtrl,
-                hintText: 'Введите строительную компанию',
-                onChanged: (val) => state.setDraft(() => state.draftBuilder = val),
-              ),
-              const SizedBox(height: 24.0),
+              if (showsField(formKind, ListingField.ceilingHeight)) ...[
+                _buildSectionTitle('Высота потолков, м'),
+                const SizedBox(height: 10.0),
+                _buildInputField(
+                  controller: ceilingCtrl,
+                  hintText: 'Необязательно, например 3.2',
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) => state.setDraft(() => state.draftCeilingHeight = val),
+                ),
+                const SizedBox(height: 24.0),
+              ],
 
               // 8. Цена
               _buildSectionTitle('Цена'),

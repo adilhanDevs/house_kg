@@ -129,7 +129,10 @@ class _HomePageState extends State<HomePage> {
     final state = AppScope.of(context);
     final strip = kListings.take(_stripX.length).toList();
 
-    return FigStage(
+    return RefreshIndicator(
+      onRefresh: _loadListings,
+      color: const Color(0xffea812e),
+      child: FigStage(
       frame: frame('09'),
       background: _page,
       bottomBar: const AppTabBar(active: 0),
@@ -303,6 +306,7 @@ class _HomePageState extends State<HomePage> {
           onTap: () => _openCatalog(context, kind: _tab),
         ),
       ],
+    ),
     );
   }
 }

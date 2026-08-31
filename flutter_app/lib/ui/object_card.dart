@@ -6,6 +6,7 @@
 // 4×4 между значениями.
 import 'package:flutter/material.dart';
 
+import '../data/kind_fields.dart';
 import '../data/listings.dart';
 import '../fig/fig.dart';
 import 'widgets/safe_image.dart';
@@ -170,20 +171,29 @@ class ObjectCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     spacing: 7.0,
                     children: [
+                      // Что показывать в строке характеристик, решает тип
+                      // объекта: см. lib/data/kind_fields.dart.
+                      if (showsField(listing.kind, ListingField.rooms) &&
+                          listing.rooms > 0) ...[
+                        _spec7(listing.roomsLabel),
+                        const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
+                      ],
                       if (listing.isPlot) ...[
                         _spec7('Участок'),
                         const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
-                        _areaWidget(listing.areaLabel),
-                      ] else ...[
-                        if (listing.rooms > 0) ...[
-                          _spec7(listing.roomsLabel),
-                          const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
-                        ],
-                        _areaWidget(listing.areaLabel),
-                        if (listing.floor > 0) ...[
-                          const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
-                          _spec7(listing.floorLong.isNotEmpty ? listing.floorLong : '${listing.floor} этаж'),
-                        ],
+                      ],
+                      _areaWidget(listing.areaLabel),
+                      if (showsField(listing.kind, ListingField.landArea) &&
+                          listing.landArea != null) ...[
+                        const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
+                        _spec7('${listing.landArea!.toStringAsFixed(0)} сот.'),
+                      ],
+                      if (showsField(listing.kind, ListingField.floor) &&
+                          listing.floor > 0) ...[
+                        const FigBox(width: 4.0, height: 4.0, color: _dot, radius: 2.0),
+                        _spec7(listing.floorLong.isNotEmpty
+                            ? listing.floorLong
+                            : '${listing.floor} этаж'),
                       ],
                     ],
                   ),

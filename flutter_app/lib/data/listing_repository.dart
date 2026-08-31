@@ -15,6 +15,16 @@ class ListingRepository {
     );
   }
 
+  /// Объявления текущего пользователя. `status` — draft | pending | active |
+  /// rejected | archived | sold.
+  Future<PaginatedResponse<Listing>> getMyListings({String? status, String? cursor}) async {
+    final data = await _apiClient.getMyListings(status: status, cursor: cursor);
+    return PaginatedResponse<Listing>.fromJson(
+      data,
+      (json) => Listing.fromJson(json),
+    );
+  }
+
   Future<PaginatedResponse<Listing>> getReelsFeed({String? cursor}) async {
     final data = await _apiClient.getReelsFeed(cursor);
     return PaginatedResponse<Listing>.fromJson(

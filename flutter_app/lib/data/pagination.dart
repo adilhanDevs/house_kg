@@ -3,11 +3,15 @@ class PaginatedResponse<T> {
     required this.results,
     this.nextCursor,
     this.previousCursor,
+    this.count,
   });
 
   final List<T> results;
   final String? nextCursor;
   final String? previousCursor;
+
+  /// Общее количество записей в выборке (приходит в поле `count`).
+  final int? count;
 
   factory PaginatedResponse.fromJson(
     Map<String, dynamic> json,
@@ -20,6 +24,7 @@ class PaginatedResponse<T> {
           [],
       nextCursor: _extractCursor(json['next'] as String?),
       previousCursor: _extractCursor(json['previous'] as String?),
+      count: json['count'] as int?,
     );
   }
 

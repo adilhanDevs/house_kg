@@ -6,11 +6,13 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../data/api_client.dart';
 import '../data/api_exceptions.dart';
 import '../data/ad_media.dart';
-import '../data/finik_payment_service.dart';
+import '../data/topup.dart';
+import '../data/kind_fields.dart';
 import '../data/listings.dart';
 import '../data/tariff.dart';
 
@@ -79,6 +81,9 @@ class AppState extends ChangeNotifier {
   
   String? userName;
   String? userPhone;
+  String? userAvatarUrl;
+  /// `owner` | `realtor` | `agency` — из профиля (`seller_kind`).
+  String? sellerKind;
   int walletBalance = 0;
   bool isPro = false;
   bool isInitializing = true;
@@ -287,6 +292,8 @@ class AppState extends ChangeNotifier {
       final profile = await apiClient.getMe();
       userName = profile['name'] as String?;
       userPhone = profile['phone'] as String?;
+      userAvatarUrl = profile['avatar_url'] as String?;
+      sellerKind = profile['seller_kind'] as String?;
       if (profile['wallet_balance'] is Map) {
         walletBalance = profile['wallet_balance']['balance'] as int? ?? 0;
       } else {
@@ -294,8 +301,7 @@ class AppState extends ChangeNotifier {
       }
       isPro = profile['is_pro'] as bool? ?? false;
       final hasSellerProfile = profile['has_seller_profile'] as bool? ?? false;
-      final sellerKind = profile['seller_kind'] as String?;
-      if (isPro || hasSellerProfile || (sellerKind != null && sellerKind.isNotEmpty)) {
+      if (isPro || hasSellerProfile || (sellerKind != null && sellerKind!.isNotEmpty)) {
         _pro = true;
       } else {
         _pro = false;
@@ -321,6 +327,8 @@ class AppState extends ChangeNotifier {
           final profile = await apiClient.getMe();
           userName = profile['name'] as String?;
           userPhone = profile['phone'] as String?;
+          userAvatarUrl = profile['avatar_url'] as String?;
+          sellerKind = profile['seller_kind'] as String?;
           isPro = profile['is_pro'] as bool? ?? false;
           _pro = isPro || (profile['has_seller_profile'] as bool? ?? false);
           await prefs.setBool('cached_is_pro', _pro);
@@ -334,10 +342,40 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Подпись роли под именем в профиле: «Клиент» или тип продавца.
+  String get roleLabel {
+    if (!(pro || isPro)) return 'Клиент';
+    switch (sellerKind) {
+      case 'owner':
+        return 'Собственник';
+      case 'realtor':
+        return 'Риелтор';
+      case 'agency':
+        return 'Агентство';
+      default:
+        return 'Исполнитель';
+    }
+  }
+
+  /// Инициалы для заглушки аватара, когда фото не загружено.
+  String get userInitials {
+    final parts = (userName ?? '').trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
+    if (parts.isEmpty) return '';
+    return parts.take(2).map((p) => p[0].toUpperCase()).join();
+  }
+
+  /// Сохраняет имя пользователя на сервере (PATCH /users/me/).
+  Future<void> updateProfileName(String name) async {
+    final response = await apiClient.updateMe({'name': name});
+    userName = response['name'] as String? ?? name;
+    notifyListeners();
+  }
+
   Future<void> fetchWalletBalance() async {
     try {
       final response = await apiClient.getWalletBalance();
       walletBalance = response['balance'] as int? ?? 0;
+      _bricks = walletBalance;
       notifyListeners();
     } catch (e) {
       print('Failed to fetch wallet balance: $e');
@@ -356,6 +394,8 @@ class AppState extends ChangeNotifier {
     _refreshToken = null;
     userName = null;
     userPhone = null;
+    userAvatarUrl = null;
+    sellerKind = null;
     walletBalance = 0;
     isPro = false;
     _pro = false;
@@ -409,13 +449,14 @@ class AppState extends ChangeNotifier {
       final user = response['user'] as Map<String, dynamic>;
       userName = user['name'] as String?;
       userPhone = user['phone'] as String?;
+      userAvatarUrl = user['avatar_url'] as String?;
+      sellerKind = user['seller_kind'] as String?;
       if (userPhone != null && userPhone!.isNotEmpty) {
         await prefs.setString('saved_phone', userPhone!);
       }
       isPro = user['is_pro'] as bool? ?? false;
       final hasSeller = user['has_seller_profile'] as bool? ?? false;
-      final sellerKind = user['seller_kind'] as String?;
-      if (isPro || hasSeller || (sellerKind != null && sellerKind.isNotEmpty)) {
+      if (isPro || hasSeller || (sellerKind != null && sellerKind!.isNotEmpty)) {
         _pro = true;
       }
     }
@@ -513,6 +554,9 @@ class AppState extends ChangeNotifier {
   final Set<SellerKind> _sellers = {};
   bool _secondaryOnly = false;
   bool _series103 = false;
+  final Set<String> _plotPurposes = {};
+  final Set<String> _commercialPurposes = {};
+  final Set<String> _buildingLines = {};
   final Set<String> _series = {};
   int? _priceFrom;
   int? _priceTo;
@@ -527,6 +571,26 @@ class AppState extends ChangeNotifier {
   bool get secondaryOnly => _secondaryOnly;
   bool get series103 => _series103;
   Set<String> get series => Set.unmodifiable(_series);
+  Set<String> get plotPurposes => Set.unmodifiable(_plotPurposes);
+  Set<String> get commercialPurposes => Set.unmodifiable(_commercialPurposes);
+  Set<String> get buildingLines => Set.unmodifiable(_buildingLines);
+
+  void togglePlotPurpose(String value) {
+    _plotPurposes.contains(value) ? _plotPurposes.remove(value) : _plotPurposes.add(value);
+    notifyListeners();
+  }
+
+  void toggleCommercialPurpose(String value) {
+    _commercialPurposes.contains(value)
+        ? _commercialPurposes.remove(value)
+        : _commercialPurposes.add(value);
+    notifyListeners();
+  }
+
+  void toggleBuildingLine(String value) {
+    _buildingLines.contains(value) ? _buildingLines.remove(value) : _buildingLines.add(value);
+    notifyListeners();
+  }
   int? get priceFrom => _priceFrom;
   int? get priceTo => _priceTo;
   bool get ownerOnly => _sellers.contains(SellerKind.owner);
@@ -579,6 +643,11 @@ class AppState extends ChangeNotifier {
     if (_rooms.isNotEmpty) params['rooms'] = _rooms.join(',');
     if (areaFilter.isNotEmpty) params['area_ranges'] = areaFilter.map((a) => a.label).join(',');
     if (_sellers.isNotEmpty) params['seller_kind'] = _sellers.map((s) => s.name).join(',');
+    if (_plotPurposes.isNotEmpty) params['plot_purpose'] = _plotPurposes.join(',');
+    if (_commercialPurposes.isNotEmpty) {
+      params['commercial_purpose'] = _commercialPurposes.join(',');
+    }
+    if (_buildingLines.isNotEmpty) params['building_line'] = _buildingLines.join(',');
     if (_secondaryOnly) params['is_secondary'] = 'true';
     if (_series.isNotEmpty) params['series'] = _series.join(',');
     if (_priceFrom != null) params['price_min'] = _priceFrom.toString();
@@ -714,60 +783,99 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ----------------------------------------------------------- Finik Pay
-  final FinikPaymentService finikPayment = FinikPaymentService();
-  FinikPaymentResponse? currentFinikPayment;
-  bool isFinikLoading = false;
+  // ------------------------------------------------------------ пополнение
+  //
+  // Счёт выставляет бэкенд, деньги подтверждает вебхук платёжного шлюза.
+  // Клиент только показывает ссылку/QR и опрашивает статус: «подтвердить»
+  // оплату из приложения нельзя — иначе баланс рисовался бы сам себе.
 
-  /// Инициализирует инвойс в платёжной системе Finik Pay.
-  Future<FinikPaymentResponse> createFinikTopup(int amount) async {
-    isFinikLoading = true;
+  TopupIntent? currentTopup;
+  bool isTopupLoading = false;
+  String? topupError;
+
+  /// Выставляет счёт на пополнение. Ключ идемпотентности живёт вместе со
+  /// счётом: повтор того же шага не создаёт второй счёт.
+  Future<TopupIntent> createTopup(int amount) async {
+    isTopupLoading = true;
+    topupError = null;
     setTopupAmount(amount);
     notifyListeners();
 
     try {
-      final payment = await finikPayment.createInvoice(
-        amount: amount,
-        description: 'Пополнение кошелька House KG (${thousands(amount)} сом)',
+      final response = await apiClient.createTopup(
+        amountKgs: amount,
+        idempotencyKey: const Uuid().v4(),
       );
-      currentFinikPayment = payment;
-      return payment;
+      final intent = TopupIntent.fromJson(response);
+      currentTopup = intent;
+      return intent;
+    } catch (e) {
+      topupError = _topupErrorText(e);
+      rethrow;
     } finally {
-      isFinikLoading = false;
+      isTopupLoading = false;
       notifyListeners();
     }
   }
 
-  /// Фиксирует успешную оплату через Finik Pay и начисляет кирпичи с бонусом.
-  Future<void> confirmFinikTopup(FinikPaymentResponse payment) async {
-    final confirmed = finikPayment.mockConfirmPayment(payment);
-    currentFinikPayment = confirmed;
-    commitTopup();
-    
-    // Синхронизация баланса с бэкендом (если доступен)
-    try {
-      await fetchWalletBalance();
-    } catch (_) {}
+  /// Разовый запрос статуса счёта.
+  Future<TopupStatusResult> fetchTopupStatus(String paymentId) async {
+    final response = await apiClient.getTopupStatus(paymentId);
+    final result = TopupStatusResult.fromJson(response);
+
+    walletBalance = result.balance;
+    _bricks = result.balance;
+    notifyListeners();
+    return result;
   }
 
-  void commitTopup() {
-    _bricks += topupAmount + topupBonus;
-    walletBalance += topupAmount + topupBonus;
-    _wallet.insertAll(0, [
-      WalletEntry(
-        day: 'Сегодня',
-        label: '+${thousands(topupAmount)} сом (${thousands(topupAmount)} кирпичей)',
-        bricks: topupAmount,
-        kind: WalletEntryKind.topup,
-      ),
-      WalletEntry(
-        day: 'Сегодня',
-        label: '+${thousands(topupBonus)} кирпичей (бонус за пополнение)',
-        bricks: topupBonus,
-        kind: WalletEntryKind.bonus,
-      ),
-    ]);
+  /// Опрашивает статус, пока счёт не станет окончательным или не выйдет время.
+  ///
+  /// Возвращает последний известный статус. Сетевые сбои внутри опроса не
+  /// прерывают ожидание — оплата могла пройти, просто ответ не дошёл.
+  Future<TopupStatusResult> waitForTopup(
+    String paymentId, {
+    Duration timeout = const Duration(minutes: 10),
+    Duration interval = const Duration(seconds: 3),
+    bool Function()? isCancelled,
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    TopupStatusResult last = const TopupStatusResult(
+      status: TopupStatus.pending,
+      balance: 0,
+      creditedBricks: 0,
+    );
+
+    while (DateTime.now().isBefore(deadline)) {
+      if (isCancelled?.call() ?? false) return last;
+
+      try {
+        last = await fetchTopupStatus(paymentId);
+        if (last.status.isFinal) return last;
+      } catch (e) {
+        debugPrint('Опрос статуса пополнения не удался: $e');
+      }
+
+      await Future<void>.delayed(interval);
+    }
+
+    return last;
+  }
+
+  void resetTopup() {
+    currentTopup = null;
+    topupError = null;
+    isTopupLoading = false;
     notifyListeners();
+  }
+
+  String _topupErrorText(Object error) {
+    if (error is ApiException) {
+      if (error.statusCode == 401) return 'Войдите в аккаунт, чтобы пополнить кошелёк';
+      return error.message;
+    }
+    if (error is NetworkException) return 'Нет связи с сервером. Проверьте интернет';
+    return 'Не удалось выставить счёт на оплату';
   }
 
   // --------------------------------------------------------- режим и профиль
@@ -876,6 +984,12 @@ class AppState extends ChangeNotifier {
   String draftArea = '';
   String draftDistrict = 'Район Бишкека';
   String draftBuilder = '';
+  String draftLandArea = '';
+  String draftPlotPurpose = '';
+  String draftCommercialPurpose = '';
+  bool draftSeparateEntrance = false;
+  String draftBuildingLine = '';
+  String draftCeilingHeight = '';
   String draftPrice = '';
   bool draftUsd = true;
   bool draftOwner = true;
@@ -899,6 +1013,28 @@ class AppState extends ChangeNotifier {
   final List<AdMedia> draftVideoList = [
     const AdMedia.demo('assets/figma/231c034e3954a705.jpg', video: true),
   ];
+
+  /// Смена типа объявления: значения полей, неприменимых к новому типу,
+  /// забываются — иначе на сервер уедет `rooms` от предыдущего выбора.
+  void setDraftKind(PropertyKind kind) {
+    draftKinds
+      ..clear()
+      ..add(kind);
+
+    if (!showsField(kind, ListingField.rooms)) draftRooms = 0;
+    if (!showsField(kind, ListingField.floor)) draftFloor = 0;
+    if (!showsField(kind, ListingField.floors)) draftFloors = 0;
+    if (!showsField(kind, ListingField.builder)) draftBuilder = '';
+    if (!showsField(kind, ListingField.landArea)) draftLandArea = '';
+    if (!showsField(kind, ListingField.plotPurpose)) draftPlotPurpose = '';
+    if (!showsField(kind, ListingField.commercialPurpose)) {
+      draftCommercialPurpose = '';
+      draftSeparateEntrance = false;
+      draftBuildingLine = '';
+      draftCeilingHeight = '';
+    }
+    notifyListeners();
+  }
 
   int get draftPhotos => draftGallery.length;
   int get draftVideos => draftVideoList.length;

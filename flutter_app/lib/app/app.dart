@@ -7,6 +7,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import 'route_observer.dart';
 import '../ui/app_tab_bar.dart';
 import '../ui/fig_cta.dart';
 import '../ui/pages/account_page.dart';
@@ -101,6 +102,7 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
         ),
         initialRoute: widget.initialRoute,
         onGenerateRoute: _route,
+        navigatorObservers: [appRouteObserver],
       ),
     );
   }

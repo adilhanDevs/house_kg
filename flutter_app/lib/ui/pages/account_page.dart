@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../app/app_state.dart';
 import '../../fig/fig.dart';
+import '../widgets/profile_identity.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -12,15 +14,19 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   bool _twoFactorEnabled = true;
 
-  String _userName = 'Ташиев Камчыбек';
-  String _userPhone = '+996 555 123 456';
-  String _userEmail = 'tashiev.k@house.kg';
-  String _userCity = 'Бишкек';
+  @override
+  void initState() {
+    super.initState();
+    // Карточка показывает данные из `GET /users/me/`, а не заглушки макета.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppScope.read(context).fetchProfile();
+    });
+  }
 
   Future<void> _editField({
     required String label,
     required String currentValue,
-    required ValueChanged<String> onSave,
+    required Future<void> Function(String value) onSave,
   }) async {
     final controller = TextEditingController(text: currentValue);
     final newValue = await showModalBottomSheet<String>(
@@ -111,9 +117,13 @@ class _AccountPageState extends State<AccountPage> {
       },
     );
 
-    if (newValue != null && newValue.isNotEmpty && mounted) {
-      setState(() => onSave(newValue));
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (newValue == null || newValue.isEmpty || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await onSave(newValue);
+      if (!mounted) return;
+      messenger.showSnackBar(
         const SnackBar(
           content: Row(
             children: [
@@ -123,6 +133,14 @@ class _AccountPageState extends State<AccountPage> {
             ],
           ),
           backgroundColor: Color(0xff34c759),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Не удалось сохранить: $e'),
+          backgroundColor: const Color(0xffd93025),
         ),
       );
     }
@@ -163,6 +181,10 @@ class _AccountPageState extends State<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final name = (state.userName ?? '').isNotEmpty ? state.userName! : 'Без имени';
+    final phone = (state.userPhone ?? '').isNotEmpty ? state.userPhone! : 'Не указан';
+
     return Scaffold(
       backgroundColor: const Color(0xfffefefe),
       appBar: AppBar(
@@ -204,19 +226,11 @@ class _AccountPageState extends State<AccountPage> {
                   children: [
                     Stack(
                       children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: const Color(0xfffdf1e8),
-                          child: Text(
-                            _userName.isNotEmpty
-                                ? _userName.split(' ').map((e) => e[0]).take(2).join()
-                                : 'ТК',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xffea812e),
-                            ),
-                          ),
+                        ProfileAvatar(
+                          url: state.userAvatarUrl,
+                          initials: state.userInitials,
+                          size: 64.0,
+                          radius: 32.0,
                         ),
                         Positioned(
                           right: 0,
@@ -239,7 +253,9 @@ class _AccountPageState extends State<AccountPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _userName,
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 18.0,
                               fontWeight: FontWeight.bold,
@@ -252,7 +268,7 @@ class _AccountPageState extends State<AccountPage> {
                               const Icon(Icons.stars_rounded, size: 16, color: Color(0xffea812e)),
                               const SizedBox(width: 4.0),
                               Text(
-                                'PRO Риелтор • $_userCity',
+                                state.roleLabel,
                                 style: const TextStyle(
                                   fontSize: 13.0,
                                   fontWeight: FontWeight.w500,
@@ -284,43 +300,25 @@ class _AccountPageState extends State<AccountPage> {
               _buildInfoTile(
                 icon: Icons.person_outline,
                 label: 'Имя и Фамилия',
-                value: _userName,
+                value: name,
                 onTap: () => _editField(
                   label: 'Имя и Фамилия',
-                  currentValue: _userName,
-                  onSave: (val) => _userName = val,
+                  currentValue: state.userName ?? '',
+                  onSave: (val) => state.updateProfileName(val),
                 ),
               ),
+              // Телефон меняется только через повторную верификацию по SMS,
+              // поэтому здесь он показан, но не редактируется.
               _buildInfoTile(
                 icon: Icons.phone_outlined,
                 label: 'Номер телефона',
-                value: _userPhone,
+                value: phone,
                 verified: true,
-                onTap: () => _editField(
-                  label: 'Номер телефона',
-                  currentValue: _userPhone,
-                  onSave: (val) => _userPhone = val,
-                ),
               ),
               _buildInfoTile(
-                icon: Icons.email_outlined,
-                label: 'Электронная почта',
-                value: _userEmail,
-                onTap: () => _editField(
-                  label: 'Электронная почта',
-                  currentValue: _userEmail,
-                  onSave: (val) => _userEmail = val,
-                ),
-              ),
-              _buildInfoTile(
-                icon: Icons.location_on_outlined,
-                label: 'Город',
-                value: _userCity,
-                onTap: () => _editField(
-                  label: 'Город',
-                  currentValue: _userCity,
-                  onSave: (val) => _userCity = val,
-                ),
+                icon: Icons.badge_outlined,
+                label: 'Тип аккаунта',
+                value: state.roleLabel,
               ),
 
               const SizedBox(height: 28.0),
@@ -418,7 +416,7 @@ class _AccountPageState extends State<AccountPage> {
     required IconData icon,
     required String label,
     required String value,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
     bool verified = false,
   }) {
     return GestureDetector(
@@ -459,7 +457,8 @@ class _AccountPageState extends State<AccountPage> {
               ],
             ),
             const Spacer(),
-            const Icon(Icons.edit_outlined, size: 18, color: Color(0xffea812e)),
+            if (onTap != null)
+              const Icon(Icons.edit_outlined, size: 18, color: Color(0xffea812e)),
           ],
         ),
       ),

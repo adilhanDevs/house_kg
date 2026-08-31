@@ -21,7 +21,7 @@ enum PropertyKind {
   apartment('Квартиры'),
   plot('Участки'),
   newBuilding('Новостройки'),
-  room('Квартиры'),
+  room('Комнаты'),
   commercial('Коммерция');
 
   const PropertyKind(this.label);
@@ -154,12 +154,27 @@ class Listing {
     this.longitude,
     this.hasDirectSale = true,
     this.hasMortgage = true,
+    this.landArea,
+    this.plotPurpose = '',
+    this.commercialPurpose = '',
+    this.hasSeparateEntrance = false,
+    this.buildingLine = '',
+    this.ceilingHeight,
     List<ListingRoom>? roomsBreakdown,
     this.viewedAt,
   })  : _landmarks = landmarks,
         _roomsBreakdown = roomsBreakdown;
 
   final String slug;
+
+  // Параметры, применимые только к отдельным типам (см. kind_fields.dart).
+  final double? landArea;
+  final String plotPurpose;
+  final String commercialPurpose;
+  final bool hasSeparateEntrance;
+  final String buildingLine;
+  final double? ceilingHeight;
+
   String get coverPhoto => photo;
   String get videoUrl => videos.isNotEmpty ? videos.first.url : '';
 
@@ -336,6 +351,12 @@ class Listing {
       series: json['series_code'] as String?,
       belowMarket: json['below_market'] as bool? ?? false,
       redBook: json['red_book'] as bool? ?? false,
+      landArea: parseDoubleOrNull(json['land_area']),
+      plotPurpose: json['plot_purpose'] as String? ?? '',
+      commercialPurpose: json['commercial_purpose'] as String? ?? '',
+      hasSeparateEntrance: json['has_separate_entrance'] as bool? ?? false,
+      buildingLine: json['building_line'] as String? ?? '',
+      ceilingHeight: parseDoubleOrNull(json['ceiling_height']),
       description: json['description'] as String? ?? kFillerDescription,
       address: json['address'] as String? ?? 'Бишкек, Октябрьский район,\nул.Бакаева 178/4',
       viewsCount: parseInt(json['views_count']),

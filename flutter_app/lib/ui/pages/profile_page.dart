@@ -10,6 +10,7 @@ import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
+import '../widgets/profile_identity.dart';
 import 'pro_profile_page.dart';
 
 /// Строки «Настроек» — в кадре они одинаковой высоты и идут через 44 pt.
@@ -36,6 +37,15 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Имя, телефон и аватар в шапке — всегда свежие с сервера.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppScope.read(context).fetchProfile();
+    });
+  }
+
   Future<void> _confirmLogOut(BuildContext context) async {
     final state = AppScope.read(context);
     final navigator = Navigator.of(context);
@@ -79,10 +89,78 @@ class _ProfilePageState extends State<ProfilePage> {
     if (state.pro || state.isPro) {
       return const ProProfilePage();
     }
-    return FigStage(
+    return RefreshIndicator(
+      onRefresh: () async {
+        await AppScope.read(context).fetchProfile();
+      },
+      color: const Color(0xffea812e),
+      child: FigStage(
       frame: frame('15'),
       bottomBar: const AppTabBar(active: 4),
       overlays: [
+        // ——— Настоящая шапка профиля вместо статичной из макета ———
+        Positioned(
+          left: 24.0,
+          top: 85.0,
+          child: ProfileAvatar(
+            url: state.userAvatarUrl,
+            initials: state.userInitials,
+            size: 64.0,
+            radius: 12.0,
+          ),
+        ),
+
+        // Маска поверх имени, телефона и плашки роли из кадра.
+        const Positioned(
+          left: 94.0,
+          top: 96.0,
+          width: 256.0,
+          height: 44.0,
+          child: ColoredBox(color: Color(0xffffffff)),
+        ),
+
+        Positioned(
+          left: 96.0,
+          top: 100.0,
+          width: 180.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                (state.userName ?? '').isNotEmpty ? state.userName! : 'Без имени',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 17.0,
+                  fontWeight: FontWeight.w600,
+                  height: 1.15,
+                  letterSpacing: -0.17,
+                  color: Color(0xff000000),
+                ),
+              ),
+              const SizedBox(height: 3.0),
+              Text(
+                state.userPhone ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w500,
+                  height: 1.15,
+                  color: Color(0xff7d7d7d),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        Positioned(
+          left: 282.0,
+          top: 104.0,
+          child: RoleBadge(label: state.roleLabel),
+        ),
+
         FigZone(
           _seeAll.left, _seeAll.top, _seeAll.width, _seeAll.height,
           label: 'Посмотреть все уведомления',
@@ -184,6 +262,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ],
+    ),
     );
   }
 }
