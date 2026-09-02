@@ -374,6 +374,139 @@ class ListingApiClient {
     }
   }
 
+  /// Загрузка/удаление аватара пользователя (PATCH /api/v1/users/me/).
+  Future<Map<String, dynamic>> uploadAvatar({
+    List<int>? bytes,
+    String? filename,
+    String? filePath,
+    bool delete = false,
+  }) async {
+    if (delete) {
+      return updateMe({'delete_avatar': true});
+    }
+    final uri = Uri.parse('$baseUrl/api/v1/users/me/');
+    try {
+      final request = http.MultipartRequest('PATCH', uri)
+        ..headers['Accept'] = 'application/json';
+
+      if (!kIsWeb && filePath != null && filePath.isNotEmpty) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'avatar',
+          filePath,
+          filename: filename ?? 'avatar.jpg',
+        ));
+      } else if (bytes != null && bytes.isNotEmpty) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'avatar',
+          bytes,
+          filename: filename ?? 'avatar.jpg',
+        ));
+      } else {
+        throw ArgumentError('Не указаны данные для загрузки аватара');
+      }
+
+      final streamedResponse = await _client.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
+      return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  /// Загрузка/удаление фона/обложки профиля (PATCH /api/v1/users/me/).
+  Future<Map<String, dynamic>> uploadProfileCover({
+    List<int>? bytes,
+    String? filename,
+    String? filePath,
+    bool delete = false,
+  }) async {
+    if (delete) {
+      return updateMe({'delete_cover': true});
+    }
+    final uri = Uri.parse('$baseUrl/api/v1/users/me/');
+    try {
+      final request = http.MultipartRequest('PATCH', uri)
+        ..headers['Accept'] = 'application/json';
+
+      if (!kIsWeb && filePath != null && filePath.isNotEmpty) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'profile_cover',
+          filePath,
+          filename: filename ?? 'cover.jpg',
+        ));
+      } else if (bytes != null && bytes.isNotEmpty) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'profile_cover',
+          bytes,
+          filename: filename ?? 'cover.jpg',
+        ));
+      } else {
+        throw ArgumentError('Не указаны данные для загрузки обложки');
+      }
+
+      final streamedResponse = await _client.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
+      return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  /// Смена пароля авторизованным пользователем (POST /api/v1/auth/password/change/).
+  Future<Map<String, dynamic>> changePassword({
+    String? currentPassword,
+    required String newPassword,
+    required String confirmation,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/auth/password/change/');
+    final body = <String, dynamic>{
+      'new_password': newPassword,
+      'new_password_confirmation': confirmation,
+    };
+    if (currentPassword != null && currentPassword.isNotEmpty) {
+      body['current_password'] = currentPassword;
+    }
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode(body),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  /// Приводит относительный URL медиафайла к абсолютному с учётом baseUrl.
+  String absoluteUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    final base = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final cleanPath = path.startsWith('/') ? path : '/$path';
+    return '$base$cleanPath';
+  }
+
+  /// Мягкое удаление профиля (DELETE /api/v1/users/me/).
+  Future<void> deleteMe() async {
+    final uri = Uri.parse('$baseUrl/api/v1/users/me/');
+    try {
+      final response = await _client.delete(
+        uri,
+        headers: {'Accept': 'application/json'},
+      );
+      if (response.statusCode != 204 && response.statusCode != 200) {
+        _processResponse(response);
+      }
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
     final uri = Uri.parse('$baseUrl/api/v1/auth/refresh/');
     try {
@@ -487,14 +620,15 @@ class ListingApiClient {
 
   Future<Map<String, dynamic>> updateListing(String slug, Map<String, dynamic> data) => updateDraft(slug, data);
 
-  Future<void> publishListing(String slug) async {
+  Future<Map<String, dynamic>> publishListing(String slug) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$slug/publish/');
     try {
       final response = await _client.post(
         uri,
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
       );
-      _processResponse(response);
+      final data = _processResponse(response);
+      return data;
     } catch (e) {
       if (e is ApiException || e is NetworkException) rethrow;
       throw NetworkException(e.toString());
@@ -843,7 +977,11 @@ class ListingApiClient {
     }
   }
 
-  Future<void> requestOtp(String phone, {String? purpose}) async {
+  /// Запрашивает код. В ответе — `expires_in`, `resend_after`, `is_new_user`.
+  ///
+  /// `resend_after` нужен экрану кода: собственный отсчёт клиента расходился
+  /// с серверными лимитами и показывал второе, неверное время.
+  Future<Map<String, dynamic>> requestOtp(String phone, {String? purpose}) async {
     final uri = Uri.parse('$baseUrl/api/v1/auth/otp/request/');
     try {
       final response = await _client.post(
@@ -857,7 +995,7 @@ class ListingApiClient {
           if (purpose != null) 'purpose': purpose,
         }),
       );
-      _processResponse(response);
+      return _processResponse(response);
     } on SocketException {
       throw NetworkException('Отсутствует подключение к сети');
     } catch (e) {

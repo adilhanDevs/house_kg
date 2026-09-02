@@ -456,8 +456,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // Сообщение сервера, а не «Instance of ApiException».
-    expect(find.textContaining('Слишком часто'), findsOneWidget);
+    // Одно человеческое время из retry_after сервера, а не «60 секунд»
+    // и не «Instance of ApiException».
+    expect(find.textContaining('Повторите через 1 минуту'), findsOneWidget);
 
     // Экран остался на месте, поля живы, кнопка снова нажимается.
     expect(find.byKey(kRegisterPhoneFieldKey), findsOneWidget);

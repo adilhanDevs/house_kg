@@ -13,6 +13,22 @@ class ApiException implements Exception {
   /// открыть пополнение на недостающую сумму, ничего не пересчитывая.
   final Map<String, dynamic> details;
 
+  /// Сколько секунд ждать до следующей попытки — при 429.
+  ///
+  /// Сервер отдаёт ОДНО значение: DRF берёт максимум по всем сработавшим
+  /// ограничениям (см. APIView.check_throttles), поэтому придумывать на
+  /// клиенте собственный отсчёт поверх него нельзя — получатся два разных
+  /// времени на один и тот же запрет.
+  int? get retryAfter {
+    final value = details['retry_after'];
+    if (value is num) return value.ceil();
+    final parsed = double.tryParse(value?.toString() ?? '');
+    return parsed?.ceil();
+  }
+
+  /// Запрос отклонён по частоте.
+  bool get isThrottled => statusCode == 429 || code == 'throttled';
+
   /// Не хватило кирпичей на балансе.
   bool get isInsufficientFunds =>
       statusCode == 402 || code == 'insufficient_funds';

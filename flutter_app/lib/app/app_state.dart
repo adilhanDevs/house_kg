@@ -90,7 +90,9 @@ class AppState extends ChangeNotifier {
   
   String? userName;
   String? userPhone;
+  String? userWhatsappPhone;
   String? userAvatarUrl;
+  String? userProfileCoverUrl;
   /// `owner` | `realtor` | `agency` — из профиля (`seller_kind`).
   String? sellerKind;
   int walletBalance = 0;
@@ -157,9 +159,6 @@ class AppState extends ChangeNotifier {
       }
       _accessToken = prefs.getString('access_token');
       _refreshToken = prefs.getString('refresh_token');
-      // Раньше здесь стоял автоматический вход демо-номером с кодом 0000 —
-      // из-за него приложение выглядело работающим без экрана входа. Токена
-      // нет — значит пользователь не вошёл, и решает это экран приветствия.
       if (_accessToken != null) {
         apiClient.setToken(_accessToken);
         await fetchProfile();
@@ -277,11 +276,16 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> fetchProfile() async {
+    if (!isAuthenticated) return;
     try {
       final profile = await apiClient.getMe();
       userName = profile['name'] as String?;
       userPhone = profile['phone'] as String?;
-      userAvatarUrl = profile['avatar_url'] as String?;
+      userWhatsappPhone = profile['whatsapp_phone'] as String?;
+      userAvatarUrl = apiClient.absoluteUrl(profile['avatar_url'] as String?);
+      userProfileCoverUrl = apiClient.absoluteUrl(
+        (profile['profile_cover_url'] ?? profile['cover_url']) as String?,
+      );
       sellerKind = profile['seller_kind'] as String?;
       if (profile['wallet_balance'] is Map) {
         walletBalance = profile['wallet_balance']['balance'] as int? ?? 0;
@@ -316,7 +320,11 @@ class AppState extends ChangeNotifier {
           final profile = await apiClient.getMe();
           userName = profile['name'] as String?;
           userPhone = profile['phone'] as String?;
-          userAvatarUrl = profile['avatar_url'] as String?;
+          userWhatsappPhone = profile['whatsapp_phone'] as String?;
+          userAvatarUrl = apiClient.absoluteUrl(profile['avatar_url'] as String?);
+          userProfileCoverUrl = apiClient.absoluteUrl(
+            (profile['profile_cover_url'] ?? profile['cover_url']) as String?,
+          );
           sellerKind = profile['seller_kind'] as String?;
           isPro = profile['is_pro'] as bool? ?? false;
           _pro = isPro || (profile['has_seller_profile'] as bool? ?? false);
@@ -360,6 +368,62 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Сохраняет номер WhatsApp пользователя на сервере (PATCH /users/me/).
+  Future<void> updateWhatsappPhone(String? phone) async {
+    final response = await apiClient.updateMe({'whatsapp_phone': phone ?? ''});
+    userWhatsappPhone = response['whatsapp_phone'] as String?;
+    notifyListeners();
+  }
+
+  /// Обновляет или удаляет аватар пользователя (PATCH /users/me/).
+  Future<void> updateAvatar({
+    List<int>? bytes,
+    String? filename,
+    String? filePath,
+    bool delete = false,
+  }) async {
+    final response = await apiClient.uploadAvatar(
+      bytes: bytes,
+      filename: filename,
+      filePath: filePath,
+      delete: delete,
+    );
+    userAvatarUrl = apiClient.absoluteUrl(response['avatar_url'] as String?);
+    notifyListeners();
+  }
+
+  /// Обновляет или удаляет обложку профиля (PATCH /users/me/).
+  Future<void> updateProfileCover({
+    List<int>? bytes,
+    String? filename,
+    String? filePath,
+    bool delete = false,
+  }) async {
+    final response = await apiClient.uploadProfileCover(
+      bytes: bytes,
+      filename: filename,
+      filePath: filePath,
+      delete: delete,
+    );
+    userProfileCoverUrl = apiClient.absoluteUrl(
+      (response['profile_cover_url'] ?? response['cover_url']) as String?,
+    );
+    notifyListeners();
+  }
+
+  /// Смена пароля текущим авторизованным пользователем.
+  Future<void> changePassword({
+    String? currentPassword,
+    required String newPassword,
+    required String confirmation,
+  }) async {
+    await apiClient.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+      confirmation: confirmation,
+    );
+  }
+
   Future<void> fetchWalletBalance() async {
     try {
       final response = await apiClient.getWalletBalance();
@@ -383,22 +447,36 @@ class AppState extends ChangeNotifier {
     _refreshToken = null;
     userName = null;
     userPhone = null;
+    userWhatsappPhone = null;
     userAvatarUrl = null;
+    userProfileCoverUrl = null;
     sellerKind = null;
     walletBalance = 0;
+    _bricks = 16700;
     isPro = false;
     _pro = false;
+    currentSubscription = null;
+    currentTariffCode = 'owner';
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('cached_is_pro');
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
+    await prefs.remove('current_tariff_code');
+    await prefs.remove('saved_phone');
     
     _favourites.clear();
     _viewed.clear();
     _query = '';
+    resetFilter();
 
     apiClient.setToken(null);
     notifyListeners();
+  }
+
+  /// Удаление аккаунта пользователя (DELETE /api/v1/users/me/).
+  Future<void> deleteAccount() async {
+    await apiClient.deleteMe();
+    await logout();
   }
 
   /// Версия соглашения об обработке ПДн, которую сейчас требует сервер.
@@ -425,16 +503,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendOtp(String phone, {String? purpose}) async {
-    await apiClient.requestOtp(phone, purpose: purpose);
+  Future<Map<String, dynamic>> sendOtp(String phone, {String? purpose}) async {
+    return apiClient.requestOtp(phone, purpose: purpose);
   }
 
   /// Первый шаг регистрации: высылает код на номер.
   ///
   /// Аккаунт здесь не создаётся и пароль никуда не сохраняется — до ввода
   /// кода мы не знаем, принадлежит ли номер тому, кто его вписал.
-  Future<void> startRegistration(String phone) async {
-    await apiClient.requestOtp(phone, purpose: 'register');
+  Future<Map<String, dynamic>> startRegistration(String phone) async {
+    return apiClient.requestOtp(phone, purpose: 'register');
   }
 
   /// Второй шаг: код подтверждён — заводим аккаунт с именем и паролем.
@@ -466,8 +544,8 @@ class AppState extends ChangeNotifier {
   ///
   /// Ответ одинаков и для зарегистрированного номера, и для чужого: по нему
   /// нельзя узнать, есть ли у человека аккаунт.
-  Future<void> startPasswordReset(String phone) async {
-    await apiClient.requestOtp(phone, purpose: 'password_reset');
+  Future<Map<String, dynamic>> startPasswordReset(String phone) async {
+    return apiClient.requestOtp(phone, purpose: 'password_reset');
   }
 
   /// Второй шаг: код принят — ставим новый пароль и входим им же.
@@ -1030,19 +1108,7 @@ class AppState extends ChangeNotifier {
   /// поиск с фильтром и режим исполнителя. Кошелёк и черновик привязаны к
   /// аккаунту, а не к устройству, поэтому их тоже сбрасывать нечестно: их
   /// подтянет следующий вход.
-  void logOut() async {
-    _favourites.clear();
-    _viewed.clear();
-    _query = '';
-    _pro = false;
-    _accessToken = null;
-    _refreshToken = null;
-    apiClient.setToken(null);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    await prefs.remove('refresh_token');
-    resetFilter();
-  }
+  Future<void> logOut() => logout();
 
   // ------------------------------------------------- черновик объявления
   final Set<PropertyKind> draftKinds = {PropertyKind.newBuilding};
@@ -1215,6 +1281,8 @@ class AppState extends ChangeNotifier {
           final kind = m['kind'] as String?;
           final fileUrl = m['file'] as String? ?? m['url'] as String? ?? '';
           final mediaId = m['id'] as int?;
+          final durationSec = m['duration_seconds'] as int? ??
+              (m['duration'] is num ? (m['duration'] as num).toInt() : null);
           if (kind == 'video') {
             draftVideoList.add(AdMedia.network(
               fileUrl,
@@ -1222,6 +1290,7 @@ class AppState extends ChangeNotifier {
               video: true,
               title: m['title'] as String?,
               description: m['description'] as String?,
+              durationSeconds: durationSec,
             ));
           } else {
             draftGallery.add(AdMedia.network(

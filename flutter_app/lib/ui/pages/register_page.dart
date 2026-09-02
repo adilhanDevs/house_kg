@@ -22,6 +22,7 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../data/api_exceptions.dart';
 import '../../data/code_flow.dart';
+import '../../data/wait_time.dart';
 import '../../fig/fig.dart';
 import '../fig_controls.dart';
 import '../widgets/consent_row.dart';
@@ -91,19 +92,36 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   String _errorText(Object error) {
-    if (error is ApiException) return error.message;
+    if (error is ApiException) {
+      // У запроса кода несколько ограничений сразу; сервер уже свёл их к
+      // одному retry_after, его и показываем — человеческим текстом, а не
+      // «Повторите через 3062 секунды».
+      final wait = error.retryAfter;
+      if (error.isThrottled && wait != null) return waitMessage(wait);
+      return error.message;
+    }
     if (error is NetworkException) return error.message;
     return error.toString();
   }
 
   void _complain(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Предыдущее сообщение убираем: при нескольких отказах подряд баннеры
+    // выстраивались в очередь и человек читал устаревшее время.
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: _danger,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 5),
       ),
     );
+  }
+
+  /// Сколько секунд до следующего кода — по ответу сервера.
+  int _resendSeconds(Map<String, dynamic> response) {
+    final value = response['resend_after'];
+    return value is num ? value.toInt() : 60;
   }
 
   Future<void> _onNext() async {
@@ -130,7 +148,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isSending = true);
     try {
-      await state.startRegistration(phone);
+      final otp = await state.startRegistration(phone);
       if (!mounted) return;
       Navigator.of(context).pushNamed(
         Routes.code,
@@ -140,6 +158,7 @@ class _RegisterPageState extends State<RegisterPage> {
           name: name,
           password: password,
           termsVersion: version,
+          resendAfter: _resendSeconds(otp),
         ),
       );
     } catch (e) {
@@ -162,11 +181,9 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Link(
-                label: 'Вернуться назад',
-                onTap: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: 24.0),
+              // Полоса шага — как в макете: оранжевый отрезок на светлом фоне.
+              const _StepBar(progress: 0.18),
+              const SizedBox(height: 40.0),
               Text(
                 'Добро пожаловать!',
                 style: figStyle(
@@ -189,7 +206,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   color: _muted,
                 ),
               ),
-              const SizedBox(height: 24.0),
+              const SizedBox(height: 28.0),
               _Field(
                 fieldKey: kRegisterPhoneFieldKey,
                 controller: _phoneController,
@@ -210,7 +227,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 hint: 'Пароль',
                 keyboardType: TextInputType.visiblePassword,
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 12.0),
               ConsentRow(
                 key: kRegisterConsentKey,
                 value: _accepted,
@@ -218,14 +235,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 error: _termsError,
                 onChanged: (value) => setState(() => _accepted = value),
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 12.0),
               _PrimaryButton(
                 buttonKey: kRegisterSubmitKey,
                 label: 'Далее',
                 busy: _isSending,
                 onTap: _onNext,
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 20.0),
               Center(
                 child: _Link(
                   label: 'У меня уже есть аккаунт',
@@ -234,6 +251,29 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Полоса прогресса шага из макета: 7 в высоту, скруглённая, оранжевый отрезок.
+class _StepBar extends StatelessWidget {
+  const _StepBar({required this.progress});
+
+  /// Доля заполнения от 0 до 1.
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4.0),
+      child: SizedBox(
+        height: 7.0,
+        child: LinearProgressIndicator(
+          value: progress.clamp(0.0, 1.0),
+          backgroundColor: const Color(0xffe8e8f0),
+          valueColor: const AlwaysStoppedAnimation<Color>(_accent),
         ),
       ),
     );

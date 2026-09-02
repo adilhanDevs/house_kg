@@ -43,6 +43,7 @@ import '../ui/pages/password_reset_page.dart';
 import '../ui/pages/register_page.dart';
 import '../ui/pages/welcome_page.dart';
 import '../data/ad_media.dart';
+import '../data/api_client.dart';
 import '../data/listings.dart';
 import 'app_state.dart';
 import 'routes.dart';
@@ -53,6 +54,7 @@ class HouseKgzAppScope extends StatefulWidget {
     super.key,
     this.initialRoute = Routes.splash,
     this.media = const DeviceMedia(),
+    this.apiClient,
   });
 
   final String initialRoute;
@@ -61,12 +63,17 @@ class HouseKgzAppScope extends StatefulWidget {
   /// устройства; в тестах на это место встаёт заглушка.
   final MediaSource media;
 
+  final ListingApiClient? apiClient;
+
   @override
   State<HouseKgzAppScope> createState() => _HouseKgzAppScopeState();
 }
 
 class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
-  late final AppState _state = AppState(media: widget.media);
+  late final AppState _state = AppState(
+    media: widget.media,
+    apiClient: widget.apiClient,
+  );
 
   @override
   void dispose() {
@@ -129,9 +136,11 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
         Routes.code => Builder(
               builder: (context) {
                 final args = ModalRoute.of(context)?.settings.arguments;
+                final flow = args is CodeFlow ? args : null;
                 return CodePage(
                   phone: args is String ? args : null,
-                  flow: args is CodeFlow ? args : null,
+                  flow: flow,
+                  resendAfter: flow?.resendAfter ?? 60,
                 );
               },
             ),
@@ -226,10 +235,12 @@ class FramePage extends StatelessWidget {
     }
     if (route == Routes.proCode) {
       final args = ModalRoute.of(context)?.settings.arguments;
+      final flow = args is CodeFlow ? args : null;
       return CodePage(
         nextRoute: Routes.proPhoto1,
         phone: args is String ? args : null,
-        flow: args is CodeFlow ? args : null,
+        flow: flow,
+        resendAfter: flow?.resendAfter ?? 60,
       );
     }
     if (route == Routes.proPhoto1 || route == Routes.proPhoto2) {

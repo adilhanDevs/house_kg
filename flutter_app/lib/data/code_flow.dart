@@ -34,6 +34,7 @@ class CodeFlow {
     this.name = '',
     this.password = '',
     this.termsVersion = '',
+    this.resendAfter = 60,
   });
 
   final CodeFlowKind kind;
@@ -47,6 +48,19 @@ class CodeFlow {
 
   /// Версия принятого соглашения — только у регистрации.
   final String termsVersion;
+
+  /// Через сколько секунд сервер разрешит следующий код (`resend_after`).
+  /// Своего числа клиент не придумывает.
+  final int resendAfter;
+
+  CodeFlow withResendAfter(int seconds) => CodeFlow(
+        kind: kind,
+        phone: phone,
+        name: name,
+        password: password,
+        termsVersion: termsVersion,
+        resendAfter: seconds,
+      );
 
   String get otpPurpose => kind.otpPurpose;
 }

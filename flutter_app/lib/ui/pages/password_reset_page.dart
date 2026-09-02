@@ -12,6 +12,7 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../data/api_exceptions.dart';
 import '../../data/code_flow.dart';
+import '../../data/wait_time.dart';
 import '../../fig/fig.dart';
 import '../fig_controls.dart';
 
@@ -41,19 +42,36 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
   }
 
   String _errorText(Object error) {
-    if (error is ApiException) return error.message;
+    if (error is ApiException) {
+      // У запроса кода несколько ограничений сразу; сервер уже свёл их к
+      // одному retry_after, его и показываем — человеческим текстом, а не
+      // «Повторите через 3062 секунды».
+      final wait = error.retryAfter;
+      if (error.isThrottled && wait != null) return waitMessage(wait);
+      return error.message;
+    }
     if (error is NetworkException) return error.message;
     return error.toString();
   }
 
   void _complain(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Предыдущее сообщение убираем: при нескольких отказах подряд баннеры
+    // выстраивались в очередь и человек читал устаревшее время.
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: _danger,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 5),
       ),
     );
+  }
+
+  /// Сколько секунд до следующего кода — по ответу сервера.
+  int _resendSeconds(Map<String, dynamic> response) {
+    final value = response['resend_after'];
+    return value is num ? value.toInt() : 60;
   }
 
   Future<void> _onNext() async {
@@ -70,7 +88,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
     setState(() => _isSending = true);
     final state = AppScope.read(context);
     try {
-      await state.startPasswordReset(phone);
+      final otp = await state.startPasswordReset(phone);
       if (!mounted) return;
       // Новый пароль едет с формой и применяется только после кода: до него
       // мы не знаем, владеет ли человек этим номером.
@@ -80,6 +98,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
           kind: CodeFlowKind.passwordReset,
           phone: phone,
           password: password,
+          resendAfter: _resendSeconds(otp),
         ),
       );
     } catch (e) {
