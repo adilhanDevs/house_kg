@@ -35,6 +35,8 @@ Thumbs.db
 !flutter_app/assets/login/**
 *.mp4
 Safa-app-backend/
+# Чужой проект, лежит рядом только для сверки — в House не попадает.
+reference app/
 backend/sample_videos/
 
 # Isolated feature workspaces
