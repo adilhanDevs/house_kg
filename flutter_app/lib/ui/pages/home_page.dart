@@ -12,6 +12,7 @@ import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
+import '../widgets/notification_badge.dart';
 import '../listing_grid.dart';
 import '../search_field.dart';
 import '../widgets/safe_image.dart';
@@ -143,6 +144,13 @@ class _HomePageState extends State<HomePage> {
           _bell.left, _bell.top, _bell.width, _bell.height,
           label: 'Уведомления',
           onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
+        ),
+        // Счётчик непрочитанных — в правом верхнем углу колокольчика.
+        // Нажатия не перехватывает: под ним зона перехода к уведомлениям.
+        Positioned(
+          left: _bell.right - 12.0,
+          top: _bell.top - 4.0,
+          child: const NotificationBadge(),
         ),
         Positioned(
           left: _search.left,
