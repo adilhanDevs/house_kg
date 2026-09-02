@@ -1,4 +1,6 @@
 // «Добро пожаловать!» — экран входа по номеру и паролю (Frame 05).
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -53,7 +55,9 @@ class _WelcomePageState extends State<WelcomePage> {
     try {
       await state.loginWithPassword(phone, password);
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(Routes.home, (route) => false);
       }
     } catch (e) {
       if (mounted) _complain(_errorText(e));
@@ -97,107 +101,157 @@ class _WelcomePageState extends State<WelcomePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        bottom: true,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(25.0, 12.0, 25.0, 0.0),
-                child: _StepBar(progress: 0.16),
-              ),
-              const SizedBox(height: 12.0),
-              // Верхняя иллюстрация чертежа (оси F..B)
-              const AuthTopIllustration(),
-              // Форма входа
-              Padding(
-                padding: const EdgeInsets.fromLTRB(25.0, 16.0, 25.0, 24.0),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableHeight = constraints.maxHeight;
+            final availableWidth = constraints.maxWidth;
+
+            // На reference-height основную добавочную высоту получает иллюстрация.
+            // Ограничение по ширине не даёт ей чрезмерно кадрироваться на узких экранах.
+            final heightDrivenImage = availableHeight * 0.9 - 365.0;
+            final widthDrivenImage = availableWidth * 1.24;
+            final illustrationHeight = math
+                .min(heightDrivenImage, widthDrivenImage)
+                .clamp(170.0, 500.0)
+                .toDouble();
+
+            // Все интервалы меняются непрерывно; ни один из них не поглощает
+            // свободную высоту отдельно от остальной композиции.
+            final heightFactor = ((availableHeight - 500.0) / 344.0).clamp(
+              0.0,
+              1.0,
+            );
+            double responsiveGap(double compact, double reference) {
+              return compact + (reference - compact) * heightFactor;
+            }
+
+            final topBarPadding = responsiveGap(8.0, 22.0);
+            final stepBarToImage = responsiveGap(6.0, 13.0);
+            final imageToTitle = responsiveGap(8.0, 12.0);
+            final titleToSubtitle = responsiveGap(4.0, 6.0);
+            final subtitleToFields = responsiveGap(10.0, 16.0);
+            final fieldsGap = responsiveGap(8.0, 10.0);
+            final fieldsToButton = responsiveGap(10.0, 14.0);
+            final buttonToRegister = responsiveGap(12.0, 20.0);
+            final registerToForgot = responsiveGap(4.0, 8.0);
+            final forgotToExecutor = responsiveGap(16.0, 24.0);
+            final bottomPadding = responsiveGap(10.0, 16.0);
+
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: availableHeight,
+                  maxWidth: availableWidth,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Добро пожаловать!',
-                      style: figStyle(
-                        fontSize: 22.0,
-                        family: FigFont.display,
-                        weight: 700,
-                        height: 1.1,
-                        color: const Color(0xff000000),
+                    // 1. Верхний прогресс-бар
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        25.0,
+                        topBarPadding,
+                        25.0,
+                        0.0,
                       ),
+                      child: const _StepBar(progress: 0.16),
                     ),
-                    const SizedBox(height: 6.0),
-                    Text(
-                      'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.',
-                      style: figStyle(
-                        fontSize: 15.0,
-                        family: FigFont.display,
-                        weight: 400,
-                        height: 1.35,
-                        color: _muted,
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    _Field(
-                      controller: _phoneController,
-                      focusNode: _phoneFocusNode,
-                      hint: l10n.phone,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 10.0),
-                    _Field(
-                      controller: _passwordController,
-                      focusNode: _passwordFocusNode,
-                      hint: l10n.password,
-                      keyboardType: TextInputType.visiblePassword,
-                    ),
-                    const SizedBox(height: 14.0),
-                    _PrimaryButton(
-                      label: l10n.login,
-                      busy: _isLoading,
-                      onTap: _onLogin,
-                    ),
-                    const SizedBox(height: 18.0),
-                    Center(
-                      child: _Link(
-                        label: l10n.register,
-                        color: _accent,
-                        fontSize: 15.0,
-                        fontWeight: FontWeight.w500,
-                        onTap: _onRegister,
-                      ),
-                    ),
-                    const SizedBox(height: 14.0),
-                    Center(
-                      child: _Link(
-                        label: 'Режим исполнителя',
-                        color: const Color(0xff7d7d7d),
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w500,
-                        onTap: _onProMode,
-                      ),
-                    ),
-                    const SizedBox(height: 6.0),
-                    Center(
-                      child: Opacity(
-                        opacity: 0.0,
-                        child: _Link(
-                          label: l10n.forgotPassword,
-                          color: _accent,
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w500,
-                          onTap: _onForgotPassword,
-                        ),
+                    SizedBox(height: stepBarToImage),
+
+                    // 2. Единая normal-flow композиция от иллюстрации до нижнего действия.
+                    AuthTopIllustration(height: illustrationHeight),
+                    SizedBox(height: imageToTitle),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Добро пожаловать!',
+                            style: figStyle(
+                              fontSize: 22.0,
+                              family: FigFont.display,
+                              weight: 700,
+                              height: 1.1,
+                              color: const Color(0xff000000),
+                            ),
+                          ),
+                          SizedBox(height: titleToSubtitle),
+                          Text(
+                            'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.',
+                            style: figStyle(
+                              fontSize: 15.0,
+                              family: FigFont.display,
+                              weight: 400,
+                              height: 1.35,
+                              color: _muted,
+                            ),
+                          ),
+                          SizedBox(height: subtitleToFields),
+                          _Field(
+                            controller: _phoneController,
+                            focusNode: _phoneFocusNode,
+                            hint: l10n.phone,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          SizedBox(height: fieldsGap),
+                          _Field(
+                            controller: _passwordController,
+                            focusNode: _passwordFocusNode,
+                            hint: l10n.password,
+                            keyboardType: TextInputType.visiblePassword,
+                          ),
+                          SizedBox(height: fieldsToButton),
+                          _PrimaryButton(
+                            label: l10n.login,
+                            busy: _isLoading,
+                            onTap: _onLogin,
+                          ),
+                          SizedBox(height: buttonToRegister),
+                          Center(
+                            child: _Link(
+                              label: l10n.register,
+                              color: _accent,
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.w500,
+                              onTap: _onRegister,
+                            ),
+                          ),
+                          SizedBox(height: registerToForgot),
+                          Center(
+                            child: _Link(
+                              label: l10n.forgotPassword,
+                              color: const Color(0xff8e8e93),
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w400,
+                              onTap: _onForgotPassword,
+                            ),
+                          ),
+                          SizedBox(height: forgotToExecutor),
+                          Center(
+                            child: _Link(
+                              label: 'Режим исполнителя',
+                              color: const Color(0xff7d7d7d),
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w500,
+                              onTap: _onProMode,
+                            ),
+                          ),
+                          SizedBox(height: bottomPadding),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -316,8 +370,19 @@ class _SearchIcon extends StatelessWidget {
         vbWidth: 16.0,
         vbHeight: 16.0,
         shapes: [
-          FigShape(cx: 6.6, cy: 6.6, r: 5.1, stroke: _fieldInk, strokeWidth: 1.7),
-          FigShape(d: 'M 10.4 10.4 L 14.4 14.4', stroke: _fieldInk, strokeWidth: 1.7, roundCap: true),
+          FigShape(
+            cx: 6.6,
+            cy: 6.6,
+            r: 5.1,
+            stroke: _fieldInk,
+            strokeWidth: 1.7,
+          ),
+          FigShape(
+            d: 'M 10.4 10.4 L 14.4 14.4',
+            stroke: _fieldInk,
+            strokeWidth: 1.7,
+            roundCap: true,
+          ),
         ],
       ),
     );
