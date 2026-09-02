@@ -1229,7 +1229,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationsEmpty.
   ///
   /// In ru, this message translates to:
-  /// **'Нет уведомлений'**
+  /// **'Уведомлений пока нет'**
   String get notificationsEmpty;
 
   /// No description provided for @notificationsMarkAllRead.
@@ -1237,6 +1237,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Отметить все как прочитанные'**
   String get notificationsMarkAllRead;
+
+  /// No description provided for @priceDecreased.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цена снизилась'**
+  String get priceDecreased;
 
   /// No description provided for @messagesTitle.
   ///
@@ -1987,6 +1993,60 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Показать {count} вариантов'**
   String filterShowVariants(int count);
+
+  /// No description provided for @contactSeller.
+  ///
+  /// In ru, this message translates to:
+  /// **'Связаться с продавцом'**
+  String get contactSeller;
+
+  /// No description provided for @contactOwner.
+  ///
+  /// In ru, this message translates to:
+  /// **'Связаться с собственником'**
+  String get contactOwner;
+
+  /// No description provided for @contactRealtor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Связаться с риелтором'**
+  String get contactRealtor;
+
+  /// No description provided for @contactAgency.
+  ///
+  /// In ru, this message translates to:
+  /// **'Связаться с агентством'**
+  String get contactAgency;
+
+  /// No description provided for @sellerObjectsCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} объектов недвижимости'**
+  String sellerObjectsCount(int count);
+
+  /// No description provided for @sellerSoldCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продано: {count} объектов'**
+  String sellerSoldCount(int count);
+
+  /// No description provided for @sellerNoListings.
+  ///
+  /// In ru, this message translates to:
+  /// **'У продавца пока нет объявлений в этой категории'**
+  String get sellerNoListings;
+
+  /// No description provided for @sellerThisIsYou.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это ваш профиль'**
+  String get sellerThisIsYou;
+
+  /// No description provided for @sellerMustLoginToWrite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войдите, чтобы написать продавцу'**
+  String get sellerMustLoginToWrite;
 }
 
 class _AppLocalizationsDelegate

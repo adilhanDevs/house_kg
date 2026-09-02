@@ -66,6 +66,7 @@ def leave_review(client, seller, rating: int = 5, text: str = "Всё отлич
 def test_seller_card_is_public(api_client, seller):
     ListingFactory(owner=seller, status=ListingStatus.ACTIVE)
     ListingFactory(owner=seller, status=ListingStatus.ARCHIVED)
+    ListingFactory(owner=seller, status=ListingStatus.SOLD)
 
     response = api_client.get(reverse("users:seller-detail", args=[seller.pk]))
 
@@ -75,7 +76,9 @@ def test_seller_card_is_public(api_client, seller):
     assert body["name"] == "Айбек"
     assert body["company_name"] == "Агентство «Бишкек-Недвижимость»"
     assert body["experience_years"] == 11
-    assert body["active_listings_count"] == 1  # архивное не считается
+    assert body["active_listings_count"] == 1  # архивное и проданное не считаются в активных
+    assert body["sold_listings_count"] == 1
+    assert body["cover_url"] is None
     assert body["rating"] == "0.00"
     assert body["reviews_count"] == 0
     assert body["is_verified"] is False
@@ -110,6 +113,7 @@ def test_seller_listings_are_filtered_like_catalog(api_client, seller):
 
     assert response.status_code == 200
     assert [item["slug"] for item in response.data["results"]] == [active.slug]
+    assert response.data["results"][0]["owner_id"] == seller.pk
 
 
 def test_seller_listings_accept_catalog_filters(api_client, seller):
@@ -364,12 +368,12 @@ def test_moderator_rejects_review_from_the_queue(seller):
 
 
 def test_queue_can_be_filtered_by_target(seller):
-    from apps.catalog.services import publish_listing
+    from apps.catalog.moderation.services import enqueue_moderation
     from tests.factories import ListingMediaFactory
 
-    listing = ListingFactory(status=ListingStatus.DRAFT)
+    listing = ListingFactory(status=ListingStatus.PENDING)
     ListingMediaFactory(listing=listing, is_cover=True)
-    publish_listing(listing)
+    enqueue_moderation(listing)
     leave_review(client_for(UserFactory()), seller)
 
     client = client_for(UserFactory(is_staff=True))
@@ -482,14 +486,18 @@ def test_anonymous_cannot_reveal_contacts(api_client, seller):
     assert api_client.post(contact_url(listing)).status_code == 401
 
 
-def test_thirty_first_reveal_in_an_hour_is_throttled(seller, settings):
+def test_thirty_first_reveal_in_an_hour_is_throttled(seller, settings, monkeypatch):
     """Живой человек за час открывает единицы номеров, скрипт — сотни."""
+    from apps.common.throttling import ContactRevealThrottle
+
+    rates = {
+        **settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"],
+        "contact_reveal": "30/hour",
+    }
+    monkeypatch.setattr(ContactRevealThrottle, "THROTTLE_RATES", rates)
     settings.REST_FRAMEWORK = {
         **settings.REST_FRAMEWORK,
-        "DEFAULT_THROTTLE_RATES": {
-            **settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"],
-            "contact_reveal": "30/hour",
-        },
+        "DEFAULT_THROTTLE_RATES": rates,
     }
     cache.clear()
 
@@ -504,3 +512,126 @@ def test_thirty_first_reveal_in_an_hour_is_throttled(seller, settings):
     assert blocked.status_code == 429
     assert blocked.data["error"]["code"] == "throttled"
     assert ContactEvent.objects.count() == 30
+
+
+def test_seller_card_does_not_leak_private_data(api_client, seller):
+    """Аудит приватности: публичная карточка продавца не должна раскрывать личные данные."""
+    response = api_client.get(reverse("users:seller-detail", args=[seller.pk]))
+    assert response.status_code == 200
+    data = response.data
+
+    forbidden_keys = {
+        "password",
+        "iin",
+        "otp",
+        "token",
+        "refresh",
+        "access",
+        "wallet",
+        "balance",
+        "is_staff",
+        "is_superuser",
+        "is_active",
+        "email",
+        "kyc",
+        "document",
+        "selfie",
+        "moderation",
+        "notes",
+    }
+    for key in forbidden_keys:
+        assert key not in data, f"Private field '{key}' leaked in public seller detail response!"
+
+    # Контакты для анонима маскируются
+    assert data["contacts"]["phone"] != seller.phone
+    assert "X" in data["contacts"]["phone"]
+    assert data["contacts"]["whatsapp"] == ""
+    assert data["contacts"]["telegram"] == ""
+
+
+def test_three_different_seller_roles_detail_and_listings(api_client):
+    """Проверка трёх разных ролей продавцов (owner, realtor, agency) и изоляции их листингов."""
+    from apps.users.models import SellerProfile
+
+    # 1. Собственник (owner)
+    owner = UserFactory(name="Улан", seller_kind="owner")
+    l_owner_act1 = ListingFactory(owner=owner, status=ListingStatus.ACTIVE)
+    l_owner_act2 = ListingFactory(owner=owner, status=ListingStatus.ACTIVE)
+    ListingFactory(owner=owner, status=ListingStatus.SOLD)
+    ListingFactory(owner=owner, status=ListingStatus.DRAFT)
+
+    # 2. Риелтор (realtor)
+    realtor = UserFactory(name="Аскар", seller_kind="realtor")
+    SellerProfile.objects.create(
+        user=realtor,
+        company_name="Риелтор Аскар",
+        about="Помогу выгодно купить квартиру",
+        experience_years=7,
+        is_verified=True,
+    )
+    l_realtor_act = ListingFactory(owner=realtor, status=ListingStatus.ACTIVE)
+    ListingFactory(owner=realtor, status=ListingStatus.SOLD)
+    ListingFactory(owner=realtor, status=ListingStatus.SOLD)
+
+    # 3. Агентство (agency)
+    agency = UserFactory(name="Бишкек Элит", seller_kind="agency")
+    SellerProfile.objects.create(
+        user=agency,
+        company_name="Агентство Недвижимости Бишкек Элит",
+        about="Ведущее агентство столицы",
+        experience_years=15,
+        is_verified=True,
+    )
+    l_agency_act1 = ListingFactory(owner=agency, status=ListingStatus.ACTIVE)
+    l_agency_act2 = ListingFactory(owner=agency, status=ListingStatus.ACTIVE)
+    l_agency_act3 = ListingFactory(owner=agency, status=ListingStatus.ACTIVE)
+
+    # Проверка Owner
+    r_owner = api_client.get(reverse("users:seller-detail", args=[owner.pk]))
+    assert r_owner.status_code == 200
+    assert r_owner.data["name"] == "Улан"
+    assert r_owner.data["seller_kind"] == "owner"
+    assert r_owner.data["active_listings_count"] == 2
+    assert r_owner.data["sold_listings_count"] == 1
+
+    r_owner_listings = api_client.get(reverse("users:seller-listings", args=[owner.pk]))
+    assert r_owner_listings.status_code == 200
+    owner_slugs = {item["slug"] for item in r_owner_listings.data["results"]}
+    assert owner_slugs == {l_owner_act1.slug, l_owner_act2.slug}
+    for item in r_owner_listings.data["results"]:
+        assert item["owner_id"] == owner.pk
+
+    # Проверка Realtor
+    r_realtor = api_client.get(reverse("users:seller-detail", args=[realtor.pk]))
+    assert r_realtor.status_code == 200
+    assert r_realtor.data["name"] == "Аскар"
+    assert r_realtor.data["company_name"] == "Риелтор Аскар"
+    assert r_realtor.data["seller_kind"] == "realtor"
+    assert r_realtor.data["is_verified"] is True
+    assert r_realtor.data["experience_years"] == 7
+    assert r_realtor.data["active_listings_count"] == 1
+    assert r_realtor.data["sold_listings_count"] == 2
+
+    r_realtor_listings = api_client.get(reverse("users:seller-listings", args=[realtor.pk]))
+    assert r_realtor_listings.status_code == 200
+    realtor_slugs = {item["slug"] for item in r_realtor_listings.data["results"]}
+    assert realtor_slugs == {l_realtor_act.slug}
+    for item in r_realtor_listings.data["results"]:
+        assert item["owner_id"] == realtor.pk
+
+    # Проверка Agency
+    r_agency = api_client.get(reverse("users:seller-detail", args=[agency.pk]))
+    assert r_agency.status_code == 200
+    assert r_agency.data["company_name"] == "Агентство Недвижимости Бишкек Элит"
+    assert r_agency.data["seller_kind"] == "agency"
+    assert r_agency.data["is_verified"] is True
+    assert r_agency.data["active_listings_count"] == 3
+    assert r_agency.data["sold_listings_count"] == 0
+
+    r_agency_listings = api_client.get(reverse("users:seller-listings", args=[agency.pk]))
+    assert r_agency_listings.status_code == 200
+    agency_slugs = {item["slug"] for item in r_agency_listings.data["results"]}
+    assert agency_slugs == {l_agency_act1.slug, l_agency_act2.slug, l_agency_act3.slug}
+    for item in r_agency_listings.data["results"]:
+        assert item["owner_id"] == agency.pk
+

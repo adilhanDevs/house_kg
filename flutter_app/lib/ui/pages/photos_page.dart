@@ -12,6 +12,7 @@ import '../../app/stage.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../widgets/safe_image.dart';
+import 'agent_listings_page.dart';
 
 /// Затемнение поверх фотографии — тот же градиент, что в кадре.
 const LinearGradient _shade = LinearGradient(
@@ -494,7 +495,18 @@ class _About extends StatelessWidget {
             label: listing.agent,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.of(context).pushNamed(Routes.agentListings),
+              onTap: () => Navigator.of(context).pushNamed(
+                Routes.agentListings,
+                arguments: AgentListingsArgs(
+                  sellerId: listing.sellerId ?? 0,
+                  initialListingSlug: listing.slug,
+                  initialListingTitle: listing.address,
+                  initialSellerName: listing.agent,
+                  initialSellerKind: listing.seller.name,
+                  initialAvatarUrl: listing.sellerAvatarUrl,
+                  initialCoverUrl: listing.sellerCoverUrl,
+                ),
+              ),
               child: ExcludeSemantics(
                 child: Padding(
                   // строка невысокая — расширяем площадку нажатия вверх и вниз;

@@ -88,6 +88,7 @@ class AppState extends ChangeNotifier {
   String? _accessToken;
   String? _refreshToken;
   
+  int? userId;
   String? userName;
   String? userPhone;
   String? userWhatsappPhone;
@@ -302,6 +303,7 @@ class AppState extends ChangeNotifier {
     if (!isAuthenticated) return;
     try {
       final profile = await apiClient.getMe();
+      userId = profile['id'] as int?;
       userName = profile['name'] as String?;
       userPhone = profile['phone'] as String?;
       userWhatsappPhone = profile['whatsapp_phone'] as String?;

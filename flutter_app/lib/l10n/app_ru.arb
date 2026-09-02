@@ -256,8 +256,9 @@
 
   "notificationsTitle": "Уведомления",
   "notificationsLatest": "Последние уведомления",
-  "notificationsEmpty": "Нет уведомлений",
+  "notificationsEmpty": "Уведомлений пока нет",
   "notificationsMarkAllRead": "Отметить все как прочитанные",
+  "priceDecreased": "Цена снизилась",
   "messagesTitle": "Сообщения",
   "messagesEmpty": "Нет сообщений",
   "chatInputHint": "Введите сообщение...",
@@ -450,5 +451,24 @@
     "placeholders": {
       "count": { "type": "int" }
     }
-  }
+  },
+  "contactSeller": "Связаться с продавцом",
+  "contactOwner": "Связаться с собственником",
+  "contactRealtor": "Связаться с риелтором",
+  "contactAgency": "Связаться с агентством",
+  "sellerObjectsCount": "{count} объектов недвижимости",
+  "@sellerObjectsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sellerSoldCount": "Продано: {count} объектов",
+  "@sellerSoldCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sellerNoListings": "У продавца пока нет объявлений в этой категории",
+  "sellerThisIsYou": "Это ваш профиль",
+  "sellerMustLoginToWrite": "Войдите, чтобы написать продавцу"
 }

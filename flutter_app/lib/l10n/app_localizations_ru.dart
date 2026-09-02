@@ -598,10 +598,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notificationsLatest => 'Последние уведомления';
 
   @override
-  String get notificationsEmpty => 'Нет уведомлений';
+  String get notificationsEmpty => 'Уведомлений пока нет';
 
   @override
   String get notificationsMarkAllRead => 'Отметить все как прочитанные';
+
+  @override
+  String get priceDecreased => 'Цена снизилась';
 
   @override
   String get messagesTitle => 'Сообщения';
@@ -1004,4 +1007,36 @@ class AppLocalizationsRu extends AppLocalizations {
   String filterShowVariants(int count) {
     return 'Показать $count вариантов';
   }
+
+  @override
+  String get contactSeller => 'Связаться с продавцом';
+
+  @override
+  String get contactOwner => 'Связаться с собственником';
+
+  @override
+  String get contactRealtor => 'Связаться с риелтором';
+
+  @override
+  String get contactAgency => 'Связаться с агентством';
+
+  @override
+  String sellerObjectsCount(int count) {
+    return '$count объектов недвижимости';
+  }
+
+  @override
+  String sellerSoldCount(int count) {
+    return 'Продано: $count объектов';
+  }
+
+  @override
+  String get sellerNoListings =>
+      'У продавца пока нет объявлений в этой категории';
+
+  @override
+  String get sellerThisIsYou => 'Это ваш профиль';
+
+  @override
+  String get sellerMustLoginToWrite => 'Войдите, чтобы написать продавцу';
 }

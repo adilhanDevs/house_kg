@@ -325,6 +325,7 @@ class ListingListSerializer(serializers.ModelSerializer):
     is_promoted = serializers.SerializerMethodField()
     is_favourite = serializers.SerializerMethodField()
     is_available = serializers.SerializerMethodField()
+    owner_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Listing
@@ -349,6 +350,7 @@ class ListingListSerializer(serializers.ModelSerializer):
             "below_market",
             "red_book",
             "seller_kind",
+            "owner_id",
             "is_promoted",
             "is_favourite",
             "is_available",

@@ -17,6 +17,7 @@ import '../ui/pages/ad_photos_page.dart';
 import '../ui/pages/ad_preview_page.dart';
 import '../ui/pages/ad_promo_page.dart';
 import '../ui/pages/ad_video_page.dart';
+import '../ui/pages/agent_listings_page.dart';
 import '../ui/pages/catalog_page.dart';
 import '../ui/pages/category_page.dart';
 import '../ui/pages/code_page.dart';
@@ -242,6 +243,24 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
               },
             ),
         Routes.tariffs || Routes.subscriptions => const TariffsPage(),
+        Routes.agentListings || Routes.agent || Routes.agentProfile => Builder(
+              builder: (context) {
+                final args = ModalRoute.of(context)?.settings.arguments;
+                if (args is AgentListingsArgs) {
+                  return AgentListingsPage(args: args);
+                }
+                if (args is int) {
+                  return AgentListingsPage(args: AgentListingsArgs(sellerId: args));
+                }
+                if (args is String && args.isNotEmpty) {
+                  final parsedId = int.tryParse(args);
+                  if (parsedId != null) {
+                    return AgentListingsPage(args: AgentListingsArgs(sellerId: parsedId));
+                  }
+                }
+                return const AgentListingsPage();
+              },
+            ),
         _ => FramePage(route: name),
       },
     );

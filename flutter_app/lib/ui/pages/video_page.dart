@@ -15,6 +15,7 @@ import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../widgets/safe_image.dart';
+import 'agent_listings_page.dart';
 
 /// Затемнение поверх видео — аналогично просмотрщику фото.
 const LinearGradient _shade = LinearGradient(
@@ -337,7 +338,18 @@ class _VideoPageState extends State<VideoPage> {
                 videoDescription: currentSubVideo.description,
                 onAgentTap: () {
                   _stopAndNavigate(() {
-                    Navigator.of(context).pushNamed(Routes.agentListings);
+                    Navigator.of(context).pushNamed(
+                      Routes.agentListings,
+                      arguments: AgentListingsArgs(
+                        sellerId: listing.sellerId ?? 0,
+                        initialListingSlug: listing.slug,
+                        initialListingTitle: listing.address,
+                        initialSellerName: listing.agent,
+                        initialSellerKind: listing.seller.name,
+                        initialAvatarUrl: listing.sellerAvatarUrl,
+                        initialCoverUrl: listing.sellerCoverUrl,
+                      ),
+                    );
                   });
                 },
                 onDetailsTap: () {

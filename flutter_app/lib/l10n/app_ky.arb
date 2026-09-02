@@ -207,6 +207,7 @@
   "notificationsLatest": "Акыркы билдирмелер",
   "notificationsEmpty": "Билдирмелер жок",
   "notificationsMarkAllRead": "Баарын окулду деп белгилөө",
+  "priceDecreased": "Баасы төмөндөдү",
   "messagesTitle": "Билдирүүлөр",
   "messagesEmpty": "Билдирүүлөр жок",
   "chatInputHint": "Билдирүү жазыңыз...",
@@ -349,5 +350,24 @@
     "placeholders": {
       "count": { "type": "int" }
     }
-  }
+  },
+  "contactSeller": "Сатуучу менен байланышуу",
+  "contactOwner": "Ээси менен байланышуу",
+  "contactRealtor": "Риелтор менен байланышуу",
+  "contactAgency": "Агенттик менен байланышуу",
+  "sellerObjectsCount": "{count} кыймылсыз мүлк объекти",
+  "@sellerObjectsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sellerSoldCount": "Сатылды: {count} объект",
+  "@sellerSoldCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sellerNoListings": "Сатуучуда бул категорияда азырынча жарыялар жок",
+  "sellerThisIsYou": "Бул сиздин профилиңиз",
+  "sellerMustLoginToWrite": "Сатуучуга жазуу үчүн кириңиз"
 }

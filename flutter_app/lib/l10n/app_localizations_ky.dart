@@ -606,6 +606,9 @@ class AppLocalizationsKy extends AppLocalizations {
   String get notificationsMarkAllRead => 'Баарын окулду деп белгилөө';
 
   @override
+  String get priceDecreased => 'Баасы төмөндөдү';
+
+  @override
   String get messagesTitle => 'Билдирүүлөр';
 
   @override
@@ -1006,4 +1009,36 @@ class AppLocalizationsKy extends AppLocalizations {
   String filterShowVariants(int count) {
     return '$count вариантты көрсөтүү';
   }
+
+  @override
+  String get contactSeller => 'Сатуучу менен байланышуу';
+
+  @override
+  String get contactOwner => 'Ээси менен байланышуу';
+
+  @override
+  String get contactRealtor => 'Риелтор менен байланышуу';
+
+  @override
+  String get contactAgency => 'Агенттик менен байланышуу';
+
+  @override
+  String sellerObjectsCount(int count) {
+    return '$count кыймылсыз мүлк объекти';
+  }
+
+  @override
+  String sellerSoldCount(int count) {
+    return 'Сатылды: $count объект';
+  }
+
+  @override
+  String get sellerNoListings =>
+      'Сатуучуда бул категорияда азырынча жарыялар жок';
+
+  @override
+  String get sellerThisIsYou => 'Бул сиздин профилиңиз';
+
+  @override
+  String get sellerMustLoginToWrite => 'Сатуучуга жазуу үчүн кириңиз';
 }

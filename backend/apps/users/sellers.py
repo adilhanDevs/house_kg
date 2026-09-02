@@ -176,6 +176,12 @@ def active_listings_count(seller: Any) -> int:
     return Listing.objects.filter(owner=seller, status=ListingStatus.ACTIVE).count()
 
 
+def sold_listings_count(seller: Any) -> int:
+    from apps.catalog.models import Listing
+
+    return Listing.objects.filter(owner=seller, status=ListingStatus.SOLD).count()
+
+
 def seller_listings(seller: Any, viewer: Any = None) -> Any:
     """Активные объявления продавца — тот же queryset, что и в каталоге."""
     from apps.catalog.services import listing_queryset
@@ -201,12 +207,14 @@ def seller_card(seller: User, viewer: Any = None) -> dict[str, Any]:
         "seller_kind": seller.seller_kind,
         "logo": profile.logo if profile else None,
         "avatar": seller.avatar,
+        "profile_cover": seller.profile_cover,
         "about": profile.about if profile else "",
         "experience_years": profile.experience_years if profile else 0,
         "is_verified": bool(profile and profile.is_verified),
         "rating": profile.rating if profile else Decimal("0"),
         "reviews_count": profile.reviews_count if profile else 0,
         "active_listings_count": active_listings_count(seller),
+        "sold_listings_count": sold_listings_count(seller),
         "member_since": seller.date_joined,
         "work_districts": list(profile.work_districts.all()) if profile else [],
         "working_hours": profile.working_hours if profile else {},

@@ -537,12 +537,14 @@ class SellerCardSerializer(serializers.Serializer):
     seller_kind = serializers.CharField()
     logo_url = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
+    cover_url = serializers.SerializerMethodField()
     about = serializers.CharField(allow_blank=True)
     experience_years = serializers.IntegerField()
     is_verified = serializers.BooleanField()
     rating = serializers.DecimalField(max_digits=3, decimal_places=2)
     reviews_count = serializers.IntegerField()
     active_listings_count = serializers.IntegerField()
+    sold_listings_count = serializers.IntegerField(default=0)
     member_since = serializers.DateTimeField()
     work_districts = DistrictBriefSerializer(many=True)
     working_hours = serializers.JSONField()
@@ -561,6 +563,10 @@ class SellerCardSerializer(serializers.Serializer):
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_avatar_url(self, obj: dict[str, Any]) -> str | None:
         return self._url(obj.get("avatar"))
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_cover_url(self, obj: dict[str, Any]) -> str | None:
+        return self._url(obj.get("profile_cover"))
 
 
 class SellerProfileSerializer(serializers.ModelSerializer):

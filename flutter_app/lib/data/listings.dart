@@ -151,6 +151,115 @@ class ListingRoom {
 }
 
 @immutable
+class PublicSellerProfile {
+  const PublicSellerProfile({
+    required this.id,
+    required this.name,
+    this.companyName = '',
+    this.sellerKind = 'owner',
+    this.logoUrl,
+    this.avatarUrl,
+    this.coverUrl,
+    this.about = '',
+    this.experienceYears = 0,
+    this.isVerified = false,
+    this.rating = 0.0,
+    this.reviewsCount = 0,
+    this.activeListingsCount = 0,
+    this.soldListingsCount = 0,
+    this.phone = '',
+    this.whatsapp = '',
+    this.telegram = '',
+    this.instagram = '',
+    this.workDistricts = const [],
+    this.workingHours = const {},
+    this.memberSince,
+  });
+
+  final int id;
+  final String name;
+  final String companyName;
+  final String sellerKind;
+  final String? logoUrl;
+  final String? avatarUrl;
+  final String? coverUrl;
+  final String about;
+  final int experienceYears;
+  final bool isVerified;
+  final double rating;
+  final int reviewsCount;
+  final int activeListingsCount;
+  final int soldListingsCount;
+  final String phone;
+  final String whatsapp;
+  final String telegram;
+  final String instagram;
+  final List<String> workDistricts;
+  final Map<String, dynamic> workingHours;
+  final DateTime? memberSince;
+
+  String get displayName =>
+      companyName.isNotEmpty ? companyName : (name.isNotEmpty ? name : 'Продавец');
+
+  factory PublicSellerProfile.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic val) {
+      if (val == null) return 0;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? 0;
+      return 0;
+    }
+
+    double parseDouble(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? 0.0;
+      return 0.0;
+    }
+
+    String absolute(String? value) {
+      if (value == null || value.isEmpty) return '';
+      return value.startsWith('/') ? '$kApiBaseUrl$value' : value;
+    }
+
+    final contacts = json['contacts'] as Map<String, dynamic>? ?? {};
+    final rawDistricts = json['work_districts'] as List<dynamic>? ?? [];
+    final districts = rawDistricts
+        .map((d) {
+          if (d is Map) return (d['name'] ?? '').toString();
+          return d.toString();
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    return PublicSellerProfile(
+      id: parseInt(json['id']),
+      name: (json['name'] ?? '').toString(),
+      companyName: (json['company_name'] ?? '').toString(),
+      sellerKind: (json['seller_kind'] ?? 'owner').toString(),
+      logoUrl: json['logo_url'] != null ? absolute(json['logo_url'].toString()) : null,
+      avatarUrl: json['avatar_url'] != null ? absolute(json['avatar_url'].toString()) : null,
+      coverUrl: json['cover_url'] != null ? absolute(json['cover_url'].toString()) : null,
+      about: (json['about'] ?? '').toString(),
+      experienceYears: parseInt(json['experience_years']),
+      isVerified: json['is_verified'] as bool? ?? false,
+      rating: parseDouble(json['rating']),
+      reviewsCount: parseInt(json['reviews_count']),
+      activeListingsCount: parseInt(json['active_listings_count']),
+      soldListingsCount: parseInt(json['sold_listings_count']),
+      phone: (contacts['phone'] ?? '').toString(),
+      whatsapp: (contacts['whatsapp'] ?? '').toString(),
+      telegram: (contacts['telegram'] ?? '').toString(),
+      instagram: (contacts['instagram'] ?? '').toString(),
+      workDistricts: districts,
+      workingHours: json['working_hours'] as Map<String, dynamic>? ?? {},
+      memberSince: json['member_since'] != null
+          ? DateTime.tryParse(json['member_since'].toString())
+          : null,
+    );
+  }
+}
+
+@immutable
 class Listing {
   const Listing({
     required this.id,
@@ -164,6 +273,9 @@ class Listing {
     required this.kind,
     this.slug = '',
     this.seller = SellerKind.owner,
+    this.sellerId,
+    this.sellerAvatarUrl,
+    this.sellerCoverUrl,
     this.secondary = false,
     this.series,
     this.belowMarket = false,
@@ -207,6 +319,9 @@ class Listing {
   final String buildingLine;
   final double? ceilingHeight;
   final String status;
+  final int? sellerId;
+  final String? sellerAvatarUrl;
+  final String? sellerCoverUrl;
 
   bool get isArchived => status == 'archived';
   bool get isDraft => status == 'draft';
@@ -316,6 +431,16 @@ class Listing {
     final sellerMap = json['seller'] as Map?;
     final ownerMap = json['owner'] as Map?;
     final sellerName = sellerMap?['name'] as String? ?? ownerMap?['name'] as String? ?? '';
+    final sellerId = parseIntOrNull(sellerMap?['id']) ??
+        parseIntOrNull(ownerMap?['id']) ??
+        parseIntOrNull(json['owner_id']) ??
+        parseIntOrNull(json['seller_id']);
+    final sellerAvatar = sellerMap?['avatar_url'] as String? ??
+        sellerMap?['avatar'] as String? ??
+        ownerMap?['avatar'] as String?;
+    final sellerCover = sellerMap?['cover_url'] as String? ??
+        sellerMap?['profile_cover'] as String? ??
+        ownerMap?['profile_cover'] as String?;
 
     // Экспликация помещений приходит списком: у одной квартиры есть холл и
     // две спальни, у другой только кухня и балкон. Подставлять недостающие
@@ -340,6 +465,9 @@ class Listing {
       coverMediaId: coverMediaId,
       coverDetailUrl: coverDetailUrl,
       agent: sellerName,
+      sellerId: sellerId,
+      sellerAvatarUrl: sellerAvatar != null ? absolute(sellerAvatar) : null,
+      sellerCoverUrl: sellerCover != null ? absolute(sellerCover) : null,
       kind: PropertyKind.values.firstWhere(
         (e) => e.name == json['kind'] || (e == PropertyKind.newBuilding && json['kind'] == 'new_building'),
         orElse: () => PropertyKind.apartment,

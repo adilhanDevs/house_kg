@@ -1144,6 +1144,36 @@ class ListingApiClient {
     }
   }
 
+  // -- продавцы (публичный профиль) -------------------------------------------
+
+  /// Публичная карточка продавца.
+  Future<Map<String, dynamic>> getSeller(int sellerId) async {
+    return _getJson(Uri.parse('$baseUrl/api/v1/sellers/$sellerId/'));
+  }
+
+  /// Список активных объявлений продавца с фильтрацией и курсорной пагинацией.
+  Future<Map<String, dynamic>> getSellerListings(
+    int sellerId, {
+    String? cursor,
+    String? kind,
+    int? pageSize,
+  }) async {
+    if (cursor != null && cursor.isNotEmpty) {
+      return _getJson(Uri.parse(cursor));
+    }
+    final params = <String, String>{};
+    if (kind != null && kind.isNotEmpty) {
+      params['kind'] = kind;
+    }
+    if (pageSize != null && pageSize > 0) {
+      params['page_size'] = pageSize.toString();
+    }
+    final uri = Uri.parse('$baseUrl/api/v1/sellers/$sellerId/listings/').replace(
+      queryParameters: params.isNotEmpty ? params : null,
+    );
+    return _getJson(uri);
+  }
+
   // -- диалоги и уведомления --------------------------------------------------
   //
   // Контракт задеплоен и не переизобретается: пути, имена полей и курсоры взяты

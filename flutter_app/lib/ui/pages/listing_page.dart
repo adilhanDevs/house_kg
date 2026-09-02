@@ -15,6 +15,7 @@ import '../../data/chat_controller.dart' show describeApiError;
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../widgets/safe_image.dart';
+import 'agent_listings_page.dart';
 import 'chat_page.dart';
 
 /// Фотография объекта во всю ширину.
@@ -53,10 +54,11 @@ final String _heartFilled =
 
 /// Метка под фотографией: подпись на цветной плашке.
 class _Badge {
-  const _Badge(this.text, this.fill, this.ink);
+  const _Badge(this.text, this.fill, this.ink, {this.onTap});
   final String text;
   final Color fill;
   final Color ink;
+  final VoidCallback? onTap;
 }
 
 class ListingPage extends StatefulWidget {
@@ -352,7 +354,7 @@ class _ListingPageState extends State<ListingPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || _listing == null) {
+    if (_isLoading) {
       return const Scaffold(
         backgroundColor: _page,
         body: Center(
@@ -378,13 +380,75 @@ class _ListingPageState extends State<ListingPage> {
       );
     }
 
+    if (_listing == null) {
+      return Scaffold(
+        backgroundColor: _page,
+        appBar: AppBar(
+          backgroundColor: _page,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xff1c1939)),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_outline, size: 48, color: Color(0xff8e8e93)),
+                const SizedBox(height: 16),
+                const Text(
+                  'Объявление не найдено или снято с публикации',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xff000000),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xffea812e),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  child: const Text('Назад'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final state = AppScope.of(context);
     final listing = _listing!;
     final favourite = state.isFavourite(listing.id);
 
     final badges = <_Badge>[
       if (listing.owner)
-        const _Badge('Собственник', Color(0xffe8f0fe), Color(0xff1a73e8)),
+        _Badge(
+          'Собственник',
+          const Color(0xffe8f0fe),
+          const Color(0xff1a73e8),
+          onTap: () {
+            Navigator.of(context).pushNamed(
+              Routes.agentListings,
+              arguments: AgentListingsArgs(
+                sellerId: listing.sellerId ?? 0,
+                initialListingSlug: listing.slug,
+                initialListingTitle: listing.address,
+                initialSellerName: listing.agent,
+                initialSellerKind: listing.seller.name,
+                initialAvatarUrl: listing.sellerAvatarUrl,
+                initialCoverUrl: listing.sellerCoverUrl,
+              ),
+            );
+          },
+        ),
       if (listing.belowMarket)
         const _Badge('Цена ниже рыночной', Color(0xffe6f4ea), Color(0xff188038)),
       if (listing.redBook)
@@ -975,7 +1039,7 @@ class _BadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FigBox(
+    final chip = FigBox(
       height: _badgesHeight,
       radius: 4,
       color: badge.fill,
@@ -996,6 +1060,15 @@ class _BadgeChip extends StatelessWidget {
         ),
       ),
     );
+
+    if (badge.onTap != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: badge.onTap,
+        child: chip,
+      );
+    }
+    return chip;
   }
 }
 
