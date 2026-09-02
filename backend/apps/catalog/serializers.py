@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.catalog.constants import MAX_FILES_PER_REQUEST
+from apps.catalog.covers import listing_cover_file
 from apps.catalog.enums import ListingStatus, MediaKind
 from apps.catalog.field_rules import strip_inapplicable
 from apps.catalog.models import (
@@ -182,15 +183,17 @@ class ListingMediaSerializer(serializers.ModelSerializer):
             return self._url(obj.thumbnail)
         if obj.url_thumb:
             return self._url(obj.url_thumb)
-        if obj.kind == MediaKind.VIDEO and obj.file:
-            try:
-                from apps.catalog.tasks import _process_video
-                _process_video(obj)
-                if obj.thumbnail:
-                    return self._url(obj.thumbnail)
-            except Exception:
-                pass
+        if obj.kind == MediaKind.VIDEO:
+            # Кадр-обложку присылает приложение при загрузке. Не прислало —
+            # показываем обложку объявления. Раньше здесь запускался ffmpeg,
+            # то есть обычный GET каталога перекодировал видео.
+            return self._url(self._listing_cover(obj))
         return None
+
+    @staticmethod
+    def _listing_cover(obj: ListingMedia) -> Any:
+        """Обложка объявления. Идём по уже загруженным media, без запроса."""
+        return listing_cover_file(obj.listing)
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_url_thumb(self, obj: ListingMedia) -> str | None:
@@ -218,7 +221,12 @@ class ListingMediaSerializer(serializers.ModelSerializer):
 
 
 class MediaUploadSerializer(serializers.Serializer):
-    """Пачка файлов из галереи телефона."""
+    """Пачка файлов из галереи телефона.
+
+    Для видео приложение прикладывает кадр-обложку и метаданные ролика: оно
+    и так открывает файл в плеере, а серверу это экономит запуск ffmpeg на
+    каждую загрузку.
+    """
 
     files = serializers.ListField(
         child=serializers.FileField(),
@@ -229,6 +237,36 @@ class MediaUploadSerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=MediaKind.choices, default=MediaKind.PHOTO)
     title = serializers.CharField(max_length=100, required=False, allow_blank=True)
     description = serializers.CharField(required=False, allow_blank=True)
+
+    thumbnail = serializers.ImageField(
+        required=False,
+        help_text="Кадр-обложка ролика, снятый приложением. Только для kind=video.",
+    )
+    duration_seconds = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Длительность ролика в секундах — из плеера приложения.",
+    )
+    width = serializers.IntegerField(required=False, min_value=0)
+    height = serializers.IntegerField(required=False, min_value=0)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        is_video = attrs.get("kind", MediaKind.PHOTO) == MediaKind.VIDEO
+
+        if not is_video and attrs.get("thumbnail") is not None:
+            raise serializers.ValidationError(
+                {"thumbnail": "Обложка прикладывается только к видео."}
+            )
+
+        # Обложка и длительность описывают один ролик, поэтому вместе с пачкой
+        # файлов они бессмысленны: непонятно, к какому из них относятся.
+        if attrs.get("thumbnail") is not None and len(attrs.get("files") or []) > 1:
+            raise serializers.ValidationError(
+                {"thumbnail": "Обложка передаётся вместе с одним файлом."}
+            )
+
+        return attrs
+
 
 class ListingMediaUpdateSerializer(serializers.ModelSerializer):
     """Обновление метаданных медиафайла."""
@@ -319,11 +357,9 @@ class ListingListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_cover_url(self, obj: Listing) -> str | None:
-        # cover_media приходит из Prefetch(to_attr=...) — без запроса на объект.
-        cover = getattr(obj, "cover_media", None)
-        if not cover:
-            return None
-        return absolute_file_url(cover[0].file, self.context.get("request"))
+        # Кандидаты приходят из Prefetch(to_attr=...) — без запроса на объект.
+        # Правило выбора общее для всего каталога, см. apps/catalog/covers.py.
+        return absolute_file_url(listing_cover_file(obj), self.context.get("request"))
 
     @extend_schema_field(serializers.BooleanField())
     def get_is_promoted(self, obj: Listing) -> bool:
@@ -554,6 +590,15 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
         district = attrs.get("district")
         if district is not None and "city" not in attrs:
             attrs["city"] = district.city
+
+        # Этаж выше этажности — не опечатка клиента, а мусор в выдаче:
+        # фильтр «последний этаж» после такого перестаёт что-либо значить.
+        floor = attrs.get("floor", getattr(self.instance, "floor", None))
+        floors = attrs.get("floors", getattr(self.instance, "floors", None))
+        if floor and floors and floor > floors:
+            raise serializers.ValidationError(
+                {"floor": "Этаж не может быть больше этажности дома."}
+            )
 
         # Тип берём из запроса, а если его там нет — из уже сохранённого
         # объявления: клиент шлёт форму по частям.

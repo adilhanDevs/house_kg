@@ -78,7 +78,8 @@ class AdMediaTile extends StatelessWidget {
   }
 }
 
-/// Что видно на плитке: выбранный файл, кадр из макета или заглушка ролика.
+/// Что видно на плитке: выбранный файл, кадр ролика, снимок из макета
+/// или — если ничего не вышло — имя файла.
 class _Preview extends StatelessWidget {
   const _Preview({required this.media});
 
@@ -86,7 +87,9 @@ class _Preview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bytes = media.bytes;
+    // У ролика показываем кадр, снятый при выборе файла: раньше на его месте
+    // была заглушка с именем файла.
+    final bytes = media.bytes ?? media.posterBytes;
     if (bytes != null) {
       // Файл может оказаться нечитаемым — тогда вместо плитки покажем имя,
       // а не красный экран.
@@ -112,7 +115,8 @@ class _Preview extends StatelessWidget {
         errorBuilder: (context, _, __) => _Name(media: media),
       );
     }
-    // Кадр-обложку из ролика без плеера не достать — показываем имя файла.
+    // Кадр снять не удалось (нет плагина или файл не читается) — показываем
+    // имя файла.
     return _Name(media: media);
   }
 }

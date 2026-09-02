@@ -189,7 +189,13 @@ def test_publish_without_photos_fails(auth: APIClient, district) -> None:
 
 
 @pytest.mark.django_db
-def test_publish_goes_to_moderation(auth: APIClient, user, district) -> None:
+def test_draft_publishes_straight_to_the_catalog(auth: APIClient, user, district) -> None:
+    """Черновик уходит в эфир сразу — предварительной модерации у нас нет.
+
+    Модерация включается по жалобам (`MODERATION_REPORTS_THRESHOLD`) и при
+    повторной подаче отклонённого объявления, см.
+    `test_rejected_listing_returns_to_moderation`.
+    """
     slug = auth.post(DRAFT_URL).json()["slug"]
     fill_draft(auth, slug, district)
     ListingMediaFactory(listing=Listing.objects.get(slug=slug), order=0, is_cover=True)
@@ -197,9 +203,9 @@ def test_publish_goes_to_moderation(auth: APIClient, user, district) -> None:
     response = auth.post(PUBLISH_URL.format(slug=slug))
 
     assert response.status_code == 200
-    assert response.json()["status"] == ListingStatus.PENDING
+    assert response.json()["status"] == ListingStatus.ACTIVE
     listing = Listing.objects.get(slug=slug)
-    assert listing.published_at is None
+    assert listing.published_at is not None
 
 
 @pytest.mark.django_db
@@ -412,3 +418,136 @@ def test_expire_listings_archives_and_notifies(user, district) -> None:
 
     kinds = {item.payload.get("kind") for item in Notification.objects.all()}
     assert kinds == {"listing_expired", "listing_expiring"}
+
+
+# -- права доступа: аноним не хозяйничает в чужих объявлениях -----------------
+#
+# До правок эти вьюхи подставляли анониму «первого пользователя из базы»
+# (`User.objects.first()`), то есть PATCH, DELETE, publish и archive проходили
+# вообще без авторизации, а «Мои объявления» отдавали чужой список.
+
+
+@pytest.mark.django_db
+def test_anonymous_cannot_edit_or_delete_a_listing(api_client: APIClient, user, district) -> None:
+    listing = ListingFactory(owner=user, district=district, status=ListingStatus.ACTIVE)
+    url = DETAIL_URL.format(slug=listing.slug)
+
+    assert api_client.get(url).status_code == 200
+    assert api_client.patch(url, {"price": "1.00"}, format="json").status_code == 401
+    assert api_client.delete(url).status_code == 401
+
+    listing.refresh_from_db()
+    assert listing.price != Decimal("1.00")
+    assert listing.is_deleted is False
+
+
+@pytest.mark.django_db
+def test_anonymous_cannot_touch_drafts_or_owner_actions(
+    api_client: APIClient, user, district
+) -> None:
+    listing = ListingFactory(owner=user, district=district, status=ListingStatus.ACTIVE)
+
+    assert api_client.get(DRAFT_URL).status_code == 401
+    assert api_client.post(DRAFT_URL, {"price": "1.00"}, format="json").status_code == 401
+    assert api_client.post(PUBLISH_URL.format(slug=listing.slug)).status_code == 401
+    assert api_client.post(ARCHIVE_URL.format(slug=listing.slug)).status_code == 401
+    assert api_client.post(BUMP_URL.format(slug=listing.slug)).status_code == 401
+
+    listing.refresh_from_db()
+    assert listing.status == ListingStatus.ACTIVE
+
+
+@pytest.mark.django_db
+def test_stranger_cannot_run_owner_actions(auth: APIClient, district) -> None:
+    listing = ListingFactory(district=district, status=ListingStatus.ACTIVE)
+
+    assert auth.post(ARCHIVE_URL.format(slug=listing.slug)).status_code == 403
+    assert auth.post(SOLD_URL.format(slug=listing.slug)).status_code == 403
+    assert auth.post(BUMP_URL.format(slug=listing.slug)).status_code == 403
+    assert (
+        auth.patch(
+            DETAIL_URL.format(slug=listing.slug), {"price": "1.00"}, format="json"
+        ).status_code
+        == 403
+    )
+
+    listing.refresh_from_db()
+    assert listing.status == ListingStatus.ACTIVE
+
+
+@pytest.mark.django_db
+def test_draft_body_cannot_set_status_or_promotion(auth: APIClient, user) -> None:
+    """Массовое присвоение: телом черновика меняются только поля формы.
+
+    Раньше `request.data` уходил прямо в `setattr`, и один POST переводил
+    черновик в `active` с вечным продвижением — мимо модерации и оплаты.
+    """
+    response = auth.post(
+        DRAFT_URL,
+        {
+            "status": ListingStatus.ACTIVE,
+            "promoted_until": "2099-01-01T00:00:00Z",
+            "views_count": 50000,
+            "address": "Ахунбаева 12",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    draft = Listing.objects.get(owner=user)
+    assert draft.status == ListingStatus.DRAFT
+    assert draft.promoted_until is None
+    assert draft.views_count == 0
+    # Поле формы из того же тела при этом сохранилось.
+    assert draft.address == "Ахунбаева 12"
+
+
+# -- статус-машина -----------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_publish_of_active_listing_is_conflict(auth: APIClient, user, district) -> None:
+    """Повторная публикация не должна бесплатно продлевать срок в эфире."""
+    published_at = timezone.now() - timedelta(days=10)
+    listing = ListingFactory(
+        owner=user,
+        district=district,
+        status=ListingStatus.ACTIVE,
+        published_at=published_at,
+    )
+
+    response = auth.post(PUBLISH_URL.format(slug=listing.slug))
+
+    assert response.status_code == 409
+    listing.refresh_from_db()
+    assert listing.published_at == published_at
+
+
+@pytest.mark.django_db
+def test_rejected_listing_returns_to_moderation(auth: APIClient, user, district) -> None:
+    """Отклонённое модератором не уходит в эфир мимо повторной проверки."""
+    listing = ListingFactory(
+        owner=user,
+        district=district,
+        status=ListingStatus.REJECTED,
+        kind=PropertyKind.APARTMENT,
+    )
+    ListingMediaFactory(listing=listing, order=0, is_cover=True)
+
+    response = auth.post(PUBLISH_URL.format(slug=listing.slug))
+
+    assert response.status_code == 200
+    listing.refresh_from_db()
+    assert listing.status == ListingStatus.PENDING
+    assert listing.moderation_tasks.exists()
+
+
+@pytest.mark.django_db
+def test_draft_cannot_be_archived_or_bumped(auth: APIClient, user, district) -> None:
+    draft = ListingFactory(owner=user, district=district, status=ListingStatus.DRAFT)
+
+    assert auth.post(ARCHIVE_URL.format(slug=draft.slug)).status_code == 409
+    assert auth.post(BUMP_URL.format(slug=draft.slug)).status_code == 409
+
+    draft.refresh_from_db()
+    assert draft.status == ListingStatus.DRAFT

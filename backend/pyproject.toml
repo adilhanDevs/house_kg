@@ -76,11 +76,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"config/settings/*.py" = [
-    "F403",
-    "F405",  # звёздочный импорт из base — осознанный
+"config/settings.py" = [
     "S105",  # «пароль» в именах вроде PAYMENT_WEBHOOK_SECRET — имя настройки
-    "S108",  # /tmp в настройках тестового окружения
+    "S108",  # /tmp в путях по умолчанию
 ]
 # В тестах assert — это и есть способ проверки, а не небрежность.
 "tests/*.py" = ["S101", "S105", "S106", "S311", "S603", "S607"]
@@ -103,7 +101,9 @@ indent-style = "space"
 # Pytest
 # ----------------------------------------------------------------------------
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings.test"
+# Настройки собраны в один модуль config/settings.py; каталога
+# config/settings/ с base/local/test больше нет.
+DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py", "*_test.py"]
 testpaths = ["tests"]
 addopts = [
@@ -131,9 +131,8 @@ omit = [
     "*/tests/*",
     "config/asgi.py",
     "config/wsgi.py",
-    # Настройки окружений исполняются самим Django до старта покрытия.
-    "config/settings/local.py",
-    "config/settings/production.py",
+    # Настройки исполняются самим Django до старта покрытия.
+    "config/settings.py",
     # Нагрузочный сценарий и генератор данных — инструменты, а не код продукта.
     "loadtest/*",
     "scripts/*",
@@ -157,4 +156,4 @@ warn_unused_ignores = true
 exclude = ["migrations"]
 
 [tool.django-stubs]
-django_settings_module = "config.settings.local"
+django_settings_module = "config.settings"

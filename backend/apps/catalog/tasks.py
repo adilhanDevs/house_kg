@@ -318,6 +318,58 @@ def _process_video(media: Any) -> None:
     logger.info("Видео %s обработано: %s с", media.pk, media.duration_seconds)
 
 
+@shared_task(name="catalog.verify_video_duration", ignore_result=True)
+def verify_video_duration(media_id: int) -> str:
+    """Сверяет реальную длительность ролика с той, что назвал клиент.
+
+    Длительность приходит из плеера приложения — её ничего не мешает занизить
+    и залить двухчасовое видео с `duration_seconds=10`. Проверка идёт по уже
+    сохранённому файлу: ffprobe читает только заголовок контейнера, временных
+    копий и перекодирования здесь нет.
+
+    Файл в S3 (пути на диске нет) или ffprobe не установлен — задача молча
+    выходит: тогда единственным ограничителем остаётся лимит размера файла,
+    который проверяется до записи в хранилище.
+    """
+    from apps.catalog.enums import MediaKind, MediaStatus
+    from apps.catalog.media import local_path, probe_video
+    from apps.catalog.models import ListingMedia
+
+    media = ListingMedia.objects.filter(pk=media_id, kind=MediaKind.VIDEO).first()
+    if media is None or not media.file:
+        return "missing"
+
+    path = local_path(media.file)
+    if path is None:
+        logger.info("Видео %s лежит не на диске — длительность не проверяю", media_id)
+        return "skipped"
+
+    duration = probe_video(path).get("duration_seconds")
+    if duration is None:
+        return "unknown"
+
+    limit = settings.LISTING_VIDEO_MAX_DURATION
+    if duration <= limit:
+        if duration != media.duration_seconds:
+            # Клиент ошибся не критично — просто выравниваем метаданные.
+            ListingMedia.objects.filter(pk=media_id).update(duration_seconds=duration)
+        return "ok"
+
+    logger.warning(
+        "Видео %s длиной %s с превышает лимит %s с — файл удалён",
+        media_id,
+        duration,
+        limit,
+    )
+    media.delete_files()
+    ListingMedia.objects.filter(pk=media_id).update(
+        status=MediaStatus.FAILED,
+        duration_seconds=duration,
+        processing_error=f"Видео длиннее {limit // 60} минут"[:255],
+    )
+    return "too_long"
+
+
 @shared_task(name="catalog.run_moderation_checks", ignore_result=True)
 def run_moderation_checks(listing_id: int) -> dict[str, Any]:
     """Прогоняет автопроверки и записывает их в открытую задачу модерации.

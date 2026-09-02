@@ -244,3 +244,103 @@ def test_access_token_opens_profile(api_client: APIClient, tokens: dict[str, str
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
 
     assert api_client.get(ME_URL).status_code == 200
+
+
+# -- регистрация с паролем ---------------------------------------------------
+#
+# Порядок такой: телефон, имя и пароль собираются на экране регистрации,
+# уходят вместе с кодом в /auth/otp/verify/, и дальше человек входит уже
+# только по паролю. Пароль задаётся после подтверждения кода — до него мы
+# не знаем, владеет ли человек номером.
+
+PASSWORD_LOGIN_URL = "/api/v1/auth/password/login/"
+GOOD_PASSWORD = "Дом-Бишкек-2026"
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_registration_sets_password_and_allows_password_login(api_client: APIClient) -> None:
+    issue_otp(TEST_PHONE)
+
+    registered = api_client.post(
+        VERIFY_URL,
+        {
+            "phone": TEST_PHONE,
+            "code": DEBUG_CODE,
+            "name": "Азамат",
+            "password": GOOD_PASSWORD,
+            **CONSENT,
+        },
+    )
+
+    assert registered.status_code == 200, registered.json()
+    assert registered.json()["is_new_user"] is True
+
+    logged_in = api_client.post(
+        PASSWORD_LOGIN_URL, {"phone": TEST_PHONE, "password": GOOD_PASSWORD}
+    )
+
+    assert logged_in.status_code == 200
+    assert logged_in.json()["access"]
+    assert logged_in.json()["user"]["name"] == "Азамат"
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_code_does_not_overwrite_password_of_existing_account(api_client: APIClient) -> None:
+    """Код подтверждает владение номером, но не даёт сменить пароль."""
+    user = UserFactory(phone=TEST_PHONE)
+    user.set_password(GOOD_PASSWORD)
+    user.save(update_fields=["password"])
+
+    issue_otp(TEST_PHONE)
+    response = api_client.post(
+        VERIFY_URL,
+        {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": "Чужой-Пароль-77", **CONSENT},
+    )
+
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.check_password(GOOD_PASSWORD)
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_weak_password_is_rejected_at_registration(api_client: APIClient) -> None:
+    issue_otp(TEST_PHONE)
+
+    response = api_client.post(
+        VERIFY_URL,
+        {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": "12345678", **CONSENT},
+    )
+
+    assert response.status_code == 400
+    assert "password" in response.json()["error"]["details"]
+    assert User.objects.filter(phone=TEST_PHONE).count() == 0
+
+
+@pytest.mark.django_db
+def test_static_code_does_not_work_for_an_ordinary_number(api_client: APIClient) -> None:
+    """0000 подходил к любому номеру — это был вход в любой аккаунт.
+
+    Номера нет в OTP_TEST_PHONES, значит код случайный, и подобрать его
+    четырьмя нулями нельзя.
+    """
+    stranger = "+996700999888"
+    api_client.post(REQUEST_URL, {"phone": stranger})
+
+    response = api_client.post(VERIFY_URL, {"phone": stranger, "code": DEBUG_CODE, **CONSENT})
+
+    assert response.status_code == 400
+    assert User.objects.filter(phone=stranger).count() == 0
+
+
+@pytest.mark.django_db
+def test_account_without_password_cannot_log_in_with_one(api_client: APIClient) -> None:
+    """Аккаунты, заведённые до пароля, входят не так — и не пускают чужого."""
+    user = UserFactory(phone=TEST_PHONE)
+    assert not user.has_usable_password()
+
+    response = api_client.post(PASSWORD_LOGIN_URL, {"phone": TEST_PHONE, "password": GOOD_PASSWORD})
+
+    assert response.status_code == 401

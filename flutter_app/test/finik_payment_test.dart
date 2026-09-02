@@ -1,241 +1,270 @@
+// Оплата через Finik: счёт выставляет бэкенд, зачисление подтверждает вебхук
+// Finik. Приложение только показывает счёт и опрашивает статус — «подтвердить»
+// оплату из клиента нельзя, и тесты проверяют именно это.
+
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:house_kgz/app/app_state.dart';
-import 'package:house_kgz/app/stage.dart';
 import 'package:house_kgz/data/api_client.dart';
-import 'package:house_kgz/data/finik_payment_service.dart';
-import 'package:house_kgz/data/tariff.dart';
-import 'package:house_kgz/ui/pages/topup_page.dart';
+import 'package:house_kgz/data/topup.dart';
 import 'package:house_kgz/ui/widgets/finik_payment_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _MockPaymentHttpClient extends http.BaseClient {
+/// Бэкенд-заглушка: выставляет счёт и отдаёт статусы по очереди.
+class _MockBillingClient extends http.BaseClient {
+  _MockBillingClient({
+    this.providers = const [],
+    this.statuses = const ['succeeded'],
+    this.balanceAfter = 13200,
+    this.expiresInSeconds = 1800,
+  });
+
+  /// Способы оплаты в ответе на счёт (`providers`).
+  final List<Map<String, dynamic>> providers;
+
+  /// Статусы счёта в порядке опроса.
+  final List<String> statuses;
+  final int balanceAfter;
+  final int expiresInSeconds;
+
+  String? lastIdempotencyKey;
+  int topupRequests = 0;
+  int statusRequests = 0;
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    if (request.url.path == '/api/v1/tariffs/') {
-      return http.StreamedResponse(
-        Stream.value(utf8.encode(jsonEncode([
-          {'code': 'owner', 'name': 'Собственник', 'price_som': 0, 'listings_limit': 5},
-          {'code': 'top', 'name': 'TOP', 'price_som': 1, 'listings_limit': 15},
-          {'code': 'vip', 'name': 'VIP', 'price_som': 1, 'price_bricks': 1, 'listings_limit': 20},
-          {'code': 'premium', 'name': 'Premium', 'price_som': 1, 'price_bricks': 1, 'listings_limit': 20},
-        ]))),
-        200,
-        headers: {'content-type': 'application/json'},
-      );
+    final path = request.url.path;
+
+    if (path == '/api/v1/wallet/topup/' && request.method == 'POST') {
+      topupRequests += 1;
+      lastIdempotencyKey = request.headers['Idempotency-Key'];
+      return _json({
+        'payment_id': 'pay-1',
+        'amount_kgs': '12000.00',
+        'bricks': 12000,
+        'bonus_bricks': 1200,
+        'total_bricks': 13200,
+        'payment_url': 'https://pay.finik.kg/checkout/item-1',
+        'qr_code_url': '',
+        'qr_data': '',
+        'expires_at': DateTime.now()
+            .toUtc()
+            .add(Duration(seconds: expiresInSeconds))
+            .toIso8601String(),
+        'providers': providers,
+      }, 201);
     }
-    if (request.url.path == '/api/v1/subscriptions/') {
-      return http.StreamedResponse(
-        Stream.value(utf8.encode(jsonEncode({'status': 'active', 'tariff_code': 'top'}))),
-        201,
-        headers: {'content-type': 'application/json'},
-      );
+
+    if (path.startsWith('/api/v1/wallet/topup/') && request.method == 'GET') {
+      final index = statusRequests < statuses.length ? statusRequests : statuses.length - 1;
+      statusRequests += 1;
+      final status = statuses[index];
+      return _json({
+        'status': status,
+        'balance': status == 'succeeded' ? balanceAfter : 0,
+        'credited_bricks': status == 'succeeded' ? 13200 : 0,
+      }, 200);
     }
-    if (request.url.path == '/api/v1/wallet/') {
-      return http.StreamedResponse(
-        Stream.value(utf8.encode(jsonEncode({'balance': 1000, 'tariff': 'top'}))),
-        200,
-        headers: {'content-type': 'application/json'},
-      );
+
+    if (path == '/api/v1/wallet/') {
+      return _json({'balance': balanceAfter}, 200);
     }
-    return http.StreamedResponse(Stream.value(utf8.encode(jsonEncode({}))), 200, headers: {'content-type': 'application/json'});
+
+    return _json(const <String, dynamic>{}, 200);
   }
+
+  http.StreamedResponse _json(Object body, int code) => http.StreamedResponse(
+        Stream.value(utf8.encode(jsonEncode(body))),
+        code,
+        headers: {'content-type': 'application/json'},
+      );
+}
+
+AppState _stateWith(_MockBillingClient client) => AppState(
+      apiClient: ListingApiClient(baseUrl: 'http://test.local', client: client),
+    );
+
+Future<void> _openSheet(WidgetTester tester, AppState state) async {
+  // Лист высокий: на дефолтных 800x600 кнопки уезжают за пределы экрана и
+  // тесты «не попадают» по ним.
+  tester.view.physicalSize = const Size(420, 1000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+
+  await tester.pumpWidget(
+    AppScope(
+      state: state,
+      child: MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => showFinikPaymentSheet(
+                context: context,
+                amountSom: 12000,
+                purposeTitle: 'Пополнение кошелька House KG',
+                state: state,
+              ),
+              child: const Text('Открыть Finik'),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  await tester.tap(find.text('Открыть Finik'));
+  await tester.pump();
+  // Лист выезжает анимацией: без неё кнопки остаются ниже экрана и тапы
+  // не доходят. pumpAndSettle тут нельзя — счёт тикает таймером.
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump();
+}
+
+/// Закрывает лист, чтобы не оставлять после теста тикающий таймер счёта.
+Future<void> _closeSheet(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.close));
+  await tester.pumpAndSettle();
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
-  });
+  group('Счёт Finik', () {
+    test('TopupIntent: QR кодирует ссылку оплаты, если провайдер не дал payload', () {
+      final intent = TopupIntent.fromJson({
+        'payment_id': 'pay-1',
+        'amount_kgs': '12000.00',
+        'bricks': 12000,
+        'bonus_bricks': 1200,
+        'total_bricks': 13200,
+        'payment_url': 'https://pay.finik.kg/checkout/item-1',
+        'qr_data': '',
+        'providers': [
+          {'code': 'mbank', 'name': 'MBank', 'deeplink': 'mbank://pay?target=item-1'},
+        ],
+      });
 
-  group('FinikPaymentService', () {
-    test('FinikPaymentStatus enum parsing and helpers', () {
-      expect(FinikPaymentStatus.fromString('paid').isSuccess, isTrue);
-      expect(FinikPaymentStatus.fromString('SUCCESS').isSuccess, isTrue);
-      expect(FinikPaymentStatus.fromString('completed').isSuccess, isTrue);
-      expect(FinikPaymentStatus.fromString('pending').isPending, isTrue);
-      expect(FinikPaymentStatus.fromString('failed').isFailed, isTrue);
-      expect(FinikPaymentStatus.fromString('expired').isFailed, isTrue);
-      expect(FinikPaymentStatus.fromString('cancelled').isFailed, isTrue);
+      expect(intent.qrPayload, 'https://pay.finik.kg/checkout/item-1');
+      expect(intent.providers.single.deeplink, 'mbank://pay?target=item-1');
     });
 
-    test('createInvoice in mock mode generates valid dynamic payment invoice', () async {
-      final service = FinikPaymentService();
-      final response = await service.createInvoice(
-        amount: 15000,
-        orderId: 'test_order_123',
-        description: 'Пополнение 15 000 сом',
-      );
+    test('createTopup передаёт Idempotency-Key', () async {
+      final client = _MockBillingClient();
+      final state = _stateWith(client);
 
-      expect(response.paymentId, isNotEmpty);
-      expect(response.orderId, equals('test_order_123'));
-      expect(response.amount, equals(15000));
-      expect(response.status, equals(FinikPaymentStatus.pending));
-      expect(response.currency, equals('KGS'));
-      expect(response.qrData, contains('finik://pay'));
-      expect(response.qrData, contains('amount=15000'));
-    });
+      final intent = await state.createTopup(12000);
 
-    test('mockConfirmPayment marks invoice as paid', () async {
-      final service = FinikPaymentService();
-      final invoice = await service.createInvoice(amount: 5000);
-      expect(invoice.status, equals(FinikPaymentStatus.pending));
-
-      final confirmed = service.mockConfirmPayment(invoice);
-      expect(confirmed.status, equals(FinikPaymentStatus.paid));
-      expect(confirmed.status.isSuccess, isTrue);
-    });
-
-    test('checkStatus returns updated status', () async {
-      final service = FinikPaymentService();
-      final statusResp = await service.checkStatus('mock_12345');
-      expect(statusResp.status.isSuccess, isTrue);
+      expect(intent.paymentId, 'pay-1');
+      expect(intent.totalBricks, 13200);
+      expect(client.lastIdempotencyKey, isNotNull);
+      expect(client.lastIdempotencyKey, isNotEmpty);
     });
   });
 
-  group('AppState Finik Topup Integration', () {
-    test('createFinikTopup and confirmFinikTopup credits wallet and adds bonus', () async {
-      final state = AppState();
-      final initialBricks = state.walletBalance;
+  group('Платёжный лист', () {
+    testWidgets('без банков с диплинками показывает QR Finik и не рисует вкладки',
+        (tester) async {
+      final state = _stateWith(_MockBillingClient());
+      await _openSheet(tester, state);
 
-      final payment = await state.createFinikTopup(10000);
-      expect(state.topupAmount, equals(10000));
-      expect(state.topupBonus, equals(1000));
-      expect(state.currentFinikPayment, isNotNull);
-
-      await state.confirmFinikTopup(payment);
-
-      // 10000 + 10% bonus (1000) = 11000 bricks added
-      expect(state.walletBalance, equals(initialBricks + 11000));
-      expect(state.wallet.first.kind, equals(WalletEntryKind.topup));
-      expect(state.wallet.first.bricks, equals(10000));
-      expect(state.wallet[1].kind, equals(WalletEntryKind.bonus));
-      expect(state.wallet[1].bricks, equals(1000));
-    });
-  });
-
-  group('TopUpPage Widget Flow with Finik Pay', () {
-    testWidgets('completes full 5-step flow with Finik payment', (tester) async {
-      tester.view.physicalSize = const Size(375, 812);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      final state = AppState();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: AppScope(
-            state: state,
-            child: const Scaffold(
-              body: TopUpPage(),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Step 1: Click Далее (Y=711)
-      final nextButtonFinder = find.byWidgetPredicate(
-        (w) => w is Positioned && w.top == 711.0 && w.height == 54.0,
-      );
-      expect(nextButtonFinder, findsOneWidget);
-      await tester.tap(nextButtonFinder);
-      await tester.pumpAndSettle();
-
-      // Step 2: Click Далее
-      await tester.tap(nextButtonFinder);
-      await tester.pumpAndSettle();
-
-      // Step 3: Enter amount and click Далее to create Finik payment
-      final amountFieldFinder = find.byType(TextField);
-      expect(amountFieldFinder, findsOneWidget);
-      await tester.enterText(amountFieldFinder, '20000');
-
-      await tester.tap(nextButtonFinder);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
-      await tester.pumpAndSettle();
-
-      // Step 4: Bank selection & pay
-      expect(state.topupAmount, equals(20000));
-      expect(state.currentFinikPayment, isNotNull);
-
-      // Tap on bank selection area to confirm payment
-      final bankItemFinder = find.byWidgetPredicate(
-        (widget) => widget is Positioned && widget.top == 480.0,
-      );
-      expect(bankItemFinder, findsOneWidget);
-      await tester.tap(bankItemFinder);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
-      await tester.pumpAndSettle();
-
-      // Step 5: Finished and bricks credited
-      expect(state.walletBalance, greaterThanOrEqualTo(22000)); // 20000 + 2000 bonus
-    });
-
-    testWidgets('showFinikPaymentSheet renders interactive Finik Pay sheet and completes payment', (tester) async {
-      final mockClient = _MockPaymentHttpClient();
-      final apiClient = ListingApiClient(baseUrl: 'http://test.com', client: mockClient);
-      final state = AppState(apiClient: apiClient);
-      await state.authInitialized;
-      state.walletBalance = 1000;
-
-      await tester.pumpWidget(
-        AppScope(
-          state: state,
-          child: MaterialApp(
-            home: Scaffold(
-              body: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () => showFinikPaymentSheet(
-                    context: context,
-                    amountSom: 1,
-                    purposeTitle: 'Подписка на тариф «TOP» (1 месяц)',
-                    tariff: kDefaultTariffPlans[1],
-                    state: state,
-                  ),
-                  child: const Text('Открыть Finik'),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // Open sheet
-      await tester.tap(find.text('Открыть Finik'));
-      await tester.pumpAndSettle();
-
-      // Verify Finik Pay Header and details
       expect(find.text('Finik Pay'), findsOneWidget);
-      expect(find.text('1 сом'), findsOneWidget);
-      expect(find.text('Подписка на тариф «TOP» (1 месяц)'), findsOneWidget);
+      expect(find.text('QR-код Finik'), findsOneWidget);
+      expect(find.text('Банки Кыргызстана'), findsNothing);
+      expect(find.text('Оплатить 12000 сом'), findsOneWidget);
+
+      await _closeSheet(tester);
+    });
+
+    testWidgets('способ оплаты без диплинка не превращается в кнопку выбора',
+        (tester) async {
+      final state = _stateWith(_MockBillingClient(providers: [
+        {'code': 'mbank', 'name': 'MBank', 'deeplink': ''},
+      ]));
+      await _openSheet(tester, state);
+
+      expect(find.text('Банки Кыргызстана'), findsNothing);
+      expect(find.text('QR-код Finik'), findsOneWidget);
+
+      await _closeSheet(tester);
+    });
+
+    testWidgets('банки с диплинками дают вкладки и список выбора', (tester) async {
+      final state = _stateWith(_MockBillingClient(providers: [
+        {'code': 'mbank', 'name': 'MBank', 'deeplink': 'mbank://pay?target=item-1'},
+        {'code': 'optima', 'name': 'Optima24', 'deeplink': 'optima24://pay?target=item-1'},
+      ]));
+      await _openSheet(tester, state);
+
+      expect(find.text('Банки Кыргызстана'), findsOneWidget);
       expect(find.text('MBank'), findsOneWidget);
       expect(find.text('Optima24'), findsOneWidget);
 
-      // Switch to QR tab
       await tester.tap(find.text('QR-код для оплаты'));
-      await tester.pumpAndSettle();
-      expect(find.text('Национальный стандарт QR (ELQR / Finik)'), findsOneWidget);
-
-      // Switch back to banks
-      await tester.tap(find.text('Банки Кыргызстана'));
-      await tester.pumpAndSettle();
-
-      // Pay button
-      expect(find.text('Оплатить 1 сом'), findsOneWidget);
-      await tester.tap(find.text('Оплатить 1 сом'));
       await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('QR-код Finik'), findsOneWidget);
 
-      // Verify subscription activated
-      expect(state.currentTariffCode, 'top');
+      await _closeSheet(tester);
+    });
+
+    testWidgets('успех показывается только после статуса succeeded', (tester) async {
+      final client = _MockBillingClient(statuses: const ['pending', 'succeeded']);
+      final state = _stateWith(client);
+      await _openSheet(tester, state);
+
+      await tester.tap(find.text('Я уже оплатил — проверить статус'));
+      await tester.pump();
+
+      // Первый ответ — pending: успеха ещё нет.
+      expect(find.text('Оплата прошла успешно!'), findsNothing);
+      expect(find.text('Ждём подтверждения оплаты…'), findsOneWidget);
+
+      // Второй опрос через 3 секунды приносит succeeded.
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+      expect(find.text('Оплата прошла успешно!'), findsOneWidget);
+      expect(find.text('Начислено 13200 кирпичей'), findsOneWidget);
+      expect(state.walletBalance, 13200);
+
+      // После успеха лист сам закрывается через 600 мс.
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpAndSettle();
+      expect(find.text('Finik Pay'), findsNothing);
+    });
+
+    testWidgets('отказ провайдера не выдаётся за оплату', (tester) async {
+      final client = _MockBillingClient(statuses: const ['failed']);
+      final state = _stateWith(client);
+      await _openSheet(tester, state);
+
+      await tester.tap(find.text('Я уже оплатил — проверить статус'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Оплата прошла успешно!'), findsNothing);
+      expect(find.text('Оплата не прошла. Попробуйте ещё раз.'), findsOneWidget);
+
+      await _closeSheet(tester);
+    });
+
+    testWidgets('истёкший счёт предлагает выставить новый', (tester) async {
+      final client = _MockBillingClient(expiresInSeconds: -10);
+      final state = _stateWith(client);
+      await _openSheet(tester, state);
+
+      expect(find.text('счёт истёк'), findsOneWidget);
+      expect(find.text('Выставить новый счёт'), findsOneWidget);
+      expect(find.text('Я уже оплатил — проверить статус'), findsNothing);
+
+      // Кнопка выставляет именно новый счёт, а не переиспользует истёкший.
+      await tester.tap(find.text('Выставить новый счёт'));
+      await tester.pump();
+      await tester.pump();
+      expect(client.topupRequests, 2);
+
+      await _closeSheet(tester);
     });
   });
 }
-

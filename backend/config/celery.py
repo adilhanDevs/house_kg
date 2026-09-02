@@ -5,7 +5,7 @@ import os
 from celery import Celery
 from kombu import Queue
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 app = Celery("house_kgz")
 

@@ -4,6 +4,8 @@
 // и того же набора полей.
 import 'package:flutter/foundation.dart';
 
+import 'api_config.dart';
+
 /// «12 000» — тысячи через пробел, как в макете.
 String thousands(int v) {
   final s = v.toString();
@@ -58,10 +60,10 @@ class ListingMedia {
     var u = (json['url'] ?? json['file'] ?? json['url_original'] ?? '').toString();
     var thumb = (json['thumbnail_url'] ?? json['url_thumb'] ?? json['thumbnail'] ?? json['url_medium'])?.toString();
     if (u.startsWith('/')) {
-      u = 'https://adilhan1234.pythonanywhere.com$u';
+      u = '$kApiBaseUrl$u';
     }
     if (thumb != null && thumb.startsWith('/')) {
-      thumb = 'https://adilhan1234.pythonanywhere.com$thumb';
+      thumb = '$kApiBaseUrl$thumb';
     }
     return ListingMedia(
       url: u,
@@ -133,15 +135,15 @@ class Listing {
     this.belowMarket = false,
     this.redBook = false,
     this.oldPriceUsd,
-    this.address = 'Бишкек, Октябрьский район,\nул.Бакаева 178/4',
-    this.agent = 'Садыр Жапаров',
-    this.description = kFillerDescription,
-    this.more = const [ListingPhotos.livingRoom, ListingPhotos.terrace],
+    this.address = '',
+    this.agent = '',
+    this.description = '',
+    this.more = const [],
     this.videos = const [],
     this.viewsCount = 0,
     this.sellerPhone,
     this.isFavourite = false,
-    this.furniture = 'Полностью',
+    this.furniture = '',
     List<String>? landmarks,
     this.latitude,
     this.longitude,
@@ -202,24 +204,9 @@ class Listing {
     }
 
     final districtName = (json['district'] != null && json['district'] is Map) 
-        ? json['district']['name'] as String? ?? 'Неизвестно' 
-        : 'Неизвестно';
+        ? json['district']['name'] as String? ?? '' 
+        : (json['district'] is String ? json['district'] as String : '');
     final slug = json['slug'] as String? ?? json['id']?.toString() ?? '';
-
-    String pickPhoto(dynamic coverUrl) {
-      if (coverUrl != null && coverUrl.toString().isNotEmpty) {
-        return coverUrl.toString();
-      }
-      final d = districtName.toLowerCase();
-      final s = slug.toLowerCase();
-      if (d.contains('асанбай') || s.contains('asanbay')) {
-        return ListingPhotos.asanbay;
-      }
-      if (d.contains('южные') || s.contains('yuzhnye') || s.contains('house')) {
-        return ListingPhotos.villa;
-      }
-      return ListingPhotos.technopark;
-    }
 
     final mediaList = (json['media'] as List<dynamic>?) ?? [];
     final photoUrls = <String>[];
@@ -232,7 +219,7 @@ class Listing {
           if (u != null && u.toString().isNotEmpty) {
             var str = u.toString();
             if (str.startsWith('/')) {
-              str = 'https://adilhan1234.pythonanywhere.com$str';
+              str = '$kApiBaseUrl$str';
             }
             if (!photoUrls.contains(str)) {
               photoUrls.add(str);
@@ -246,13 +233,13 @@ class Listing {
       for (final p in json['photos']) {
         if (p is String && p.isNotEmpty) {
           var str = p;
-          if (str.startsWith('/')) str = 'https://adilhan1234.pythonanywhere.com$str';
+          if (str.startsWith('/')) str = '$kApiBaseUrl$str';
           if (!photoUrls.contains(str)) photoUrls.add(str);
         } else if (p is Map) {
           final u = p['url_original'] ?? p['url_medium'] ?? p['url'] ?? p['file'] ?? p['url_thumb'] ?? p['image'];
           if (u != null && u.toString().isNotEmpty) {
             var str = u.toString();
-            if (str.startsWith('/')) str = 'https://adilhan1234.pythonanywhere.com$str';
+            if (str.startsWith('/')) str = '$kApiBaseUrl$str';
             if (!photoUrls.contains(str)) photoUrls.add(str);
           }
         }
@@ -262,7 +249,7 @@ class Listing {
     final coverVal = json['cover_url'] ?? json['photo'];
     if (coverVal != null && coverVal.toString().isNotEmpty) {
       var str = coverVal.toString();
-      if (str.startsWith('/')) str = 'https://adilhan1234.pythonanywhere.com$str';
+      if (str.startsWith('/')) str = '$kApiBaseUrl$str';
       if (!photoUrls.contains(str)) {
         photoUrls.insert(0, str);
       }
@@ -274,13 +261,13 @@ class Listing {
       photo = photoUrls.first;
       morePhotos = photoUrls.skip(1).toList();
     } else {
-      photo = pickPhoto(json['cover_url'] ?? json['photo']);
+      photo = '';
       morePhotos = const <String>[];
     }
 
     final sellerMap = json['seller'] as Map?;
     final ownerMap = json['owner'] as Map?;
-    final sellerName = sellerMap?['name'] as String? ?? ownerMap?['name'] as String? ?? 'Адилхан Сатымкулов';
+    final sellerName = sellerMap?['name'] as String? ?? ownerMap?['name'] as String? ?? '';
 
     // Экспликация помещений приходит списком: у одной квартиры есть холл и
     // две спальни, у другой только кухня и балкон. Подставлять недостающие
@@ -322,13 +309,13 @@ class Listing {
       buildingLine: json['building_line'] as String? ?? '',
       ceilingHeight: parseDoubleOrNull(json['ceiling_height']),
       status: json['status']?.toString() ?? 'active',
-      description: json['description'] as String? ?? kFillerDescription,
-      address: json['address'] as String? ?? 'Бишкек, Октябрьский район,\nул.Бакаева 178/4',
+      description: json['description'] as String? ?? '',
+      address: json['address'] as String? ?? '',
       viewsCount: parseInt(json['views_count']),
       sellerPhone: sellerMap?['phone'] as String? ?? sellerMap?['phone_number'] as String? ?? ownerMap?['phone'] as String?,
       videos: ((json['videos'] as List<dynamic>?) ??
               (json['media'] as List<dynamic>?)
-                  ?.where((m) => m is Map && m['kind'] == 'video')
+                  ?.where((m) => m is Map && (m['kind'] == 'video' || m['is_video'] == true))
                   .toList())
           ?.map((e) => ListingMedia.fromJson(e as Map<String, dynamic>))
           .toList() ??
@@ -340,12 +327,13 @@ class Listing {
               .where((s) => s.isNotEmpty)
               .cast<String>()
               .toList()
-          : const ['Школа 56', 'Магистраль-Бакаева', 'Клиника Эскулап'],
+          : const [],
       latitude: parseDoubleOrNull(json['latitude']),
       longitude: parseDoubleOrNull(json['longitude']),
       hasDirectSale: json['has_direct_sale'] as bool? ?? true,
       hasMortgage: json['has_mortgage'] as bool? ?? true,
       roomsBreakdown: parsedRooms,
+      furniture: json['furniture'] as String? ?? '',
       viewedAt: json['viewed_at'] != null
           ? DateTime.tryParse(json['viewed_at'].toString())?.toLocal()
           : null,

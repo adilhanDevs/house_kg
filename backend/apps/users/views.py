@@ -92,7 +92,7 @@ from apps.users.serializers import (
 )
 from apps.users.services import (
     anonymize_user,
-    authenticate_pro,
+    authenticate_by_password,
     issue_otp,
     issue_tokens,
     latest_identity,
@@ -167,7 +167,10 @@ class OtpVerifyView(GenericAPIView):
         summary="Подтвердить код и войти",
         description=(
             "Проверяет последний неиспользованный код номера. Новый пользователь "
-            "создаётся автоматически — имя берётся из поля `name`.\n\n"
+            "создаётся автоматически — имя берётся из поля `name`, пароль из "
+            "`password`. Пароль существующего аккаунта этим запросом не меняется: "
+            "код подтверждает владение номером, но не даёт права переписать "
+            "учётные данные.\n\n"
             "Неверный код: 400 «Неверный код» и `details.attempts_left`. "
             "После пяти неудачных попыток код сжигается.\n\n"
             "Для нового пользователя обязателен `accepted_terms_version` — "
@@ -191,6 +194,7 @@ class OtpVerifyView(GenericAPIView):
             name=data.get("name", ""),
             purpose=data["purpose"],
             accepted_terms_version=data.get("accepted_terms_version", ""),
+            password=data.get("password", ""),
             request=request,
         )
 
@@ -208,7 +212,8 @@ class ProRegisterView(GenericAPIView):
 
     permission_classes = [AllowAny]
     authentication_classes: list = []
-    throttle_classes: list = []
+    # Запрос высылает SMS — те же лимиты, что и у обычного запроса кода.
+    throttle_classes = [OtpPhoneResendThrottle, OtpPhoneHourlyThrottle, OtpIpThrottle]
     serializer_class = ProRegisterSerializer
 
     @extend_schema(
@@ -251,20 +256,25 @@ class ProRegisterView(GenericAPIView):
 
 
 class PasswordLoginView(GenericAPIView):
-    """POST /api/v1/auth/password/login/ — вход исполнителя по паролю."""
+    """POST /api/v1/auth/password/login/ — вход по паролю."""
 
     permission_classes = [AllowAny]
     authentication_classes: list = []
-    throttle_classes: list = []
+    # Основной вход в приложение: без ограничения попыток пароль подбирается
+    # перебором. Сами значения лимитов задаются переменными окружения
+    # PASSWORD_LOGIN_PHONE_THROTTLE и PASSWORD_LOGIN_IP_THROTTLE.
+    throttle_classes = [PasswordLoginPhoneThrottle, PasswordLoginIpThrottle]
     serializer_class = PasswordLoginSerializer
 
     @extend_schema(
         operation_id="auth_password_login",
-        summary="Вход по паролю (только pro)",
+        summary="Вход по паролю",
         description=(
-            "Доступен подтверждённым исполнителям. При неверных данных — 401 с общим "
+            "Основной способ входа: пароль задаётся при регистрации, после "
+            "подтверждения кода из SMS. При неверных данных — 401 с общим "
             "сообщением: по ответу нельзя понять, зарегистрирован ли номер.\n\n"
-            "Лимиты: 10 попыток в час на номер, 30 — с одного IP."
+            "Аккаунты без пароля войти так не могут — им нужна регистрация "
+            "или вход по коду."
         ),
         responses={
             status.HTTP_200_OK: AuthTokensSerializer,
@@ -277,7 +287,7 @@ class PasswordLoginView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = authenticate_pro(
+        user = authenticate_by_password(
             serializer.validated_data["phone"],
             serializer.validated_data["password"],
         )

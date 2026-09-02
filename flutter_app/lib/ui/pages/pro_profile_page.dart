@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../auth_guard.dart';
 import '../../app/stage.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
@@ -253,7 +254,10 @@ class _ProProfilePageState extends State<ProProfilePage> {
           height: 64.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.ad),
+            onTap: () {
+            if (!requireAuth(context, reason: 'Войдите, чтобы разместить объявление')) return;
+            Navigator.of(context).pushNamed(Routes.ad);
+          },
           ),
         ),
 

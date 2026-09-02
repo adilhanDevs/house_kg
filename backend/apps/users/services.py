@@ -50,8 +50,13 @@ def generate_code(length: int | None = None) -> str:
 
 
 def uses_static_code(phone: str) -> bool:
-    """Всегда возвращаем статический код (0000) без отправки SMS."""
-    return True
+    """В отладке и для тестовых номеров код фиксирован, SMS не отправляется.
+
+    Функция какое-то время возвращала True всегда — тогда код `0000` подходил
+    к любому номеру, и войти можно было в любой аккаунт, зная только телефон.
+    Список тестовых номеров задаётся переменной `OTP_TEST_PHONES`.
+    """
+    return bool(settings.DEBUG) or phone in settings.OTP_TEST_PHONES
 
 
 def issue_otp(phone: str, purpose: str = OtpPurpose.LOGIN) -> tuple[OtpCode, bool]:
@@ -95,6 +100,7 @@ def verify_otp(
     name: str = "",
     purpose: str = OtpPurpose.LOGIN,
     accepted_terms_version: str = "",
+    password: str = "",
     request: Any = None,
 ) -> tuple[User, bool]:
     """Проверяет код и возвращает (пользователь, новый ли он).
@@ -105,6 +111,10 @@ def verify_otp(
 
     Регистрация нового аккаунта требует согласия на обработку ПДн: без
     `accepted_terms_version` пользователь не создаётся.
+
+    `password` задаётся ТОЛЬКО при создании аккаунта: дальше вход идёт по
+    паролю, и подтверждение кода не должно уметь менять пароль существующему
+    пользователю — иначе это готовый способ угнать чужой аккаунт.
     """
     from apps.users.privacy import has_consent, record_consent, require_terms_version
 
@@ -141,7 +151,7 @@ def verify_otp(
     with transaction.atomic():
         otp.is_used = True
         otp.save(update_fields=["is_used"])
-        user, is_new_user = _get_or_create_user(phone, name, purpose)
+        user, is_new_user = _get_or_create_user(phone, name, purpose, password)
         if purpose == OtpPurpose.PRO_REGISTER:
             activate_pro(user)
         if needs_consent:
@@ -151,10 +161,14 @@ def verify_otp(
     return user, is_new_user
 
 
-def _get_or_create_user(phone: str, name: str, purpose: str) -> tuple[User, bool]:
+def _get_or_create_user(
+    phone: str, name: str, purpose: str, password: str = ""
+) -> tuple[User, bool]:
     user = User.objects.filter(phone=phone).first()
     if user is not None:
-        # Имя существующего пользователя запросом на вход не переписываем.
+        # Ни имя, ни пароль существующего пользователя подтверждением кода
+        # не переписываем: код — доказательство владения номером, а не
+        # разрешение менять учётные данные.
         return user, False
 
     user = User.objects.create_user(
@@ -163,6 +177,9 @@ def _get_or_create_user(phone: str, name: str, purpose: str) -> tuple[User, bool
         is_active=True,
         is_pro=purpose == OtpPurpose.PRO_REGISTER,
     )
+    if password:
+        user.set_password(password)
+        user.save(update_fields=["password"])
     return user, True
 
 
@@ -236,8 +253,13 @@ def register_pro(
 LOGIN_FAILED_MESSAGE = "Неверный номер телефона или пароль."
 
 
-def authenticate_pro(phone: str, password: str) -> User:
-    """Вход по паролю — только для подтверждённых исполнителей."""
+def authenticate_by_password(phone: str, password: str) -> User:
+    """Вход по паролю — основной способ входа.
+
+    Пароль задаётся один раз при регистрации, после подтверждения кода из SMS.
+    У кого пароля нет (аккаунты, заведённые до этого), `check_password` вернёт
+    False на нечитаемом хеше — вход просто не состоится.
+    """
     user = User.objects.filter(phone=phone).first()
 
     if user is None:
@@ -245,8 +267,7 @@ def authenticate_pro(phone: str, password: str) -> User:
         User().check_password(password)
         raise InvalidCredentialsError(LOGIN_FAILED_MESSAGE)
 
-    is_seller_or_pro = bool(user.is_pro or hasattr(user, "seller_profile") or user.is_staff or user.is_superuser)
-    if not (user.is_active and is_seller_or_pro and user.check_password(password)):
+    if not (user.is_active and user.check_password(password)):
         audit(
             actor=user,
             action=AuditLog.Action.PASSWORD_LOGIN,

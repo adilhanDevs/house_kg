@@ -10,6 +10,7 @@ import '../../app/route_observer.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/api_client.dart';
+import '../../data/api_config.dart';
 import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
@@ -54,85 +55,6 @@ class _ListingFeedItem {
   });
 }
 
-/// У каждого из 5 объявлений СВОЁ УНИКАЛЬНОЕ первое видео
-final List<_ListingFeedItem> kVideoListings = [
-  _ListingFeedItem(
-    listing: listingById('technopark'),
-    videos: const [
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_1.mp4',
-        title: 'Обзор квартиры — Технопарк',
-        description: 'Просторная 3-комнатная квартира с дизайнерским ремонтом.',
-      ),
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_2.mp4',
-        title: 'Обзор территории — Технопарк',
-        description: 'Тихий и удобный район, парковочные места и зелёный двор.',
-      ),
-    ],
-  ),
-  _ListingFeedItem(
-    listing: listingById('asanbay'),
-    videos: const [
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_2.mp4',
-        title: 'Обзор квартиры — Асанбай',
-        description: '🏡 Сатылат 4 бөлмөлүү батир — 102 м². Району: Аю-Грант.',
-      ),
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_3.mp4',
-        title: 'Планировка и интерьер — Асанбай',
-        description: 'Кең жана ыңгайлуу 4 бөлмөлүү батир с качественной отделкой.',
-      ),
-    ],
-  ),
-  _ListingFeedItem(
-    listing: listingById('kok-jar'),
-    videos: const [
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_3.mp4',
-        title: 'Обзор дома — Кок-Жар',
-        description: '🏡 Собственный дом без первоначального взноса!',
-      ),
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_4.mp4',
-        title: 'Участок и сад — Кок-Жар',
-        description: 'Ежемесячный платеж всего от 48 000 сом. Это реально!',
-      ),
-    ],
-  ),
-  _ListingFeedItem(
-    listing: listingById('djal'),
-    videos: const [
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_4.mp4',
-        title: 'Обзор объекта — 7-микрорайон',
-        description: '🏡 7-кичи райондо 3 бөлмөлүү батир сатылат. 105-серия.',
-      ),
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_5.mp4',
-        title: 'Инфраструктура — 7-микрорайон',
-        description: 'Рядом сквер, магазины и удобная транспортная развязка.',
-      ),
-    ],
-  ),
-  _ListingFeedItem(
-    listing: listingById('center'),
-    videos: const [
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_5.mp4',
-        title: 'Срочно продаётся дом — Центр',
-        description: '🚨 Срочно продаётся дом! 🏡📍 Рядом с жилмассивом Алтын Ордо.',
-      ),
-      _SubVideo(
-        asset: 'assets/videos_obzor/video_1.mp4',
-        title: 'Прилегающая территория — Центр',
-        description: 'Отличный вариант для комфортного проживания семьи.',
-      ),
-    ],
-  ),
-];
-
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key, required this.id, this.initialVideoIndex = 0});
 
@@ -144,19 +66,18 @@ class VideoPage extends StatefulWidget {
 }
 
 class _VideoPageState extends State<VideoPage> {
-  late final PageController _verticalPages;
+  final PageController _verticalPages = PageController();
   final Map<int, PageController> _horizontalControllers = {};
-  int _listingIndex = 0;
-  final Map<int, int> _subVideoIndices = {};
-  bool _isMuted = false;
-
   final GlobalKey<_VideoPlayerItemState> _playerKey = GlobalKey<_VideoPlayerItemState>();
 
   final List<_ListingFeedItem> _feed = [];
+  final Map<int, int> _subVideoIndices = {};
+  int _listingIndex = 0;
+  bool _isMuted = false;
   bool _isLoading = false;
-  String? _nextCursor;
   bool _hasMore = true;
-  late final ListingRepository _repository;
+  String? _nextCursor;
+  ListingRepository? _repository;
 
   @override
   void initState() {
@@ -164,37 +85,37 @@ class _VideoPageState extends State<VideoPage> {
     if (widget.initialVideoIndex > 0) {
       _subVideoIndices[0] = widget.initialVideoIndex;
     }
-    _repository = ListingRepository(ListingApiClient(baseUrl: 'https://adilhan1234.pythonanywhere.com'));
-    _verticalPages = PageController();
-    _loadNextPage();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final state = AppScope.of(context);
+    _repository = ListingRepository(state.apiClient);
+    if (_feed.isEmpty && !_isLoading) {
+      _loadNextPage();
+    }
   }
 
   Future<void> _loadNextPage() async {
     if (_isLoading || !_hasMore) return;
+    final repo = _repository ?? ListingRepository(AppScope.read(context).apiClient);
+    _repository = repo;
     setState(() => _isLoading = true);
     try {
       if (_feed.isEmpty && widget.id.isNotEmpty) {
         try {
-          final targetListing = await _repository.getListingDetails(widget.id);
+          final targetListing = await repo.getListingDetails(widget.id);
           if (targetListing.videos.isNotEmpty) {
             _feed.add(_ListingFeedItem(
               listing: targetListing,
               videos: targetListing.videos.map((v) => _SubVideo(
                 asset: v.url,
-                title: (v.title != null && v.title!.isNotEmpty) ? v.title! : 'Обзор — ${targetListing.district}',
+                title: (v.title != null && v.title!.isNotEmpty) 
+                    ? v.title! 
+                    : (targetListing.district.isNotEmpty ? 'Обзор — ${targetListing.district}' : 'Видеообзор'),
                 description: (v.description != null && v.description!.isNotEmpty) ? v.description! : targetListing.description,
               )).toList(),
-            ));
-          } else {
-            _feed.add(_ListingFeedItem(
-              listing: targetListing,
-              videos: [
-                _SubVideo(
-                  asset: 'assets/videos_obzor/video_1.mp4',
-                  title: 'Видеообзор — ${targetListing.district}',
-                  description: targetListing.description,
-                ),
-              ],
             ));
           }
         } catch (e) {
@@ -202,42 +123,32 @@ class _VideoPageState extends State<VideoPage> {
         }
       }
 
-      final response = await _repository.getReelsFeed(cursor: _nextCursor);
+      final response = await repo.getReelsFeed(cursor: _nextCursor);
       for (final l in response.results) {
         if (!_feed.any((f) => f.listing.id == l.id)) {
-          final vids = l.videos.isNotEmpty 
-              ? l.videos.map((v) => _SubVideo(
-                  asset: v.url,
-                  title: (v.title != null && v.title!.isNotEmpty) ? v.title! : 'Обзор — ${l.district}',
-                  description: (v.description != null && v.description!.isNotEmpty) ? v.description! : l.description,
-                )).toList()
-              : [
-                  _SubVideo(
-                    asset: 'assets/videos_obzor/video_1.mp4',
-                    title: 'Видеообзор — ${l.district}',
-                    description: l.description,
-                  ),
-                ];
-          _feed.add(_ListingFeedItem(
-            listing: l,
-            videos: vids,
-          ));
+          if (l.videos.isNotEmpty) {
+            final vids = l.videos.map((v) => _SubVideo(
+              asset: v.url,
+              title: (v.title != null && v.title!.isNotEmpty)
+                  ? v.title!
+                  : (l.district.isNotEmpty ? 'Обзор — ${l.district}' : 'Видеообзор'),
+              description: (v.description != null && v.description!.isNotEmpty) ? v.description! : l.description,
+            )).toList();
+            _feed.add(_ListingFeedItem(
+              listing: l,
+              videos: vids,
+            ));
+          }
         }
       }
 
-      if (_feed.isEmpty) {
-        _feed.addAll(kVideoListings);
-      }
-
+      if (!mounted) return;
       setState(() {
         _nextCursor = response.nextCursor;
         _hasMore = response.nextCursor != null;
       });
     } catch (e) {
       debugPrint('Error loading reels: $e');
-      if (_feed.isEmpty) {
-        _feed.addAll(kVideoListings);
-      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -301,10 +212,27 @@ class _VideoPageState extends State<VideoPage> {
   @override
   Widget build(BuildContext context) {
     if (_feed.isEmpty) {
-      return const Scaffold(
-        backgroundColor: Color(0xff1c1b19),
+      return Scaffold(
+        backgroundColor: const Color(0xff1c1b19),
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xffea812e)),
+          child: _isLoading
+              ? const CircularProgressIndicator(color: Color(0xffea812e))
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.videocam_off_outlined, color: Color(0xff8e8e93), size: 56),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Видеообзоров пока нет',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      child: const Text('Назад', style: TextStyle(color: Color(0xffea812e), fontSize: 15)),
+                    ),
+                  ],
+                ),
         ),
       );
     }
@@ -976,12 +904,7 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
                     fit: BoxFit.cover,
                     fallback: const ColoredBox(color: Color(0xff1c1b19)),
                   )
-                : Image.asset(
-                    widget.posterPhoto,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, _, _) =>
-                        const ColoredBox(color: Color(0xff1c1b19)),
-                  ),
+                : const ColoredBox(color: Color(0xff1c1b19)),
 
           // Индикатор загрузки
           if (!_isInitialized)

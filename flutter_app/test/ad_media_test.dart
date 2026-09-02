@@ -2,6 +2,7 @@
 //
 // Настоящие галерея и камера здесь недоступны, поэтому на место источника
 // файлов встаёт заглушка — проверяем всё, что вокруг него.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -11,6 +12,7 @@ import 'package:house_kgz/app/app.dart';
 import 'package:house_kgz/app/app_state.dart';
 import 'package:house_kgz/app/routes.dart';
 import 'package:house_kgz/data/ad_media.dart';
+import 'package:house_kgz/data/video_poster.dart';
 import 'package:house_kgz/ui/media_tile.dart';
 
 /// Однопиксельный PNG — на его месте в жизни лежит выбранный снимок.
@@ -31,7 +33,15 @@ void ignoreOverflow() {
 
 /// Источник файлов, который отдаёт что велено.
 class FakeMedia implements MediaSource {
-  FakeMedia({this.photosPerPick = 1, this.hasVideo = true, this.fails = false});
+  FakeMedia({
+    this.photosPerPick = 1,
+    this.hasVideo = true,
+    this.fails = false,
+    this.videoPath,
+  });
+
+  /// Путь к «выбранному» ролику. Задан — AppState попробует снять обложку.
+  final String? videoPath;
 
   /// Сколько снимков «выбирает» пользователь за один раз.
   int photosPerPick;
@@ -58,7 +68,7 @@ class FakeMedia implements MediaSource {
   Future<AdMedia?> video({required bool camera}) async {
     cameraCalls.add(camera);
     if (fails) throw StateError('нет доступа');
-    return hasVideo ? const AdMedia(name: 'REELS.mp4', video: true) : null;
+    return hasVideo ? AdMedia(name: 'REELS.mp4', path: videoPath, video: true) : null;
   }
 }
 
@@ -108,18 +118,22 @@ void main() {
       await addFrom(tester, 'Сделать снимок');
 
       expect(media.cameraCalls, [true]);
-      expect(state.draftPhotos, 7);
+      expect(state.draftPhotos, 1);
     });
 
     testWidgets('крестик убирает снимок', (tester) async {
-      final state = await openAd(tester, FakeMedia(), route: Routes.adPhotos);
+      final media = FakeMedia(photosPerPick: 1);
+      final state = await openAd(tester, media, route: Routes.adPhotos);
+      await addFrom(tester, 'Выбрать из галереи');
+      expect(state.draftPhotos, 1);
+
       final first = state.draftGallery.first;
 
       await tester.tap(find.byKey(removeKey(first)));
       await tester.pumpAndSettle();
 
       expect(state.draftGallery, isNot(contains(first)));
-      expect(state.draftPhotos, 5);
+      expect(state.draftPhotos, 0);
     });
 
     testWidgets('сверх предела снимки не берём', (tester) async {
@@ -146,7 +160,7 @@ void main() {
 
       await addFrom(tester, 'Выбрать из галереи');
 
-      expect(state.draftPhotos, 6);
+      expect(state.draftPhotos, 0);
       expect(find.text('Не получилось открыть галерею'), findsOneWidget);
     });
   });
@@ -155,13 +169,13 @@ void main() {
     testWidgets('выбранный ролик встаёт в «Было добавлено»', (tester) async {
       final media = FakeMedia();
       final state = await openAd(tester, media, route: Routes.adVideo);
-      expect(state.draftVideos, 1);
+      expect(state.draftVideos, 0);
 
       await addFrom(tester, 'Выбрать ролик из галереи');
 
-      expect(state.draftVideos, 2);
+      expect(state.draftVideos, 1);
       expect(state.draftVideoList.last.name, 'REELS.mp4');
-      expect(find.byType(AdMediaTile), findsNWidgets(2));
+      expect(find.byType(AdMediaTile), findsNWidgets(1));
       expect(find.text('Ролик добавлен'), findsOneWidget);
     });
 
@@ -172,12 +186,16 @@ void main() {
       await addFrom(tester, 'Снять видео');
 
       expect(media.cameraCalls, [true]);
-      expect(state.draftVideos, 1);
+      expect(state.draftVideos, 0);
       expect(find.text('Ролик добавлен'), findsNothing);
     });
 
     testWidgets('крестик убирает ролик', (tester) async {
-      final state = await openAd(tester, FakeMedia(), route: Routes.adVideo);
+      final media = FakeMedia();
+      final state = await openAd(tester, media, route: Routes.adVideo);
+      await addFrom(tester, 'Выбрать ролик из галереи');
+      expect(state.draftVideos, 1);
+
       final first = state.draftVideoList.first;
 
       await tester.tap(find.byKey(removeKey(first)));
@@ -187,4 +205,66 @@ void main() {
       expect(find.text('Пока ни одного ролика'), findsOneWidget);
     });
   });
+
+  group('обложка ролика', () {
+    test('ролик добавляется сразу, не дожидаясь кадра', () async {
+      final started = Completer<void>();
+      final release = Completer<VideoPoster>();
+
+      final state = AppState(
+        media: FakeMedia(videoPath: '/tmp/REELS.mp4'),
+        posterCapture: (path) {
+          started.complete();
+          return release.future; // кадр «снимается» бесконечно долго
+        },
+      );
+
+      final added = await state.addVideo(camera: false);
+
+      expect(added, 1, reason: 'ролик в списке до того, как снят кадр');
+      expect(state.draftVideoList.single.path, '/tmp/REELS.mp4');
+      await started.future; // съёмка кадра действительно началась
+      expect(state.draftVideoList.single.posterBytes, isNull);
+
+      release.complete(VideoPoster.none);
+    });
+
+    test('кадр дописывается в уже добавленный ролик', () async {
+      final state = AppState(
+        media: FakeMedia(videoPath: '/tmp/REELS.mp4'),
+        posterCapture: (path) async => VideoPoster(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          durationSeconds: 42,
+          width: 1920,
+          height: 1080,
+        ),
+      );
+
+      var notified = 0;
+      state.addListener(() => notified++);
+
+      await state.addVideo(camera: false);
+      await Future<void>.delayed(Duration.zero);
+
+      final video = state.draftVideoList.single;
+      expect(video.posterBytes, isNotNull);
+      expect(video.durationSeconds, 42);
+      expect(video.width, 1920);
+      expect(notified, greaterThanOrEqualTo(2), reason: 'экран узнал про обложку');
+    });
+
+    test('провал съёмки кадра не убирает ролик из списка', () async {
+      final state = AppState(
+        media: FakeMedia(videoPath: '/tmp/REELS.mp4'),
+        posterCapture: (path) async => throw StateError('плагина нет'),
+      );
+
+      await state.addVideo(camera: false);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(state.draftVideoList, hasLength(1));
+      expect(state.draftVideoList.single.posterBytes, isNull);
+    });
+  });
+
 }

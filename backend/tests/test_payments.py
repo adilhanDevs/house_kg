@@ -173,7 +173,7 @@ def test_someone_elses_key_is_rejected(auth: APIClient) -> None:
 @pytest.mark.django_db
 @webhook_settings
 def test_amount_below_minimum_is_rejected(auth: APIClient) -> None:
-    response = create_payment(auth, amount=50)
+    response = create_payment(auth, amount=0)
 
     assert response.status_code == 400
     assert "amount_kgs" in response.json()["error"]["details"]

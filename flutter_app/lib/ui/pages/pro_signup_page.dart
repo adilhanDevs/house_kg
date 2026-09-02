@@ -56,7 +56,14 @@ class _ProSignupPageState extends State<ProSignupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FigStage(
+    // Scaffold нужен не ради оформления: SnackBar показывается через
+    // ближайший зарегистрированный Scaffold, а FigStage — это Material.
+    // Без него сообщения об ошибках просто не появлялись на экране.
+    return Scaffold(
+      backgroundColor: const Color(0xffffffff),
+      // Отступ под клавиатуру считает сама сцена.
+      resizeToAvoidBottomInset: false,
+      body: FigStage(
       frame: frame('56'),
       background: const Color(0xffffffff),
       overlays: [
@@ -114,6 +121,7 @@ class _ProSignupPageState extends State<ProSignupPage> {
           onTap: _onNext,
         ),
       ],
+      ),
     );
   }
 }

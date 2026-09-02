@@ -128,11 +128,17 @@ def validate_photo(data: bytes) -> tuple[int, int]:
     return width, height
 
 
-def validate_video(data: bytes, source_path: str | None = None) -> dict[str, Any]:
+def validate_video(
+    data: bytes,
+    source_path: str | None = None,
+    duration_seconds: int | None = None,
+) -> dict[str, Any]:
     """Проверяет тип, размер и длительность видео ДО сохранения в хранилище.
 
-    Длительность читается ffprobe'ом: 200-мегабайтный файл на четыре минуты
-    незачем класть в бакет только чтобы потом удалить.
+    Длительность приходит с клиента (`duration_seconds`): приложение знает её
+    из плеера, и ради одного числа сервер больше не пишет 200-мегабайтную
+    временную копию, чтобы натравить на неё ffprobe. `source_path` остался для
+    вызовов, где файл уже лежит на диске — тогда данные берутся у ffprobe.
     """
     spec = upload_spec(MediaKind.VIDEO)
 
@@ -150,6 +156,9 @@ def validate_video(data: bytes, source_path: str | None = None) -> dict[str, Any
         )
 
     probe = probe_video(source_path) if source_path else {}
+    if duration_seconds is not None:
+        probe.setdefault("duration_seconds", int(duration_seconds))
+
     duration = probe.get("duration_seconds")
     limit = settings.LISTING_VIDEO_MAX_DURATION
 

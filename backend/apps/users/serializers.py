@@ -153,9 +153,38 @@ class OtpVerifySerializer(serializers.Serializer):
         default="",
         help_text="Версия принятого соглашения (см. GET /app/pages/terms/).",
     )
+    # Пароль задаётся здесь, а не в отдельном запросе до подтверждения: до
+    # ввода кода мы не знаем, владеет ли человек номером, и заводить под него
+    # учётные данные рано.
+    password = serializers.CharField(
+        max_length=128,
+        required=False,
+        allow_blank=True,
+        default="",
+        write_only=True,
+        style={"input_type": "password"},
+        help_text="Пароль для входа. Учитывается только при создании аккаунта.",
+    )
 
     def validate_phone(self, value: str) -> str:
         return normalize_phone(value)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Пароль — теми же правилами, что и у исполнителя.
+
+        Пустой пропускаем: вход по коду пароля не требует, поле заполняется
+        только на регистрации.
+        """
+        password = attrs.get("password") or ""
+        if not password:
+            return attrs
+
+        candidate = User(phone=attrs["phone"], name=attrs.get("name", ""))
+        try:
+            validate_password(password, user=candidate)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"password": list(exc.messages)}) from exc
+        return attrs
 
 
 class AuthTokensSerializer(serializers.Serializer):

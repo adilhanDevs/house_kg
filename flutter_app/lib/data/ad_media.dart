@@ -7,6 +7,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'video_poster.dart';
+
 /// Один приложенный файл.
 @immutable
 class AdMedia {
@@ -15,6 +17,11 @@ class AdMedia {
     this.asset,
     this.url,
     this.bytes,
+    this.path,
+    this.posterBytes,
+    this.durationSeconds,
+    this.width,
+    this.height,
     this.video = false,
     this.id,
     this.title,
@@ -52,9 +59,22 @@ class AdMedia {
   /// Картинка с бэкенда.
   final String? url;
 
-  /// Содержимое выбранного файла. У ролика его нет: кадр-обложку из видео без
-  /// отдельного плеера не достать, поэтому карточка рисует заглушку.
+  /// Содержимое выбранного файла. У ролика его нет: он весит десятки мегабайт
+  /// и уходит на сервер потоком с диска, а не через память.
   final Uint8List? bytes;
+
+  /// Путь к выбранному ролику на устройстве. Нужен и для обложки, и для
+  /// потоковой загрузки файла.
+  final String? path;
+
+  /// Кадр-обложка ролика, снятый на устройстве: его же видит карточка «Было
+  /// добавлено» и он же уходит на сервер вместе с видео.
+  final Uint8List? posterBytes;
+
+  /// Длительность и разрешение ролика — сервер их больше не вычисляет сам.
+  final int? durationSeconds;
+  final int? width;
+  final int? height;
 
   final bool video;
 
@@ -62,6 +82,25 @@ class AdMedia {
   final int? id;
   final String? title;
   final String? description;
+
+  /// Тот же файл, но с приехавшей обложкой и метаданными.
+  AdMedia withPoster(VideoPoster poster) {
+    return AdMedia(
+      name: name,
+      asset: asset,
+      url: url,
+      bytes: bytes,
+      path: path,
+      posterBytes: poster.bytes ?? posterBytes,
+      durationSeconds: poster.durationSeconds ?? durationSeconds,
+      width: poster.width ?? width,
+      height: poster.height ?? height,
+      video: video,
+      id: id,
+      title: title,
+      description: description,
+    );
+  }
 
   AdMedia copyWith({
     int? id,
@@ -74,6 +113,11 @@ class AdMedia {
       asset: asset,
       url: url ?? this.url,
       bytes: bytes,
+      path: path,
+      posterBytes: posterBytes,
+      durationSeconds: durationSeconds,
+      width: width,
+      height: height,
       video: video,
       id: id ?? this.id,
       title: title ?? this.title,
@@ -115,9 +159,17 @@ class DeviceMedia implements MediaSource {
       source: camera ? ImageSource.camera : ImageSource.gallery,
     );
     if (file == null) return null;
-    // Байты ролика не читаем: он весит десятки мегабайт, а показать его без
-    // плеера всё равно нечем.
-    return AdMedia(name: file.name, video: true);
+
+    // В браузере файла на диске нет: `path` — это blob-ссылка, потоковая
+    // отправка по ней невозможна, поэтому читаем байты. На устройстве всё
+    // наоборот: держим путь, чтобы стомегабайтный ролик не лежал в памяти.
+    if (kIsWeb) {
+      return AdMedia(name: file.name, bytes: await file.readAsBytes(), video: true);
+    }
+
+    // Кадр-обложку снимает AppState уже после добавления в список — иначе
+    // ролик «не появлялся» до конца съёмки кадра.
+    return AdMedia(name: file.name, path: file.path, video: true);
   }
 
   Future<AdMedia> _read(XFile file, {required bool video}) async =>

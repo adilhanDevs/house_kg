@@ -61,19 +61,24 @@ class ObjectCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10.0),
               child: IgnorePointer(
-                child: listing.photo.startsWith('http')
+                child: (listing.photo.startsWith('http://') || listing.photo.startsWith('https://'))
                     ? buildSafeNetworkImage(
                         url: listing.photo,
                         fit: BoxFit.cover,
                         borderRadius: BorderRadius.circular(10.0),
-                        fallback: Image.asset(
-                          listing.photo.contains('asanbay')
-                              ? ListingPhotos.asanbay
-                              : ListingPhotos.technopark,
-                          fit: BoxFit.cover,
+                        fallback: Container(
+                          color: const Color(0xfff0f0f0),
+                          child: const Center(
+                            child: Icon(Icons.home_work_outlined, color: Color(0xffb0b0b0), size: 32),
+                          ),
                         ),
                       )
-                    : Image.asset(listing.photo, fit: BoxFit.cover),
+                    : Container(
+                        color: const Color(0xfff0f0f0),
+                        child: const Center(
+                          child: Icon(Icons.home_work_outlined, color: Color(0xffb0b0b0), size: 32),
+                        ),
+                      ),
               ),
             ),
           ),

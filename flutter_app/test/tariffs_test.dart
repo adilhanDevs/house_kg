@@ -12,6 +12,11 @@ import 'package:house_kgz/data/tariff.dart';
 import 'package:house_kgz/ui/pages/tariffs_page.dart';
 
 class _MockTariffClient extends http.BaseClient {
+  _MockTariffClient({this.walletBalance = 0});
+
+  /// Баланс, который «сервер» отдаёт после списания за подписку.
+  final int walletBalance;
+
   String? lastSubscribedCode;
   String? lastPaymentMethod;
 
@@ -48,6 +53,13 @@ class _MockTariffClient extends http.BaseClient {
       return http.StreamedResponse(
         Stream.value(utf8.encode(jsonEncode({'status': 'active', 'tariff_code': lastSubscribedCode}))),
         201,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    if (request.url.path == '/api/v1/wallet/') {
+      return http.StreamedResponse(
+        Stream.value(utf8.encode(jsonEncode({'balance': walletBalance}))),
+        200,
         headers: {'content-type': 'application/json'},
       );
     }
@@ -91,9 +103,12 @@ void main() {
   });
 
   test('AppState buySubscription with bricks checks and deducts balance', () async {
-    final client = _MockTariffClient();
+    final client = _MockTariffClient(walletBalance: 4999);
     final apiClient = ListingApiClient(baseUrl: 'http://test.com', client: client);
     final state = AppState(apiClient: apiClient);
+    // Инициализация состояния асинхронна и сама подтягивает текущий тариф —
+    // без ожидания её ответ приходит уже после покупки и затирает её.
+    await state.authInitialized;
     state.walletBalance = 5000;
 
     final vipPlan = kDefaultTariffPlans[2];
@@ -101,12 +116,12 @@ void main() {
 
     expect(state.currentTariffCode, 'vip');
     expect(state.walletBalance, 4999); // 5000 - 1
-    expect(client.lastSubscribedCode, 'realtor');
-    expect(client.lastPaymentMethod, null);
+    expect(client.lastSubscribedCode, 'vip');
+    expect(client.lastPaymentMethod, 'bricks');
   });
 
   testWidgets('TariffsPage renders all 4 plans and handles brick purchase dialog', (tester) async {
-    final client = _MockTariffClient();
+    final client = _MockTariffClient(walletBalance: 9999);
     final apiClient = ListingApiClient(baseUrl: 'http://test.com', client: client);
     final state = AppState(apiClient: apiClient);
     state.walletBalance = 10000;

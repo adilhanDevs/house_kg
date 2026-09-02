@@ -1,9 +1,14 @@
 // «Сплэш» — кадр 1 макета с оранжевым логотипом-коробкой. Через две секунды
-// сам уходит на онбординг; клик в любой точке не ждёт таймер.
+// уходит дальше; клик в любой точке не ждёт таймер.
+//
+// Куда именно — зависит от того, вошёл ли пользователь. Раньше сплэш всегда
+// вёл на онбординг, и человек с сохранёнными токенами каждый запуск заново
+// пролистывал карусель и упирался в экран входа.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 
@@ -36,7 +41,7 @@ class _SplashPageState extends State<SplashPage> {
     super.dispose();
   }
 
-  void _next() {
+  Future<void> _next() async {
     if (_leaving || !mounted) return;
     // Сплэш может остаться под открытым сверху экраном — так бывает, когда
     // приложение открыли сразу на внутреннем маршруте. Тогда таймеру срабатывать
@@ -44,7 +49,19 @@ class _SplashPageState extends State<SplashPage> {
     if (ModalRoute.of(context)?.isCurrent != true) return;
     _leaving = true;
     _timer?.cancel();
-    Navigator.of(context).pushReplacementNamed(Routes.onboarding);
+
+    final state = AppScope.read(context);
+    final navigator = Navigator.of(context);
+
+    // Токены читаются из хранилища асинхронно: не дождавшись, мы отправили бы
+    // вошедшего пользователя на онбординг просто потому, что не успели узнать
+    // о его входе.
+    await state.authInitialized;
+    if (!mounted) return;
+
+    navigator.pushReplacementNamed(
+      state.isAuthenticated ? Routes.home : Routes.onboarding,
+    );
   }
 
   @override
@@ -55,7 +72,7 @@ class _SplashPageState extends State<SplashPage> {
       child: FigStage(
         frame: frame('01'),
         background: const Color(0xffffffff),
-        onTapAnywhere: _next,
+        onTapAnywhere: () => _next(),
       ),
     );
   }

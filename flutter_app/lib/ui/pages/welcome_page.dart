@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
+import '../../data/api_exceptions.dart';
 import '../fig_controls.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -26,32 +27,30 @@ class _WelcomePageState extends State<WelcomePage> {
 
   bool _isLoading = false;
 
+  /// Вход только по паролю: пароль задаётся один раз при регистрации.
+  ///
+  /// Раньше пустой пароль означал вход по коду `0000` — вместе с серверной
+  /// затычкой, выдававшей этот код на любой номер, это был вход в любой
+  /// аккаунт по одному телефону.
   void _onLogin() async {
     if (_isLoading) return;
     final phone = _phoneController.text.trim();
-    final password = _passwordController.text.trim();
-    if (phone.isEmpty) return;
+    final password = _passwordController.text;
+
+    if (phone.isEmpty || password.isEmpty) {
+      _complain('Введите номер телефона и пароль');
+      return;
+    }
 
     setState(() => _isLoading = true);
     final state = AppScope.read(context);
     try {
-      if (password.isNotEmpty) {
-        await state.loginWithPassword(phone, password);
-      } else {
-        try {
-          await state.sendOtp(phone);
-        } catch (_) {}
-        await state.verifyAndLogin(phone, '0000');
-      }
+      await state.loginWithPassword(phone, password);
       if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка входа: $e')),
-        );
-      }
+      if (mounted) _complain(_errorText(e));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -59,8 +58,24 @@ class _WelcomePageState extends State<WelcomePage> {
     }
   }
 
+  String _errorText(Object error) {
+    if (error is ApiException) return error.message;
+    if (error is NetworkException) return error.message;
+    return error.toString();
+  }
+
+  void _complain(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xffd93025),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   void _onRegister() {
-    Navigator.of(context).pushNamed(Routes.onboarding);
+    Navigator.of(context).pushNamed(Routes.register);
   }
 
   void _onProMode() {
@@ -71,7 +86,14 @@ class _WelcomePageState extends State<WelcomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return FigStage(
+    // Scaffold нужен не ради оформления: SnackBar показывается через
+    // ближайший зарегистрированный Scaffold, а FigStage — это Material.
+    // Без него сообщения об ошибках просто не появлялись на экране.
+    return Scaffold(
+      backgroundColor: const Color(0xffffffff),
+      // Отступ под клавиатуру считает сама сцена.
+      resizeToAvoidBottomInset: false,
+      body: FigStage(
       frame: frame('05'),
       background: const Color(0xffffffff),
       overlays: [
@@ -125,6 +147,7 @@ class _WelcomePageState extends State<WelcomePage> {
           onTap: _onProMode,
         ),
       ],
+      ),
     );
   }
 }

@@ -14,7 +14,11 @@ class TopUpPage extends StatefulWidget {
 
 class _TopUpPageState extends State<TopUpPage> {
   int _step = 1;
-  final TextEditingController _amountController = TextEditingController(text: '12000');
+  // Тестовый режим оплаты: пополнение по умолчанию — один сом.
+  static const int defaultTopupAmount = 1;
+
+  final TextEditingController _amountController =
+      TextEditingController(text: '$defaultTopupAmount');
 
   @override
   void dispose() {
@@ -36,7 +40,7 @@ class _TopUpPageState extends State<TopUpPage> {
 
   int get _enteredAmount {
     final parsed = int.tryParse(_amountController.text.trim()) ?? 0;
-    return parsed > 0 ? parsed : 12000;
+    return parsed > 0 ? parsed : defaultTopupAmount;
   }
 
   /// Открывает оплату. Экран «Спасибо» показывается только после того, как
@@ -118,7 +122,7 @@ class _TopUpPageState extends State<TopUpPage> {
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     isDense: true,
-                    hintText: '12000',
+                    hintText: '$defaultTopupAmount',
                     hintStyle: TextStyle(fontSize: 13.0, color: Color(0xff999999)),
                     contentPadding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                   ),

@@ -1,6 +1,7 @@
 // Состояние приложения: избранное, фильтр, кошелёк, черновик объявления и
 // режим клиент/исполнитель. Живёт над навигатором, поэтому переживает переходы
 // между экранами.
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -9,9 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/api_client.dart';
+import '../data/api_config.dart';
 import '../data/api_exceptions.dart';
 import '../data/ad_media.dart';
 import '../data/topup.dart';
+import '../data/video_poster.dart';
 import '../data/kind_fields.dart';
 import '../data/listing_payload.dart';
 import '../data/listings.dart';
@@ -64,14 +67,19 @@ class AppState extends ChangeNotifier {
   AppState({
     MediaSource media = const DeviceMedia(),
     ListingApiClient? apiClient,
+    VideoPosterCapture? posterCapture,
   })  : _media = media,
+        _posterCapture = posterCapture ?? captureVideoPoster,
         apiClient = apiClient ??
-            ListingApiClient(baseUrl: 'https://adilhan1234.pythonanywhere.com') {
+            ListingApiClient(baseUrl: kApiBaseUrl) {
     this.apiClient.setTokenRefreshCallback(_handleTokenRefresh);
     authInitialized = _initAuth();
   }
 
   Future<void>? authInitialized;
+
+  /// Чем снимается кадр-обложка ролика. Подменяется в тестах.
+  final VideoPosterCapture _posterCapture;
 
   /// Откуда берутся файлы для объявления — галерея и камера устройства.
   final MediaSource _media;
@@ -149,22 +157,9 @@ class AppState extends ChangeNotifier {
       }
       _accessToken = prefs.getString('access_token');
       _refreshToken = prefs.getString('refresh_token');
-      if (_accessToken == null) {
-        try {
-          await apiClient.requestOtp('+996555444333');
-          final authResp = await apiClient.verifyOtp('+996555444333', '0000');
-          _accessToken = authResp['access'] as String?;
-          _refreshToken = authResp['refresh'] as String?;
-          if (_accessToken != null) {
-            await prefs.setString('access_token', _accessToken!);
-          }
-          if (_refreshToken != null) {
-            await prefs.setString('refresh_token', _refreshToken!);
-          }
-        } catch (e) {
-          debugPrint('Demo auto-login skipped/failed: $e');
-        }
-      }
+      // Раньше здесь стоял автоматический вход демо-номером с кодом 0000 —
+      // из-за него приложение выглядело работающим без экрана входа. Токена
+      // нет — значит пользователь не вошёл, и решает это экран приветствия.
       if (_accessToken != null) {
         apiClient.setToken(_accessToken);
         await fetchProfile();
@@ -406,8 +401,59 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendOtp(String phone) async {
-    await apiClient.requestOtp(phone);
+  /// Версия соглашения об обработке ПДн, которую сейчас требует сервер.
+  ///
+  /// Пусто — соглашения на сервере нет, и регистрировать никого нельзя:
+  /// принять документ, которого не существует, невозможно.
+  String? termsVersion;
+
+  /// Адрес текста соглашения — на него ведёт ссылка из галки согласия.
+  String? termsUrl;
+
+  /// Забирает версию и ссылку на соглашение из /app/config/.
+  Future<void> loadTermsDocument() async {
+    final config = await apiClient.getAppConfig();
+    final documents = config['documents'];
+    final terms = documents is Map ? documents['terms'] : null;
+    if (terms is Map) {
+      termsVersion = terms['version']?.toString();
+      termsUrl = terms['url']?.toString();
+    } else {
+      termsVersion = null;
+      termsUrl = null;
+    }
+    notifyListeners();
+  }
+
+  Future<void> sendOtp(String phone, {String? purpose}) async {
+    await apiClient.requestOtp(phone, purpose: purpose);
+  }
+
+  /// Первый шаг регистрации: высылает код на номер.
+  ///
+  /// Аккаунт здесь не создаётся и пароль никуда не сохраняется — до ввода
+  /// кода мы не знаем, принадлежит ли номер тому, кто его вписал.
+  Future<void> startRegistration(String phone) async {
+    await apiClient.requestOtp(phone, purpose: 'register');
+  }
+
+  /// Второй шаг: код подтверждён — заводим аккаунт с именем и паролем.
+  Future<void> confirmRegistration({
+    required String phone,
+    required String code,
+    required String name,
+    required String password,
+    required String termsVersion,
+  }) async {
+    final response = await apiClient.verifyOtp(
+      phone,
+      code,
+      name: name,
+      password: password,
+      purpose: 'register',
+      termsVersion: termsVersion,
+    );
+    await _saveTokens(response);
   }
 
   Future<void> verifyAndLogin(String phone, String code, {String? name}) async {
@@ -866,6 +912,15 @@ class AppState extends ChangeNotifier {
   String _topupErrorText(Object error) {
     if (error is ApiException) {
       if (error.statusCode == 401) return 'Войдите в аккаунт, чтобы пополнить кошелёк';
+      if (error.statusCode == 429) {
+        return 'Слишком много счетов подряд. Подождите немного и повторите';
+      }
+      // Чаще всего это незаполненные ключи Finik на сервере: провайдер
+      // отказывается выставлять счёт, и вьюха отдаёт server_error. Показывать
+      // пользователю голое «500» бессмысленно — он ничего с ним не сделает.
+      if (error.statusCode >= 500) {
+        return 'Оплата через Finik сейчас недоступна. Попробуйте позже';
+      }
       return error.message;
     }
     if (error is NetworkException) return 'Нет связи с сервером. Проверьте интернет';
@@ -1012,18 +1067,8 @@ class AppState extends ChangeNotifier {
   /// кнопкой «Добавить».
   static const int draftMediaLimit = 20;
 
-  final List<AdMedia> draftGallery = [
-    const AdMedia.demo('assets/figma/2e62acec850fa8b9.jpg'),
-    const AdMedia.demo('assets/figma/b76192aa900c610a.jpg'),
-    const AdMedia.demo('assets/figma/92b0d143df96c511.jpg'),
-    const AdMedia.demo('assets/figma/e267d094d7f9a8fc.jpg'),
-    const AdMedia.demo('assets/figma/ccc665cff0c465a4.jpg'),
-    const AdMedia.demo('assets/figma/231c034e3954a705.jpg'),
-  ];
-
-  final List<AdMedia> draftVideoList = [
-    const AdMedia.demo('assets/figma/231c034e3954a705.jpg', video: true),
-  ];
+  final List<AdMedia> draftGallery = [];
+  final List<AdMedia> draftVideoList = [];
 
   /// Смена типа объявления: значения полей, неприменимых к новому типу,
   /// забываются — иначе на сервер уедет `rooms` от предыдущего выбора.
@@ -1201,9 +1246,35 @@ class AppState extends ChangeNotifier {
   }
 
   /// Выбрать ролик.
+  ///
+  /// Файл появляется в списке сразу, а кадр-обложка догоняет отдельно: съёмка
+  /// кадра занимает секунды и на битом файле может не выйти вовсе — ждать её
+  /// значило бы, что выбранный ролик просто не появляется на экране.
   Future<int> addVideo({required bool camera}) async {
     final picked = await _media.video(camera: camera);
-    return _append(draftVideoList, [if (picked != null) picked]);
+    final added = _append(draftVideoList, [if (picked != null) picked]);
+
+    final path = picked?.path;
+    if (added > 0 && path != null && path.isNotEmpty) {
+      unawaited(_attachPoster(path));
+    }
+    return added;
+  }
+
+  /// Дописывает кадр и метаданные ролика, когда они готовы.
+  Future<void> _attachPoster(String path) async {
+    try {
+      final poster = await _posterCapture(path);
+      if (poster.isEmpty) return;
+
+      final index = draftVideoList.indexWhere((item) => item.path == path);
+      if (index < 0) return;
+
+      draftVideoList[index] = draftVideoList[index].withPoster(poster);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Обложка ролика не снялась: $e');
+    }
   }
 
   int _append(List<AdMedia> into, List<AdMedia> picked) {
@@ -1228,7 +1299,12 @@ class AppState extends ChangeNotifier {
   /// Продвижение: сколько дней и чем платим.
   int promoDays = 1;
   bool promoFromBalance = false;
-  int get promoCost => promoDays * 780;
+  /// Цена дня продвижения для предпросмотра. Настоящую цену считает бэкенд
+  /// (`GET /promotions/pricing/`), здесь — то же число, что стоит в базе.
+  /// Тестовый режим оплаты: один кирпич за день (боевая цена — 780).
+  static const int promoPricePerDay = 1;
+
+  int get promoCost => promoDays * promoPricePerDay;
 
   void setDraft(void Function() change) {
     change();

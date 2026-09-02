@@ -58,7 +58,7 @@ urlpatterns += [
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
     try:
         import debug_toolbar  # noqa: F401
     except ImportError:  # pragma: no cover - тулбар не установлен

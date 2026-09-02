@@ -1,7 +1,9 @@
 """Админка каталога: справочники, объявления и очередь модерации."""
 
 import json
+import logging
 from datetime import timedelta
+from typing import Any
 
 from django.conf import settings
 from django.contrib import admin, messages
@@ -10,7 +12,8 @@ from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.html import format_html, format_html_join
 
-from apps.catalog.enums import ListingStatus, ModerationStatus
+from apps.catalog.covers import COVER_ATTR, cover_candidates, listing_cover_file
+from apps.catalog.enums import ListingStatus, MediaKind, ModerationStatus
 from apps.catalog.models import (
     Builder,
     City,
@@ -74,6 +77,27 @@ class ListingRoomInline(admin.TabularInline):
     verbose_name_plural = "Комнаты (экспликация помещений)"
 
 
+logger = logging.getLogger(__name__)
+
+
+def process_admin_photo(media: ListingMedia) -> None:
+    """Досбор превью для файла, залитого через админку.
+
+    Загрузка из приложения ставит фото в очередь обработки, а админка — нет:
+    файл оставался в статусе «Загружается», и в карточку каталога уходил
+    оригинал (полтора мегабайта PNG на превью 160×160). Работает только Pillow,
+    ffmpeg тут не участвует; видео админка не трогает вовсе.
+    """
+    from apps.catalog.tasks import _process_photo
+
+    if media.kind != MediaKind.PHOTO or not media.file or media.url_thumb:
+        return
+    try:
+        _process_photo(media)
+    except Exception as exc:  # noqa: BLE001 - сохранение в админке важнее превью
+        logger.warning("Превью для медиа %s не собралось: %s", media.pk, exc)
+
+
 class ListingMediaInline(admin.TabularInline):
     model = ListingMedia
     extra = 0
@@ -84,6 +108,10 @@ class ListingMediaInline(admin.TabularInline):
 @admin.register(ListingMedia)
 class ListingMediaAdmin(admin.ModelAdmin):
     """Отдельный раздел нужен ради phash: по нему ищутся переклеенные фото."""
+
+    def save_model(self, request: HttpRequest, obj: ListingMedia, form: Any, change: bool) -> None:
+        super().save_model(request, obj, form, change)
+        process_admin_photo(obj)
 
     list_display = ["id", "listing", "kind", "status", "order", "is_cover", "phash"]
     list_filter = ["kind", "status", "is_cover"]
@@ -221,6 +249,16 @@ class ListingAdmin(admin.ModelAdmin):
         return Listing.all_objects.get_queryset().select_related("district", "city")
 
     inlines = [ListingRoomInline, ListingMediaInline]
+
+    def save_formset(self, request: HttpRequest, form: Any, formset: Any, change: bool) -> None:
+        """Медиа из инлайна проходит ту же обработку, что и загрузка из
+        приложения: иначе в каталог уходит неподготовленный оригинал."""
+        super().save_formset(request, form, formset, change)
+
+        if formset.model is not ListingMedia:
+            return
+        for media in formset.new_objects + [obj for obj, _ in formset.changed_objects]:
+            process_admin_photo(media)
     actions = ["publish", "reject", "archive"]
     date_hierarchy = "created_at"
 
@@ -319,20 +357,17 @@ class ModerationTaskAdmin(admin.ModelAdmin):
     ]
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[ModerationTask]:
-        cover = ListingMedia.objects.filter(is_cover=True)
         return (
             super()
             .get_queryset(request)
-            .prefetch_related(Prefetch("listing__media", queryset=cover, to_attr="cover_media"))
+            .prefetch_related(
+                Prefetch("listing__media", queryset=cover_candidates(), to_attr=COVER_ATTR)
+            )
         )
 
     @staticmethod
     def _cover_url(task: ModerationTask) -> str:
-        cover = getattr(task.listing, "cover_media", None) or []
-        if not cover:
-            return ""
-        media = cover[0]
-        file_field = media.url_thumb or media.file
+        file_field = listing_cover_file(task.listing)
         return file_field.url if file_field else ""
 
     @admin.display(description="Фото")

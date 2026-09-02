@@ -4,16 +4,15 @@
 чтобы клиент мог переключиться с моковых данных на API без изменений в UI.
 """
 
-import logging
 import uuid
+from decimal import Decimal
 from typing import Any
-
-logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -159,7 +158,10 @@ def build_listing_slug(district_slug: str, rooms: int) -> str:
     """«technopark-3k-9f1c2a4b» — читаемо и уникально.
 
     Слаг генерируется один раз при создании и дальше не меняется: он попадает
-    в ссылки, которыми делятся пользователи.
+    в ссылки, которыми делятся пользователи, и в адреса запросов, которые
+    клиент делает по ходу заполнения формы. У черновика без района голова
+    слага — «listing»; переименовывать его потом нельзя, иначе экран, уже
+    получивший слаг, начнёт ловить 404.
     """
     suffix = uuid.uuid4().hex[:SLUG_SUFFIX_LENGTH]
     tail = f"-{rooms}k-{suffix}"
@@ -213,7 +215,16 @@ class Listing(TimeStampedModel):
         "Долгота", max_digits=9, decimal_places=6, blank=True, null=True
     )
 
-    price = models.DecimalField("Цена", max_digits=12, decimal_places=2, blank=True, null=True)
+    price = models.DecimalField(
+        "Цена",
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        # Отрицательная и нулевая цена — не «скидка», а порча выдачи:
+        # такой объект встаёт первым в сортировке по возрастанию цены.
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
     currency = models.CharField(
         "Валюта", max_length=3, choices=Currency.choices, default=Currency.USD
     )
@@ -238,7 +249,14 @@ class Listing(TimeStampedModel):
     )
 
     rooms = models.PositiveSmallIntegerField("Комнат", default=0)
-    area = models.DecimalField("Площадь, м²", max_digits=8, decimal_places=2, blank=True, null=True)
+    area = models.DecimalField(
+        "Площадь, м²",
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
     # Площади помещений живут в ListingRoom: набор комнат у каждого объекта
     # свой, фиксированного списка «гостиная / холл / спальня 2» не бывает.
     furniture = models.CharField(
@@ -254,7 +272,12 @@ class Listing(TimeStampedModel):
     exchange_possible = models.BooleanField("Возможен обмен", default=False)
 
     land_area = models.DecimalField(
-        "Площадь участка, соток", max_digits=8, decimal_places=2, blank=True, null=True
+        "Площадь участка, соток",
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
     )
     floor = models.PositiveSmallIntegerField("Этаж", default=0)
     floors = models.PositiveSmallIntegerField("Этажность", default=0)
@@ -296,7 +319,12 @@ class Listing(TimeStampedModel):
         "Линия", max_length=8, choices=BuildingLine.choices, blank=True
     )
     ceiling_height = models.DecimalField(
-        "Высота потолков, м", max_digits=4, decimal_places=2, blank=True, null=True
+        "Высота потолков, м",
+        max_digits=4,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
     )
 
     landmarks = models.JSONField("Ключевые места", default=list, blank=True)
@@ -503,15 +531,6 @@ class ListingMedia(TimeStampedModel):
     @property
     def is_ready(self) -> bool:
         return self.status == MediaStatus.READY
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        super().save(*args, **kwargs)
-        if self.kind == MediaKind.VIDEO and not self.thumbnail and self.file:
-            try:
-                from apps.catalog.tasks import _process_video
-                _process_video(self)
-            except Exception as e:
-                logger.warning("Не удалось автоматически извлечь кадр-обложку видео: %s", e)
 
     def display_file(self) -> Any:
         """Что показывать клиенту сейчас.

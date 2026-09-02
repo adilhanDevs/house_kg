@@ -61,7 +61,7 @@ void main() {
       (tester) async {
     _android(tester);
     _ignoreOverflow();
-    await tester.pumpWidget(_wrap(PhotosPage(id: kListings.first.id)));
+    await tester.pumpWidget(_wrap(PhotosPage(id: kListings.first.id, listing: kListings.first)));
     await tester.pump();
 
     expect(tester.getRect(find.bySemanticsLabel('Вернуться')).bottom,

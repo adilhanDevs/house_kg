@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../auth_guard.dart';
 import '../../app/stage.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
@@ -211,7 +212,10 @@ class _ProfilePageState extends State<ProfilePage> {
         FigZone(
           101.0, 696.0, 185.3, 30.0,
           label: 'Продать недвижимость',
-          onTap: () => Navigator.of(context).pushNamed(Routes.ad),
+          onTap: () {
+            if (!requireAuth(context, reason: 'Войдите, чтобы разместить объявление')) return;
+            Navigator.of(context).pushNamed(Routes.ad);
+          },
         ),
 
         // На месте «Служба безопасности» (Y=645) размещаем «Выйти из аккаунта»

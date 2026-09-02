@@ -6,7 +6,13 @@
 
 import pytest
 
-from apps.catalog.enums import BuildingLine, CommercialPurpose, PlotPurpose, PropertyKind
+from apps.catalog.enums import (
+    BuildingLine,
+    CommercialPurpose,
+    FurnitureKind,
+    PlotPurpose,
+    PropertyKind,
+)
 from apps.catalog.field_rules import (
     KIND_FIELDS,
     REQUIRED_BY_KIND,
@@ -107,3 +113,58 @@ def test_ceiling_height_never_required():
 def test_every_kind_has_rules(kind: str):
     assert kind in KIND_FIELDS
     assert kind in REQUIRED_BY_KIND
+
+
+# -- смена типа чистит за собой ----------------------------------------------
+#
+# `strip_inapplicable` убирает лишнее из ВХОДЯЩИХ данных, но у объекта
+# остаётся то, что записали раньше: квартира, ставшая участком, уезжала
+# в каталог с прежними комнатами и этажом.
+
+
+def test_kind_change_clears_fields_of_the_previous_kind():
+    from apps.catalog.services import reset_inapplicable_fields
+
+    listing = Listing(
+        kind=PropertyKind.APARTMENT,
+        rooms=3,
+        floor=5,
+        floors=9,
+        furniture=FurnitureKind.FULL,
+        is_secondary=True,
+    )
+
+    cleared = reset_inapplicable_fields(listing, PropertyKind.PLOT)
+
+    assert listing.rooms == 0
+    assert listing.floor == 0
+    assert listing.floors == 0
+    assert listing.furniture == ""
+    assert listing.is_secondary is False
+    assert {"rooms", "floor", "floors", "furniture", "is_secondary"} <= set(cleared)
+
+
+def test_kind_change_keeps_common_fields():
+    from apps.catalog.services import reset_inapplicable_fields
+
+    listing = Listing(
+        kind=PropertyKind.APARTMENT,
+        address="Ахунбаева 12",
+        description="Тихий двор",
+        contact_name="Айбек",
+    )
+
+    reset_inapplicable_fields(listing, PropertyKind.PLOT)
+
+    assert listing.address == "Ахунбаева 12"
+    assert listing.description == "Тихий двор"
+    assert listing.contact_name == "Айбек"
+
+
+def test_unknown_kind_leaves_the_object_alone():
+    from apps.catalog.services import reset_inapplicable_fields
+
+    listing = Listing(kind=PropertyKind.APARTMENT, rooms=3)
+
+    assert reset_inapplicable_fields(listing, "spaceship") == []
+    assert listing.rooms == 3

@@ -295,13 +295,13 @@ def test_moderation_decision_is_audited(admin_client, admin_user, district):
 
 
 def test_password_login_is_audited(api_client):
-    from apps.users.services import authenticate_pro
+    from apps.users.services import authenticate_by_password
 
     user = UserFactory(pro=True)
     user.set_password("s3cret-pass-99")
     user.save(update_fields=["password"])
 
-    authenticate_pro(user.phone, "s3cret-pass-99")
+    authenticate_by_password(user.phone, "s3cret-pass-99")
 
     record = AuditLog.objects.filter(action=AuditLog.Action.PASSWORD_LOGIN).latest("created_at")
     assert record.extra["result"] == "success"
@@ -309,14 +309,14 @@ def test_password_login_is_audited(api_client):
 
 def test_failed_password_login_is_audited():
     from apps.common.exceptions import InvalidCredentialsError
-    from apps.users.services import authenticate_pro
+    from apps.users.services import authenticate_by_password
 
     user = UserFactory(pro=True)
     user.set_password("s3cret-pass-99")
     user.save(update_fields=["password"])
 
     with pytest.raises(InvalidCredentialsError):
-        authenticate_pro(user.phone, "неверный")
+        authenticate_by_password(user.phone, "неверный")
 
     record = AuditLog.objects.filter(action=AuditLog.Action.PASSWORD_LOGIN).latest("created_at")
     assert record.extra["result"] == "failed"

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../../data/api_exceptions.dart';
 import '../add_media.dart';
 import '../fig_controls.dart';
 import '../media_tile.dart';
@@ -26,6 +27,11 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
     }
 
     setState(() => _isSaving = true);
+
+    // Молчащая загрузка — та же беда, что была у роликов: снимок не уходил,
+    // а экран как ни в чём не бывало вёл дальше.
+    final failures = <String>[];
+
     try {
       await state.apiClient.updateDraft(slug, {
         'allow_media_download': _allowDownload,
@@ -37,10 +43,9 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
           try {
             final res = await state.apiClient.uploadMedia(
               slug,
-              null,
-              photo.bytes,
-              photo.name,
-              'photo',
+              bytes: photo.bytes,
+              filename: photo.name,
+              kind: 'photo',
             );
             final mediaList = res['media'] as List<dynamic>?;
             if (mediaList != null && mediaList.isNotEmpty) {
@@ -51,12 +56,24 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
             }
           } catch (e) {
             debugPrint('Failed to upload photo $i: $e');
+            failures.add(_uploadErrorText(e));
           }
         }
       }
-      if (mounted) {
-        Navigator.pushNamed(context, Routes.adVideo);
+      if (!mounted) return;
+
+      if (failures.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Фото не загрузились: ${failures.first}'),
+            backgroundColor: const Color(0xffd93025),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        return;
       }
+
+      Navigator.pushNamed(context, Routes.adVideo);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -268,4 +285,12 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
       ),
     );
   }
+}
+
+/// Текст ошибки загрузки — настоящий, а не общая фраза: по «нет связи с
+/// сервером» невозможно отличить обрыв сети от неподдерживаемого вызова.
+String _uploadErrorText(Object error) {
+  if (error is ApiException) return error.message;
+  if (error is NetworkException) return error.message;
+  return error.toString();
 }

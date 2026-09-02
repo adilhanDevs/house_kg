@@ -119,7 +119,6 @@ class _ListingPageState extends State<ListingPage> {
       debugPrint('FAILED TO LOAD LISTING: $e\n$st');
       if (mounted) {
         setState(() {
-          _listing = listingById(widget.id);
           _isLoading = false;
         });
       }
@@ -257,13 +256,6 @@ class _ListingPageState extends State<ListingPage> {
                   _VideoCardThumbnail(
                     thumbnailUrl: thumbUrl,
                     videoUrl: videoUrl,
-                    fallbackAsset: hasRealMedia
-                        ? null
-                        : ((index == 0)
-                            ? 'assets/figma/92b0d143df96c511.jpg'
-                            : (index == 1
-                                ? 'assets/figma/b76192aa900c610a.jpg'
-                                : 'assets/figma/e267d094d7f9a8fc.jpg')),
                   ),
                   Container(
                     decoration: const BoxDecoration(
@@ -372,14 +364,23 @@ class _ListingPageState extends State<ListingPage> {
                   child: SizedBox(
                     width: double.infinity,
                     height: 387.0,
-                    child: buildSafeNetworkImage(
-                      url: listing.photo,
-                      fit: BoxFit.cover,
-                      fallback: Image.asset(
-                        ListingPhotos.technopark,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                    child: (listing.photo.startsWith('http://') || listing.photo.startsWith('https://'))
+                        ? buildSafeNetworkImage(
+                            url: listing.photo,
+                            fit: BoxFit.cover,
+                            fallback: Container(
+                              color: const Color(0xff2c2b2a),
+                              child: const Center(
+                                child: Icon(Icons.photo_outlined, color: Color(0xff8e8e93), size: 48),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: const Color(0xff2c2b2a),
+                            child: const Center(
+                              child: Icon(Icons.photo_outlined, color: Color(0xff8e8e93), size: 48),
+                            ),
+                          ),
                   ),
                 ),
                 FigBackButton(
@@ -790,107 +791,106 @@ class _ListingPageState extends State<ListingPage> {
             const SizedBox(height: 16),
 
             // Видеообзор
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: Text(
-                'Видеообзор',
-                style: figStyle(
-                  fontSize: 17.0,
-                  family: FigFont.display,
-                  weight: 600,
-                  height: 1.176,
-                  color: const Color(0xff000000),
+            if (listing.videos.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: Text(
+                  'Видеообзор',
+                  style: figStyle(
+                    fontSize: 17.0,
+                    family: FigFont.display,
+                    weight: 600,
+                    height: 1.176,
+                    color: const Color(0xff000000),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 14),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: Row(
-                children: [
-                  for (int i = 0; i < (listing.videos.isNotEmpty ? listing.videos.length : 1); i++) ...[
-                    if (i > 0) const SizedBox(width: 15),
-                    _buildDynamicVideoCard(
-                      context,
-                      video: listing.videos.isNotEmpty ? listing.videos[i] : null,
-                      index: i,
-                      listing: listing,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Фотообзор
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: Text(
-                'Фотообзор',
-                style: figStyle(
-                  fontSize: 17.0,
-                  family: FigFont.display,
-                  weight: 600,
-                  height: 1.176,
-                  color: const Color(0xff000000),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: _thumbSize,
-              child: ListView.separated(
+              const SizedBox(height: 14),
+              SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 25),
-                itemCount: listing.photos.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final photo = listing.photos[index];
-                  final isFirst = index == 0;
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      Navigator.of(context).pushNamed(
-                        Routes.listingPhotos,
-                        arguments: ListingArgs(listing.id),
-                      );
-                    },
-                    child: Container(
-                      width: _thumbSize,
-                      height: _thumbSize,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        border: Border.all(
-                          color: isFirst ? const Color(0xffea812e) : const Color(0xffdcdcdc),
-                          width: isFirst ? 2.0 : 1.0,
+                child: Row(
+                  children: [
+                    for (int i = 0; i < listing.videos.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 15),
+                      _buildDynamicVideoCard(
+                        context,
+                        video: listing.videos[i],
+                        index: i,
+                        listing: listing,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // Фотообзор
+            if (listing.photos.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: Text(
+                  'Фотообзор',
+                  style: figStyle(
+                    fontSize: 17.0,
+                    family: FigFont.display,
+                    weight: 600,
+                    height: 1.176,
+                    color: const Color(0xff000000),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: _thumbSize,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 25),
+                  itemCount: listing.photos.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final photo = listing.photos[index];
+                    final isFirst = index == 0;
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        Navigator.of(context).pushNamed(
+                          Routes.listingPhotos,
+                          arguments: ListingArgs(listing.id),
+                        );
+                      },
+                      child: Container(
+                        width: _thumbSize,
+                        height: _thumbSize,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(
+                            color: isFirst ? const Color(0xffea812e) : const Color(0xffdcdcdc),
+                            width: isFirst ? 2.0 : 1.0,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6.0),
+                          child: (photo.startsWith('http://') || photo.startsWith('https://'))
+                              ? buildSafeNetworkImage(
+                                  url: photo,
+                                  fit: BoxFit.cover,
+                                  borderRadius: BorderRadius.circular(6.0),
+                                  fallback: const ColoredBox(
+                                    color: Color(0xfff0f0f0),
+                                  ),
+                                )
+                              : const ColoredBox(
+                                  color: Color(0xfff0f0f0),
+                                ),
                         ),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6.0),
-                        child: (photo.startsWith('http://') || photo.startsWith('https://'))
-                            ? buildSafeNetworkImage(
-                                url: photo,
-                                fit: BoxFit.cover,
-                                borderRadius: BorderRadius.circular(6.0),
-                                fallback: Image.asset(
-                                  photo.contains('asanbay')
-                                      ? ListingPhotos.asanbay
-                                      : ListingPhotos.technopark,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Image.asset(
-                                photo,
-                                fit: BoxFit.cover,
-                              ),
-                      ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
+            ],
 
             const SizedBox(height: 50),
           ],
@@ -1011,12 +1011,10 @@ class _VideoCardThumbnail extends StatefulWidget {
   const _VideoCardThumbnail({
     required this.thumbnailUrl,
     required this.videoUrl,
-    this.fallbackAsset,
   });
 
   final String thumbnailUrl;
   final String videoUrl;
-  final String? fallbackAsset;
 
   @override
   State<_VideoCardThumbnail> createState() => _VideoCardThumbnailState();
@@ -1084,12 +1082,8 @@ class _VideoCardThumbnailState extends State<_VideoCardThumbnail> {
         return buildSafeNetworkImage(
           url: widget.thumbnailUrl,
           fit: BoxFit.cover,
-          fallback: widget.fallbackAsset != null
-              ? Image.asset(widget.fallbackAsset!, fit: BoxFit.cover)
-              : const ColoredBox(color: Color(0xff222222)),
+          fallback: const ColoredBox(color: Color(0xff222222)),
         );
-      } else if (widget.thumbnailUrl.startsWith('assets/')) {
-        return Image.asset(widget.thumbnailUrl, fit: BoxFit.cover);
       }
     }
 
@@ -1105,20 +1099,13 @@ class _VideoCardThumbnailState extends State<_VideoCardThumbnail> {
       );
     }
 
-    if (widget.fallbackAsset != null) {
-      return Image.asset(widget.fallbackAsset!, fit: BoxFit.cover);
-    }
-
     return const ColoredBox(
       color: Color(0xff222222),
       child: Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Color(0xffea812e),
-          ),
+        child: Icon(
+          Icons.videocam_outlined,
+          color: Colors.white54,
+          size: 28,
         ),
       ),
     );

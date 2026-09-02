@@ -39,3 +39,6 @@ coverage.xml
 .idea/
 .vscode/
 .DS_Store
+
+# Isolated feature workspaces
+.worktrees/

@@ -338,16 +338,11 @@ class FigBox extends StatelessWidget {
 
   Widget _background(FigBgImage b) {
     if (b.asset.startsWith('http://') || b.asset.startsWith('https://')) {
-      final fallback = b.asset.contains('asanbay') || b.asset.contains('photo_1')
-          ? 'assets/figma/2e62acec850fa8b9.jpg'
-          : (b.asset.contains('yuzhnye') || b.asset.contains('photo_2')
-              ? 'assets/figma/ccc665cff0c465a4.jpg'
-              : 'assets/figma/92b0d143df96c511.jpg');
       return buildSafeNetworkImage(
         url: b.asset,
         fit: BoxFit.cover,
         borderRadius: _radius,
-        fallback: Image.asset(fallback, fit: BoxFit.cover),
+        fallback: const ColoredBox(color: Color(0xfff0f0f0)),
       );
     }
     final image = AssetImage(b.asset);

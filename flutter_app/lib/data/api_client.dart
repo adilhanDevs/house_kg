@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import 'api_exceptions.dart';
@@ -36,9 +37,11 @@ class AuthInterceptorClient extends http.BaseClient {
         _isRefreshing = false;
         if (newAccess != null && newAccess.isNotEmpty) {
           accessToken = newAccess;
-          final retryRequest = _copyRequest(request);
-          retryRequest.headers['Authorization'] = 'Bearer $newAccess';
-          return await _inner.send(retryRequest);
+          if (request is! http.MultipartRequest) {
+            final retryRequest = _copyRequest(request);
+            retryRequest.headers['Authorization'] = 'Bearer $newAccess';
+            return await _inner.send(retryRequest);
+          }
         }
       } catch (_) {
         _isRefreshing = false;
@@ -596,25 +599,60 @@ class ListingApiClient {
     }
   }
 
+  /// Отправляет файл объявления.
+  ///
+  /// Для видео приложение прикладывает кадр-обложку и метаданные ролика:
+  /// сервер их больше не вычисляет сам. Если [filePath] задан, файл уходит
+  /// потоком с диска — двухсотмегабайтный ролик не нужно держать в памяти.
   Future<Map<String, dynamic>> uploadMedia(
-    String listingSlug, [
+    String listingSlug, {
     dynamic file,
     List<int>? bytes,
+    String? filePath,
     String? filename,
     String kind = 'video',
-  ]) async {
+    List<int>? thumbnailBytes,
+    int? durationSeconds,
+    int? width,
+    int? height,
+  }) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$listingSlug/media/');
-    
+
     try {
+      final defaultName = kind == 'photo' ? 'photo.jpg' : 'upload.mp4';
       final request = http.MultipartRequest('POST', uri)
         ..headers['Accept'] = 'application/json'
         ..fields['kind'] = kind;
 
-      if (bytes != null) {
+      if (kind == 'video') {
+        if (durationSeconds != null && durationSeconds > 0) {
+          request.fields['duration_seconds'] = durationSeconds.toString();
+        }
+        if (width != null && width > 0) request.fields['width'] = width.toString();
+        if (height != null && height > 0) request.fields['height'] = height.toString();
+
+        if (thumbnailBytes != null && thumbnailBytes.isNotEmpty) {
+          request.files.add(http.MultipartFile.fromBytes(
+            'thumbnail',
+            thumbnailBytes,
+            filename: 'poster.jpg',
+          ));
+        }
+      }
+
+      // fromPath живёт в dart:io, в браузере он бросает UnsupportedError —
+      // там отправляем байты.
+      if (!kIsWeb && filePath != null && filePath.isNotEmpty) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'files',
+          filePath,
+          filename: filename,
+        ));
+      } else if (bytes != null) {
         request.files.add(http.MultipartFile.fromBytes(
           'files',
           bytes,
-          filename: filename ?? (kind == 'photo' ? 'photo.jpg' : 'upload.mp4'),
+          filename: filename ?? defaultName,
         ));
       } else if (file != null) {
         if (file is File) {
@@ -626,7 +664,7 @@ class ListingApiClient {
             request.files.add(http.MultipartFile.fromBytes(
               'files',
               fileBytes as List<int>,
-              filename: filename ?? (dynamicFile.name as String?) ?? (kind == 'photo' ? 'photo.jpg' : 'upload.mp4'),
+              filename: filename ?? (dynamicFile.name as String?) ?? defaultName,
             ));
           } catch (_) {}
         }
@@ -634,7 +672,7 @@ class ListingApiClient {
 
       final streamedResponse = await _client.send(request);
       final response = await http.Response.fromStream(streamedResponse);
-      
+
       return _processResponse(response);
     } on SocketException {
       throw NetworkException('Отсутствует подключение к сети');
@@ -730,18 +768,11 @@ class ListingApiClient {
     final uri = Uri.parse('$baseUrl/api/v1/subscriptions/');
     final key = idempotencyKey ?? 'sub_${DateTime.now().millisecondsSinceEpoch}';
 
-    // Map UI tariff codes to backend supported codes:
-    // owner -> free
-    // top / vip -> realtor (limit 20)
-    // premium -> agency (limit 0 / unlimited)
-    String backendTariffCode = tariffCode;
-    if (tariffCode == 'owner') {
-      backendTariffCode = 'free';
-    } else if (tariffCode == 'top' || tariffCode == 'vip') {
-      backendTariffCode = 'realtor';
-    } else if (tariffCode == 'premium') {
-      backendTariffCode = 'agency';
-    }
+    // Код тарифа уходит таким, каким его отдал сам бэкенд в GET /tariffs/.
+    // Прежний клиентский маппинг (owner->free, top/vip->realtor,
+    // premium->agency) ломал покупку: на сервере лежат тарифы с кодами
+    // owner/top/vip/premium, псевдонима realtor там нет, и запрос уходил в
+    // тариф-заглушку вместо выбранного.
 
     try {
       final response = await _client.post(
@@ -752,8 +783,9 @@ class ListingApiClient {
           'Idempotency-Key': key,
         },
         body: jsonEncode({
-          'tariff_code': backendTariffCode,
+          'tariff_code': tariffCode,
           'months': months,
+          'payment_method': paymentMethod,
         }),
       );
       return _processResponse(response);
@@ -774,7 +806,24 @@ class ListingApiClient {
     }
   }
 
-  Future<void> requestOtp(String phone) async {
+  /// Конфигурация приложения: версии, флаги и ссылки на документы.
+  ///
+  /// Отсюда экран регистрации берёт актуальную версию соглашения — сервер
+  /// сверяет её при создании аккаунта и отклоняет устаревшую.
+  Future<Map<String, dynamic>> getAppConfig() async {
+    final uri = Uri.parse('$baseUrl/api/v1/app/config/');
+    try {
+      final response = await _client.get(uri, headers: {'Accept': 'application/json'});
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  Future<void> requestOtp(String phone, {String? purpose}) async {
     final uri = Uri.parse('$baseUrl/api/v1/auth/otp/request/');
     try {
       final response = await _client.post(
@@ -783,7 +832,10 @@ class ListingApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'phone': phone}),
+        body: jsonEncode({
+          'phone': phone,
+          if (purpose != null) 'purpose': purpose,
+        }),
       );
       _processResponse(response);
     } on SocketException {
@@ -794,7 +846,16 @@ class ListingApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> verifyOtp(String phone, String code, {String? name}) async {
+  /// Подтверждение кода. `password` и `termsVersion` заполняются только на
+  /// регистрации: у входа по коду их нет.
+  Future<Map<String, dynamic>> verifyOtp(
+    String phone,
+    String code, {
+    String? name,
+    String? password,
+    String? purpose,
+    String? termsVersion,
+  }) async {
     final uri = Uri.parse('$baseUrl/api/v1/auth/otp/verify/');
     try {
       final response = await _client.post(
@@ -806,8 +867,12 @@ class ListingApiClient {
         body: jsonEncode({
           'phone': phone,
           'code': code,
-          'accepted_terms_version': '1',
+          // Версию соглашения берём из /app/config/, а не зашиваем: подставить
+          // её за пользователя — значит принять соглашение вместо него.
+          if (termsVersion != null) 'accepted_terms_version': termsVersion,
           if (name != null) 'name': name,
+          if (password != null && password.isNotEmpty) 'password': password,
+          if (purpose != null) 'purpose': purpose,
         }),
       );
       return _processResponse(response);

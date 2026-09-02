@@ -22,10 +22,53 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>kg.house.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>housekgz</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>mbank</string>
+		<string>optima24</string>
+		<string>bakai</string>
+		<string>omoney</string>
+		<string>megapay</string>
+		<string>finik</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>139.59.224.34</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Нужен доступ к камере, чтобы снять фотографию или видео для объявления.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Нужен доступ к микрофону, чтобы записать видеообзор со звуком.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Нужен доступ к галерее, чтобы приложить фотографии и видео к объявлению.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -66,11 +109,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Нужен доступ к галерее, чтобы приложить фотографии и видео к объявлению.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Нужен доступ к камере, чтобы снять фотографию или видео для объявления.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Нужен доступ к микрофону, чтобы записать видеообзор со звуком.</string>
 </dict>
 </plist>

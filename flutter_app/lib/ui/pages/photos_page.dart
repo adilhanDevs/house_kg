@@ -41,9 +41,10 @@ const Color _icon = Color(0xfffbfafa);
 const Color _heartInk = Color(0xccea812e);
 
 class PhotosPage extends StatefulWidget {
-  const PhotosPage({super.key, required this.id});
+  const PhotosPage({super.key, required this.id, this.listing});
 
   final String id;
+  final Listing? listing;
 
   @override
   State<PhotosPage> createState() => _PhotosPageState();
@@ -58,7 +59,12 @@ class _PhotosPageState extends State<PhotosPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    if (widget.listing != null) {
+      _listing = widget.listing;
+      _isLoading = false;
+    } else {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
@@ -82,7 +88,6 @@ class _PhotosPageState extends State<PhotosPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _listing = listingById(widget.id);
           _isLoading = false;
         });
       }
@@ -126,8 +131,50 @@ class _PhotosPageState extends State<PhotosPage> {
     }
 
     final state = AppScope.of(context);
-    final listing = _listing ?? listingById(widget.id);
+    final listing = _listing;
+    if (listing == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xff1c1b19),
+        body: Stack(
+          children: [
+            const Positioned(
+              top: 48,
+              left: 20,
+              child: FigBackButton(onLight: false),
+            ),
+            const Center(
+              child: Text(
+                'Объявление не найдено',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final photos = listing.photos;
+    if (photos.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xff1c1b19),
+        body: Stack(
+          children: [
+            const Positioned(
+              top: 48,
+              left: 20,
+              child: FigBackButton(onLight: false),
+            ),
+            const Center(
+              child: Text(
+                'У этого объявления нет фотографий',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final favourite = state.isFavourite(listing.id);
 
     return Scaffold(
@@ -145,28 +192,13 @@ class _PhotosPageState extends State<PhotosPage> {
               itemBuilder: (context, i) {
                 final p = photos[i];
                 final isNet = p.startsWith('http://') || p.startsWith('https://');
-                final fallbackMock = (listing.district.toLowerCase().contains('асанбай') || listing.id.contains('asanbay'))
-                    ? ListingPhotos.asanbay
-                    : ((listing.district.toLowerCase().contains('южные') || listing.id.contains('yuzhnye') || listing.id.contains('house'))
-                        ? ListingPhotos.villa
-                        : ListingPhotos.technopark);
                 return isNet
                     ? buildSafeNetworkImage(
                         url: p,
                         fit: BoxFit.cover,
-                        fallback: Image.asset(
-                          fallbackMock,
-                          fit: BoxFit.cover,
-                        ),
+                        fallback: const ColoredBox(color: Color(0xff1c1b19)),
                       )
-                    : Image.asset(
-                        p,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, _, __) => Image.asset(
-                          fallbackMock,
-                          fit: BoxFit.cover,
-                        ),
-                      );
+                    : const ColoredBox(color: Color(0xff1c1b19));
               },
             ),
           ),

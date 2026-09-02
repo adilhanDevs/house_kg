@@ -146,6 +146,7 @@ class OtpPurpose(models.TextChoices):
     """Зачем запрашивается код."""
 
     LOGIN = "login", "Вход"
+    REGISTER = "register", "Регистрация"
     PRO_REGISTER = "pro_register", "Регистрация исполнителя"
 
 

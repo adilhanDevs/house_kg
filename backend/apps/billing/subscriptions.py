@@ -40,15 +40,22 @@ TARIFF_ALIASES = {
 
 
 def get_tariff(code: str) -> Tariff:
-    resolved_code = TARIFF_ALIASES.get(code, code)
-    tariff = Tariff.objects.filter(code=resolved_code, is_active=True).first()
-    if tariff is None:
-        tariff = Tariff.objects.filter(code=code, is_active=True).first()
-    if tariff is None:
-        tariff = Tariff.objects.first()
-    if tariff is None:
-        raise ApiValidationError("Неизвестный тариф.", {"tariff_code": code})
-    return tariff
+    """Тариф по коду из запроса.
+
+    Сначала пробуем код как есть — именно его клиент получил в `GET /tariffs/`.
+    Псевдонимы остаются только как совместимость со старыми клиентами.
+
+    Неизвестный код — ошибка. Прежний вариант возвращал `Tariff.objects.first()`,
+    и опечатка в коде тарифа молча оформляла подписку на чужой тариф.
+    """
+    for candidate in (code, TARIFF_ALIASES.get(code)):
+        if not candidate:
+            continue
+        tariff = Tariff.objects.filter(code=candidate, is_active=True).first()
+        if tariff is not None:
+            return tariff
+
+    raise ApiValidationError("Неизвестный тариф.", {"tariff_code": code})
 
 
 def current_subscription(user: Any) -> Subscription | None:
@@ -205,10 +212,11 @@ def subscribe(user: Any, tariff_code: str, months: int, idempotency_key: str) ->
         status=SubscriptionStatus.ACTIVE,
     )
 
+    # Баланс не «дорисовываем»: не хватило кирпичей — apply_transaction поднимет
+    # InsufficientFundsError с недостачей, вьюха отдаст 402, и приложение
+    # предложит пополнить кошелёк через Finik. Прежний код поднимал баланс до
+    # цены тарифа, то есть отдавал любую подписку бесплатно.
     wallet = get_wallet(user)
-    if wallet.balance < plan["cost"]:
-        wallet.balance = max(wallet.balance, plan["cost"])
-        wallet.save(update_fields=["balance", "updated_at"])
 
     operation = apply_transaction(
         wallet=wallet,

@@ -38,6 +38,7 @@ import '../ui/pages/topup_page.dart';
 import '../ui/pages/view_history_page.dart';
 import '../ui/pages/video_page.dart';
 import '../ui/pages/wallet_history_page.dart';
+import '../ui/pages/register_page.dart';
 import '../ui/pages/welcome_page.dart';
 import '../data/ad_media.dart';
 import '../data/listings.dart';
@@ -118,8 +119,19 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
       builder: (context) => switch (name) {
         Routes.splash => const SplashPage(),
         Routes.welcome => const FramePage(route: Routes.welcome),
+        Routes.register => const RegisterPage(),
         Routes.onboarding => const OnboardingPage(),
-        Routes.code => CodePage(phone: ModalRoute.of(context)?.settings.arguments as String?),
+        // Экран кода принимает либо номер (вход), либо заполненную форму
+        // регистрации — жёсткий каст на String ронял второй случай.
+        Routes.code => Builder(
+              builder: (context) {
+                final args = ModalRoute.of(context)?.settings.arguments;
+                return CodePage(
+                  phone: args is String ? args : null,
+                  draft: args is RegistrationDraft ? args : null,
+                );
+              },
+            ),
         Routes.proSignup => const FramePage(route: Routes.proSignup),
         Routes.proCode => const FramePage(route: Routes.proCode),
         Routes.proPhoto1 => const FramePage(route: Routes.proPhoto1),

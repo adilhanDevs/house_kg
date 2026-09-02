@@ -168,6 +168,57 @@ void main() {
       await apiClient.registerPro('+996700123456', 'Name', 'pwd', '12345678901234');
     });
 
+    test('uploadMedia прикладывает к видео обложку и метаданные', () async {
+      http.BaseRequest? capturedRequest;
+      final client = _CaptureClient((request) async {
+        capturedRequest = request;
+        return http.Response(jsonEncode({'accepted': 1, 'media': [{'id': 7}]}), 201);
+      });
+
+      final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
+      await apiClient.uploadMedia(
+        'test-slug',
+        bytes: [1, 2, 3],
+        filename: 'clip.mp4',
+        kind: 'video',
+        thumbnailBytes: [4, 5, 6],
+        durationSeconds: 42,
+        width: 1920,
+        height: 1080,
+      );
+
+      final multipart = capturedRequest as http.MultipartRequest;
+      expect(multipart.fields['kind'], 'video');
+      expect(multipart.fields['duration_seconds'], '42');
+      expect(multipart.fields['width'], '1920');
+      expect(multipart.fields['height'], '1080');
+
+      final fields = multipart.files.map((f) => f.field).toList();
+      expect(fields, containsAll(<String>['files', 'thumbnail']));
+    });
+
+    test('uploadMedia не шлёт обложку и длительность для фото', () async {
+      http.BaseRequest? capturedRequest;
+      final client = _CaptureClient((request) async {
+        capturedRequest = request;
+        return http.Response(jsonEncode({'accepted': 1, 'media': [{'id': 8}]}), 201);
+      });
+
+      final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
+      await apiClient.uploadMedia(
+        'test-slug',
+        bytes: [1, 2, 3],
+        filename: 'photo.jpg',
+        kind: 'photo',
+        thumbnailBytes: [4, 5, 6],
+        durationSeconds: 42,
+      );
+
+      final multipart = capturedRequest as http.MultipartRequest;
+      expect(multipart.fields.containsKey('duration_seconds'), isFalse);
+      expect(multipart.files.map((f) => f.field), ['files']);
+    });
+
     test('uploadMedia sends MultipartRequest with kind field', () async {
       final tempFile = File('test_video.mp4')..writeAsBytesSync([0, 1, 2]);
       
@@ -183,7 +234,7 @@ void main() {
       });
 
       final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
-      final response = await apiClient.uploadMedia('test-slug', tempFile);
+      final response = await apiClient.uploadMedia('test-slug', file: tempFile);
       
       expect(capturedRequest, isA<http.MultipartRequest>());
       final multipart = capturedRequest as http.MultipartRequest;

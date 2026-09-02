@@ -29,7 +29,7 @@ class ApiException implements Exception {
   }
 
   @override
-  String toString() => 'ApiException(statusCode: \$statusCode, code: \$code, message: \$message)';
+  String toString() => 'ApiException($statusCode, $code): $message';
 }
 
 class NetworkException implements Exception {

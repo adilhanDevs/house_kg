@@ -109,7 +109,7 @@ class _CatalogPageState extends State<CatalogPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _listings = kListings;
+          if (refresh) _listings = [];
           _isLoading = false;
           _isLoadingMore = false;
         });

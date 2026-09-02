@@ -32,6 +32,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.catalog.covers import COVER_ATTR, cover_candidates
 from apps.catalog.enums import ListingStatus, ModerationStatus
 from apps.catalog.filters import ListingFilterSet
 from apps.catalog.models import (
@@ -378,10 +379,11 @@ class ListingDetailView(RetrieveUpdateDestroyAPIView):
     http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_permissions(self) -> list:
+        # Чтение открыто всем, правка и удаление — только владельцу. Раньше
+        # анонимному запросу возвращался AllowAny, то есть PATCH и DELETE на
+        # тот же адрес проходили вообще без авторизации.
         if self.request.method in ("PATCH", "DELETE"):
-            if self.request.user and self.request.user.is_authenticated:
-                return [IsAuthenticated(), IsListingOwner()]
-            return [AllowAny()]
+            return [IsAuthenticated(), IsListingOwner()]
         return [AllowAny()]
 
     def get_serializer_class(self) -> type:
@@ -391,11 +393,7 @@ class ListingDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self) -> QuerySet[Listing]:
         if self.request.method in ("PATCH", "DELETE"):
-            user = self.request.user
-            if not user or not user.is_authenticated:
-                from django.contrib.auth import get_user_model
-                user = get_user_model().objects.first()
-            return owned_listing_queryset(user)
+            return owned_listing_queryset(self.request.user)
         user = self.request.user
         if user and user.is_authenticated:
             return self.public_queryset(only_active=False).filter(
@@ -429,7 +427,9 @@ class ListingDetailView(RetrieveUpdateDestroyAPIView):
         )
         return (
             listing_queryset(self.request.user, only_active=only_active)
-            .prefetch_related("media")
+            # rooms_data — для `rooms_breakdown` детальной карточки: без
+            # префетча это отдельный запрос на каждое объявление.
+            .prefetch_related("media", "rooms_data")
             .annotate(
                 seller_listings_count=Coalesce(
                     Subquery(owner_listings, output_field=IntegerField()), 0
@@ -570,15 +570,13 @@ def owned_listing_queryset(user: Any) -> QuerySet[Listing]:
 
 
 class ListingDraftView(APIView):
-    """POST /api/v1/listings/draft/ — черновик объявления на сервере."""
+    """POST /api/v1/listings/draft/ — черновик объявления на сервере.
 
-    permission_classes = [AllowAny]
+    Черновик привязан к пользователю, поэтому анониму здесь делать нечего:
+    подстановка «первого попавшегося» аккаунта отдавала бы его форму любому.
+    """
 
-    def get_user(self, request: Request) -> Any:
-        if request.user and request.user.is_authenticated:
-            return request.user
-        from django.contrib.auth import get_user_model
-        return get_user_model().objects.first()
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         operation_id="listings_draft_get",
@@ -586,11 +584,11 @@ class ListingDraftView(APIView):
         responses={status.HTTP_200_OK: ListingDraftSerializer},
     )
     def get(self, request: Request) -> Response:
-        user = self.get_user(request)
+        user = request.user
         draft = get_or_create_draft(user)
         fresh = (
             listing_queryset(user, only_active=False)
-            .prefetch_related("media")
+            .prefetch_related("media", "rooms_data")
             .get(pk=draft.pk)
         )
         return Response(ListingDraftSerializer(fresh, context={"request": request}).data)
@@ -606,33 +604,39 @@ class ListingDraftView(APIView):
         responses={status.HTTP_200_OK: ListingDraftSerializer},
     )
     def post(self, request: Request) -> Response:
-        user = self.get_user(request)
+        user = request.user
         draft = get_or_create_draft(user)
         if request.data:
-            update_listing(draft, request.data)
+            # Через сериализатор, а не напрямую в setattr: иначе телом запроса
+            # можно было выставить status, promoted_until, views_count и owner.
+            form = ListingUpdateSerializer(draft, data=request.data, partial=True)
+            form.is_valid(raise_exception=True)
+            update_listing(draft, form.validated_data)
         fresh = (
             listing_queryset(user, only_active=False)
-            .prefetch_related("media")
+            .prefetch_related("media", "rooms_data")
             .get(pk=draft.pk)
         )
         return Response(ListingDraftSerializer(fresh, context={"request": request}).data)
 
 
 class ListingOwnerActionView(APIView):
-    """Общий предок действий владельца над объявлением."""
+    """Общий предок действий владельца над объявлением.
 
-    permission_classes = [AllowAny]
+    Публикация, архив, продажа, бамп и работа с медиа меняют чужое имущество,
+    поэтому владение проверяется здесь один раз для всех наследников: сам
+    queryset прячет чужие черновики (404), а `IsListingOwner` отсекает правки
+    чужого опубликованного объявления (403).
+    """
+
+    permission_classes = [IsAuthenticated, IsListingOwner]
 
     def get_user(self) -> Any:
-        user = self.request.user
-        if not user or not user.is_authenticated:
-            from django.contrib.auth import get_user_model
-            user = get_user_model().objects.first()
-        return user
+        return self.request.user
 
     def get_listing(self, slug: str) -> Listing:
-        user = self.get_user()
-        listing = get_object_or_404(owned_listing_queryset(user), slug=slug)
+        listing = get_object_or_404(owned_listing_queryset(self.request.user), slug=slug)
+        self.check_object_permissions(self.request, listing)
         return listing
 
     def render(self, listing: Listing, request: Request) -> Response:
@@ -732,20 +736,17 @@ class ListingBumpView(ListingOwnerActionView):
 class MyListingsView(ListAPIView):
     """GET /api/v1/users/me/listings/ — «Мои объявления»."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     serializer_class = MyListingSerializer
     pagination_class = DefaultCursorPagination
     queryset = Listing.objects.none()  # для генератора схемы
 
     def get_queryset(self) -> QuerySet[Listing]:
         user = self.request.user
-        if not user or not user.is_authenticated:
-            from django.contrib.auth import get_user_model
-            user = get_user_model().objects.first()
+        if not (user and user.is_authenticated):  # pragma: no cover - генерация схемы
+            return Listing.objects.none()
 
-        queryset = listing_queryset(user, only_active=False).filter(
-            owner=user
-        )
+        queryset = listing_queryset(user, only_active=False).filter(owner=user)
 
         requested = self.request.query_params.get("status")
         if requested in ListingStatus.values:
@@ -811,6 +812,12 @@ class ListingMediaUploadView(ListingOwnerActionView):
             form.validated_data["kind"],
             title=form.validated_data.get("title", ""),
             description=form.validated_data.get("description", ""),
+            # Кадр-обложка и метаданные ролика приходят с клиента: сервер
+            # видео больше не разбирает.
+            thumbnail=form.validated_data.get("thumbnail"),
+            duration_seconds=form.validated_data.get("duration_seconds"),
+            width=form.validated_data.get("width"),
+            height=form.validated_data.get("height"),
         )
         payload = MediaUploadResultSerializer(result, context={"request": request}).data
         return Response(payload, status=status.HTTP_201_CREATED)
@@ -955,8 +962,6 @@ class ListingReportView(APIView):
 
 def moderation_queryset() -> QuerySet[ModerationTask]:
     """Очередь со всем, что нужно карточке задачи, без N+1."""
-    cover_media = ListingMedia.objects.filter(is_cover=True)
-
     return ModerationTask.objects.select_related(
         "review",
         "listing",
@@ -969,7 +974,10 @@ def moderation_queryset() -> QuerySet[ModerationTask]:
         "assigned_to",
     ).prefetch_related(
         "listing__media",
-        Prefetch("listing__media", queryset=cover_media, to_attr="cover_media"),
+        # Карточка задачи рисуется тем же ListingDetailSerializer, что и
+        # публичная: без rooms_data очередь делает запрос на каждую задачу.
+        "listing__rooms_data",
+        Prefetch("listing__media", queryset=cover_candidates(), to_attr=COVER_ATTR),
     )
 
 

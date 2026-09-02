@@ -99,7 +99,7 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _listings = kListings.take(4).toList();
+          _listings = [];
           _isLoading = false;
         });
         debugPrint('Home page load listings failed: $e');
@@ -127,7 +127,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final strip = kListings.take(_stripX.length).toList();
 
     return RefreshIndicator(
       onRefresh: _loadListings,
@@ -229,9 +228,8 @@ class _HomePageState extends State<HomePage> {
                                         color: Color(0xfff0f0f0),
                                       ),
                                     )
-                                  : Image.asset(
-                                      listing.photo,
-                                      fit: BoxFit.cover,
+                                  : const ColoredBox(
+                                      color: Color(0xfff0f0f0),
                                     ),
                             ),
                           ),

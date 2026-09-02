@@ -23,28 +23,40 @@ class _AdVideoPageState extends State<AdVideoPage> {
   Future<void> _saveAndNext(AppState state) async {
     setState(() => _isSaving = true);
     final apiClient = state.apiClient;
-    
+
+    // Ошибки загрузки роликов больше не уходят в debugPrint: пользователь
+    // видел «всё хорошо» и шёл дальше без видео.
+    final failures = <String>[];
+
     try {
       final realSlug = state.draftSlug ?? 'draft-slug';
 
       for (int i = 0; i < state.draftVideoList.length; i++) {
         final video = state.draftVideoList[i];
-        if (video.asset != null || video.bytes == null || video.bytes!.isEmpty) {
+        final hasFile = (video.path != null && video.path!.isNotEmpty) ||
+            (video.bytes != null && video.bytes!.isNotEmpty);
+        if (video.asset != null || !hasFile) {
           continue;
         }
         int? realMediaId = video.id;
-        
+
         if (realMediaId == null) {
           try {
             final fileName = video.name.toLowerCase().endsWith('.mp4') || video.name.toLowerCase().endsWith('.mov')
                 ? video.name
                 : 'video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+            // Ролик уходит потоком с диска, а вместе с ним — кадр-обложка и
+            // длительность, снятые при выборе файла.
             final uploadResponse = await apiClient.uploadMedia(
               realSlug,
-              null,
-              video.bytes,
-              fileName,
-              'video',
+              filePath: video.path,
+              bytes: video.path == null ? video.bytes : null,
+              filename: fileName,
+              kind: 'video',
+              thumbnailBytes: video.posterBytes,
+              durationSeconds: video.durationSeconds,
+              width: video.width,
+              height: video.height,
             );
             final mediaList = uploadResponse['media'] as List?;
             if (mediaList != null && mediaList.isNotEmpty) {
@@ -55,6 +67,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
             }
           } catch (e) {
             debugPrint('Video upload warning: $e');
+            failures.add(_uploadErrorText(e));
           }
         }
         
@@ -72,9 +85,21 @@ class _AdVideoPageState extends State<AdVideoPage> {
         }
       }
       
-      if (mounted) {
-        Navigator.pushNamed(context, Routes.adPromo);
+      if (!mounted) return;
+
+      // Ролик не загрузился — остаёмся на экране: дальше идти не с чем.
+      if (failures.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ролик не загрузился: ${failures.first}'),
+            backgroundColor: const Color(0xffd93025),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        return;
       }
+
+      Navigator.pushNamed(context, Routes.adPromo);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -364,4 +389,12 @@ class _VideoFormItemState extends State<_VideoFormItem> {
       ],
     );
   }
+}
+
+/// Текст ошибки загрузки — настоящий, а не общая фраза: по «нет связи с
+/// сервером» невозможно отличить обрыв сети от неподдерживаемого вызова.
+String _uploadErrorText(Object error) {
+  if (error is ApiException) return error.message;
+  if (error is NetworkException) return error.message;
+  return error.toString();
 }

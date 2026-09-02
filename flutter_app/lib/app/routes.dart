@@ -12,6 +12,7 @@ abstract final class Routes {
   static const splash = '/';
   static const onboarding = '/onboarding';
   static const welcome = '/welcome';
+  static const register = '/register';
   static const code = '/code';
 
   // вкладки
@@ -76,7 +77,10 @@ const List<String> kTabRoutes = [
 const Map<int, String> kFrameRoute = {
   0: Routes.splash,
   1: Routes.onboarding, 2: Routes.onboarding, 3: Routes.onboarding,
-  4: Routes.welcome, 6: Routes.welcome,
+  4: Routes.welcome,
+  // Кадр 07 — не дубль приветствия, а форма регистрации: имя и пароль вместо
+  // кнопки «Войти». Пока он вёл на welcome, регистрироваться было негде.
+  6: Routes.register,
   5: Routes.code, 7: Routes.code,
   8: Routes.home,
   9: Routes.collection,

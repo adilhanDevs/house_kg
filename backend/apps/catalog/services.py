@@ -37,6 +37,7 @@ from django.utils import timezone
 from rest_framework.exceptions import Throttled
 
 from apps.catalog.constants import MAX_PHOTOS_PER_LISTING, MAX_VIDEOS_PER_LISTING
+from apps.catalog.covers import COVER_ATTR, cover_candidates
 from apps.catalog.enums import (
     BuildingLine,
     CommercialPurpose,
@@ -48,7 +49,7 @@ from apps.catalog.enums import (
     PropertyKind,
     SellerKind,
 )
-from apps.catalog.field_rules import REQUIRED_BY_KIND
+from apps.catalog.field_rules import KIND_FIELDS, REQUIRED_BY_KIND, applicable_fields
 from apps.catalog.models import (
     Builder,
     City,
@@ -75,6 +76,9 @@ SUPPORTED_LANGUAGES = ("ru", "ky", "en")
 DEFAULT_LANGUAGE = "ru"
 
 # Чипы «Комнаты» и «Квадратура» из макета (lib/data/listings.dart, kAreaRanges).
+# Кадр-обложка ролика: больше 1080 по длинной стороне карточке не нужно.
+VIDEO_POSTER_MAX_SIDE = 1080
+
 ROOM_OPTIONS = [1, 2, 3, 4, 5]
 AREA_RANGES = [(35, 45), (45, 55), (65, 75), (75, 85)]
 
@@ -290,36 +294,63 @@ def upload_listing_media(
     kind: str,
     title: str = "",
     description: str = "",
+    thumbnail: Any = None,
+    duration_seconds: int | None = None,
+    width: int | None = None,
+    height: int | None = None,
 ) -> dict[str, Any]:
     """Принимает пачку файлов — пользователь выбирает их в галерее скопом.
 
     Логика повторяет `AppState._append` во Flutter: сколько влезает в лимит,
     столько и берём, остальное отклоняем и честно сообщаем об этом в ответе.
-    """
-    free_slots = free_media_slots(listing, kind)
 
-    if free_slots == 0:
-        raise ApiValidationError(
-            _limit_message(kind, 0),
-            {"free_slots": 0, "message": _limit_message(kind, 0)},
-        )
+    Всё идёт под блокировкой строки объявления: и счёт свободных слотов, и
+    выдача порядковых номеров. Иначе две параллельные загрузки получали один
+    и тот же `order` и падали на уникальном ограничении (listing, order), а
+    лимит фотографий обходился запуском загрузок одновременно.
+    """
+    from django.db import transaction
 
     accepted: list[ListingMedia] = []
     rejected: list[dict[str, str]] = []
     reason = ""
 
-    for index, upload in enumerate(files):
-        if index >= free_slots:
-            reason = _limit_message(kind, 0)
-            rejected.append({"file_index": str(index), "reason": reason})
-            continue
+    with transaction.atomic():
+        Listing.objects.select_for_update().filter(pk=listing.pk).first()
 
-        try:
-            accepted.append(_store_upload(listing, upload, kind, title, description))
-        except DjangoValidationError as exc:
-            message = "; ".join(exc.messages)
-            reason = reason or message
-            rejected.append({"file_index": str(index), "reason": message})
+        free_slots = free_media_slots(listing, kind)
+        if free_slots == 0:
+            raise ApiValidationError(
+                _limit_message(kind, 0),
+                {"free_slots": 0, "message": _limit_message(kind, 0)},
+            )
+
+        for index, upload in enumerate(files):
+            if index >= free_slots:
+                reason = _limit_message(kind, 0)
+                rejected.append({"file_index": str(index), "reason": reason})
+                continue
+
+            try:
+                accepted.append(
+                    _store_upload(
+                        listing,
+                        upload,
+                        kind,
+                        title,
+                        description,
+                        # Обложка и метаданные относятся к одному ролику: сериализатор
+                        # не пропустит их вместе с пачкой файлов.
+                        thumbnail=thumbnail,
+                        duration_seconds=duration_seconds,
+                        width=width,
+                        height=height,
+                    )
+                )
+            except DjangoValidationError as exc:
+                message = "; ".join(exc.messages)
+                reason = reason or message
+                rejected.append({"file_index": str(index), "reason": message})
 
     if not accepted:
         raise ApiValidationError(
@@ -354,21 +385,24 @@ def _store_upload(
     kind: str,
     title: str = "",
     description: str = "",
+    thumbnail: Any = None,
+    duration_seconds: int | None = None,
+    width: int | None = None,
+    height: int | None = None,
 ) -> ListingMedia:
-    """Проверяет один файл и кладёт его в хранилище со статусом `processing`.
+    """Проверяет один файл и кладёт его в хранилище.
 
     Проверка идёт по содержимому файла до записи в бакет: 200-мегабайтное
     видео на четыре минуты не должно попасть в хранилище даже на секунду.
+
+    Видео сервер не разбирает: длительность, размеры и кадр-обложку присылает
+    приложение — оно и так открывает ролик в плеере. Раньше ради этого прямо в
+    запросе писалась временная копия файла и запускались ffprobe и ffmpeg.
     """
     from django.db import transaction
 
-    from apps.catalog.media import (
-        source_extension,
-        temporary_bytes,
-        validate_photo,
-        validate_video,
-    )
-    from apps.catalog.tasks import process_media
+    from apps.catalog.media import source_extension, validate_photo, validate_video
+    from apps.catalog.tasks import process_media, verify_video_duration
 
     data = upload.read()
     upload.seek(0)
@@ -380,22 +414,24 @@ def _store_upload(
     }
 
     if kind == MediaKind.PHOTO:
-        width, height = validate_photo(data)
-        extra |= {"width": width, "height": height}
+        photo_width, photo_height = validate_photo(data)
+        extra |= {"width": photo_width, "height": photo_height}
     else:
-        # ffprobe работает с путём, поэтому валидируем по временной копии,
-        # а не по файлу в хранилище — в бакет он ещё не попал.
-        source = temporary_bytes(data, suffix=".mp4")
-        try:
-            probe = validate_video(data, str(source))
-        finally:
-            source.unlink(missing_ok=True)
+        probe = validate_video(data, duration_seconds=duration_seconds)
         extra |= {key: value for key, value in probe.items() if value is not None}
+        # Разрешение с клиента — справочное: оно нужно карточке, чтобы не
+        # прыгала вёрстка, и ни на что важное не влияет.
+        if width:
+            extra.setdefault("width", int(width))
+        if height:
+            extra.setdefault("height", int(height))
 
     media = ListingMedia(
         listing=listing,
         kind=kind,
-        status=MediaStatus.PROCESSING,
+        # Фото ещё ждёт вариантов размеров, видео уже готово: над ним на
+        # сервере работы не осталось.
+        status=MediaStatus.PROCESSING if kind == MediaKind.PHOTO else MediaStatus.READY,
         order=_next_media_order(listing),
         is_cover=(kind == MediaKind.PHOTO and not listing.media.filter(is_cover=True).exists()),
         **extra,
@@ -403,10 +439,85 @@ def _store_upload(
     # Имя файла с телефона отбрасывается: оно может содержать ПДн, а попадёт
     # в публичный URL. Ключ собирается из UUID объявления и записи.
     media.file.save(f"{media.uuid}_source.{source_extension(data, kind)}", upload, save=False)
+
+    if kind == MediaKind.VIDEO and thumbnail is not None:
+        _store_video_poster(media, thumbnail)
+
+    # Длительность назвал клиент, а верить ему на слово нельзя: занизив её,
+    # можно залить двухчасовой ролик. Файл уже в хранилище, поэтому ffprobe
+    # читает заголовок именно его — временных копий и перекодирования, ради
+    # которых проверку когда-то унесли с сервера, здесь нет.
+    verify_later = kind == MediaKind.VIDEO and not _enforce_video_duration(media)
+
     media.save()
 
-    transaction.on_commit(lambda: process_media.delay(media.pk))
+    if kind == MediaKind.PHOTO:
+        transaction.on_commit(lambda: process_media.delay(media.pk))
+    elif verify_later:
+        # Файла на диске нет (S3) — сверит фоновая задача, уже по факту.
+        transaction.on_commit(lambda: verify_video_duration.delay(media.pk))
     return media
+
+
+def _enforce_video_duration(media: ListingMedia) -> bool:
+    """Отклоняет ролик длиннее лимита. Возвращает False, если проверить нечем.
+
+    Отказ — до сохранения записи и с удалением файла из хранилища: лучше
+    честные 400 сразу, чем 201 и молча пропавший ролик.
+    """
+    from apps.catalog.media import local_path, probe_video
+
+    path = local_path(media.file)
+    if path is None:
+        return False
+
+    duration = probe_video(path).get("duration_seconds")
+    if duration is None:
+        # ffprobe нет или файл ему не понятен — остаётся лимит размера,
+        # который уже проверен до записи в хранилище.
+        return True
+
+    limit = settings.LISTING_VIDEO_MAX_DURATION
+    if duration > limit:
+        media.file.delete(save=False)
+        raise DjangoValidationError(
+            f"Видео длиннее {limit // 60} минут. Обрежьте ролик и попробуйте снова.",
+            code="video_too_long",
+        )
+
+    media.duration_seconds = duration
+    return True
+
+
+def _store_video_poster(media: ListingMedia, thumbnail: Any) -> None:
+    """Кладёт присланный клиентом кадр как обложку ролика.
+
+    Картинка проходит ту же проверку, что и обычное фото, и пересобирается
+    заново: приложению верим на слово только в том, что это кадр из его же
+    видео, а не в том, что внутри действительно JPEG без лишних метаданных.
+
+    Обложки нет — не беда: сериализатор отдаст первое фото объявления.
+    """
+    from io import BytesIO
+
+    from django.core.files.base import ContentFile
+    from PIL import Image
+
+    from apps.catalog.media import encode, resize_to, strip_exif, validate_photo, variant_name
+
+    data = thumbnail.read()
+    thumbnail.seek(0)
+    validate_photo(data)
+
+    with Image.open(BytesIO(data)) as raw:
+        poster = resize_to(strip_exif(raw), VIDEO_POSTER_MAX_SIDE)
+        payload = encode(poster, "JPEG")
+
+    media.thumbnail.save(
+        variant_name(media, "poster", "jpg"),
+        ContentFile(payload),
+        save=False,
+    )
 
 
 def _next_media_order(listing: Listing) -> int:
@@ -565,14 +676,13 @@ def listing_queryset(user: Any = None, only_active: bool = True) -> QuerySet[Lis
     `only_active=False` нужен избранному и истории просмотров: объявление могло
     уйти в архив, но из списка пользователя исчезать не должно.
     """
-    cover_media = ListingMedia.objects.filter(is_cover=True)
     base = Listing.objects.all()
     if only_active:
         base = base.filter(status=ListingStatus.ACTIVE)
 
     return (
         base.select_related("district", "city", "series", "builder", "owner")
-        .prefetch_related(Prefetch("media", queryset=cover_media, to_attr="cover_media"))
+        .prefetch_related(Prefetch("media", queryset=cover_candidates(), to_attr=COVER_ATTR))
         .annotate(
             promoted_rank=promoted_annotation(),
             priority_rank=priority_annotation(),
@@ -722,10 +832,19 @@ EDITABLE_FIELDS = (
     "longitude",
 )
 
+# Всё, что форма объявления вообще имеет право записать, — объединение
+# полей всех типов недвижимости. Статус, владелец, счётчики просмотров,
+# `promoted_until` и `published_at` сюда не входят: каждое из них меняется
+# своим действием (публикация, покупка продвижения), а не телом PATCH.
+WRITABLE_FIELDS = frozenset().union(*KIND_FIELDS.values())
+
 # Что обязательно для публикации.
 # Поля, где 0 — это «не заполнено»: модель хранит их как PositiveSmallInteger
 # с default=0, отличить «ноль» от «пусто» больше нечем.
 ZERO_MEANS_EMPTY = frozenset({"rooms", "floor", "floors"})
+
+# Поля, которые кормят полнотекстовый индекс (apps/catalog/search.py).
+SEARCH_SOURCE_FIELDS = frozenset({"address", "description", "district", "builder"})
 
 
 def get_or_create_draft(user: Any) -> Listing:
@@ -748,6 +867,9 @@ def get_or_create_draft(user: Any) -> Listing:
 
 
 RELATION_FIELDS = frozenset({"district", "city", "series", "builder"})
+
+# Поле формы -> имя атрибута модели: у связей писать нужно в `*_id`.
+FORM_FIELD_ATTNAMES: dict[str, str] = {name: f"{name}_id" for name in RELATION_FIELDS}
 
 
 def _is_blank(listing: Listing, name: str) -> bool:
@@ -797,7 +919,12 @@ def listings_limit(user: Any) -> int:
 
 
 def ensure_free_slot(listing: Listing) -> None:
-    """Проверяет лимит активных объявлений по тарифу пользователя."""
+    """Проверяет лимит активных объявлений по тарифу пользователя.
+
+    Вызывается внутри транзакции, где строка владельца уже заблокирована
+    (`lock_owner`): без блокировки два параллельных «Опубликовать» оба видели
+    бы свободный слот и оба его занимали.
+    """
     limit = listings_limit(listing.owner)
     if limit == 0:
         return
@@ -809,12 +936,98 @@ def ensure_free_slot(listing: Listing) -> None:
         )
 
 
+def lock_owner(listing: Listing) -> None:
+    """Блокирует строку владельца до конца транзакции.
+
+    Лимит активных объявлений считается по владельцу, поэтому сериализовать
+    нужно именно его: пока один запрос считает слоты, второй ждёт.
+    """
+    from django.contrib.auth import get_user_model
+
+    get_user_model().objects.select_for_update().filter(pk=listing.owner_id).first()
+
+
+# Из каких статусов объявление вообще можно опубликовать.
+# ACTIVE и PENDING — уже в работе; SOLD и ARCHIVED возвращаются своими
+# действиями, иначе «Опубликовать» продлевал бы срок публикации бесплатно и
+# снимал бы с модерации то, что на неё отправили жалобы.
+PUBLISHABLE_STATUSES = frozenset({ListingStatus.DRAFT, ListingStatus.REJECTED})
+
+PUBLISH_CONFLICT_MESSAGES = {
+    ListingStatus.ACTIVE: "Объявление уже опубликовано.",
+    ListingStatus.PENDING: "Объявление на модерации — дождитесь решения.",
+    ListingStatus.ARCHIVED: "Объявление в архиве: верните его действием «Восстановить».",
+    ListingStatus.SOLD: "Объект отмечен проданным. Снимите отметку, чтобы опубликовать снова.",
+}
+
+
+def _search_source_snapshot(listing: Listing) -> tuple[Any, ...]:
+    """Значения полей, из которых собирается полнотекстовый вектор."""
+    return tuple(
+        getattr(listing, FORM_FIELD_ATTNAMES.get(name, name), None)
+        for name in sorted(SEARCH_SOURCE_FIELDS)
+    )
+
+
+def _schedule_search_reindex(listing: Listing) -> None:
+    """Ставит пересборку вектора после коммита — до него задача видит старое."""
+    from django.db import transaction
+
+    from apps.catalog.tasks import update_listing_search_vector
+
+    transaction.on_commit(lambda: update_listing_search_vector.delay(listing.pk))
+
+
+def reset_inapplicable_fields(listing: Listing, kind: str) -> list[str]:
+    """Возвращает к значениям по умолчанию поля, к новому типу не относящиеся.
+
+    Сериализатор отбрасывает неприменимое из *входящих* данных, но у объекта
+    остаётся то, что записали раньше: квартира с тремя комнатами на пятом
+    этаже, ставшая участком, так и уезжала в каталог с `rooms=3, floor=5`.
+    """
+    allowed = applicable_fields(kind)
+    if not allowed:  # неизвестный тип — данные не трогаем
+        return []
+
+    cleared: list[str] = []
+    for name in sorted(WRITABLE_FIELDS - allowed):
+        if name == "rooms_breakdown":
+            # Не поле модели, а связанный список: чистится отдельно.
+            # У несохранённого объекта связи ещё нет — и чистить в ней нечего.
+            if listing.pk and listing.rooms_data.exists():
+                listing.rooms_data.all().delete()
+                cleared.append(name)
+            continue
+
+        field = Listing._meta.get_field(name)
+        attname = FORM_FIELD_ATTNAMES.get(name, name)
+        default = None if name in RELATION_FIELDS else field.get_default()
+        if getattr(listing, attname) != default:
+            setattr(listing, attname, default)
+            cleared.append(name)
+
+    return cleared
+
+
 def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
     """Частичное обновление формы.
 
     У активного объявления снижение цены сохраняет прежнюю в old_price —
     из неё карточка рисует зачёркнутую цену «было 107 000$».
+
+    Данные обязаны быть уже проверенными сериализатором. Белый список полей
+    здесь — вторая линия обороны: попадёт сюда сырое тело запроса — статус,
+    владелец и продвижение всё равно останутся недосягаемы.
     """
+    from django.db import transaction
+
+    forbidden = sorted(set(data) - WRITABLE_FIELDS)
+    if forbidden:
+        raise ApiValidationError(
+            "Эти поля объявления через форму не меняются.",
+            {"fields": forbidden},
+        )
+
     new_price = data.get("price")
     if (
         new_price is not None
@@ -831,24 +1044,51 @@ def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
     # дополняется: удалённая владельцем комната иначе осталась бы навсегда.
     rooms = data.pop("rooms_breakdown", None)
 
-    for field, value in data.items():
-        setattr(listing, field, value)
+    previous_kind = listing.kind
+    previous_search_source = _search_source_snapshot(listing)
 
-    listing.save()
+    # Поля объявления и экспликация помещений сохраняются вместе: иначе обрыв
+    # запроса между двумя записями оставлял бы участок со списком комнат от
+    # прежней квартиры.
+    with transaction.atomic():
+        for field, value in data.items():
+            setattr(listing, field, value)
 
-    if rooms is not None:
-        listing.rooms_data.all().delete()
-        ListingRoom.objects.bulk_create(
-            [
-                ListingRoom(
-                    listing=listing,
-                    name=room["name"],
-                    area=room["area"],
-                    order=room.get("order", index),
+        new_kind = data.get("kind")
+        if new_kind is not None and new_kind != previous_kind:
+            cleared = reset_inapplicable_fields(listing, new_kind)
+            if cleared:
+                logger.info(
+                    "Объявление %s сменило тип %s -> %s, очищены поля: %s",
+                    listing.slug,
+                    previous_kind,
+                    new_kind,
+                    ", ".join(cleared),
                 )
-                for index, room in enumerate(rooms)
-            ]
-        )
+
+        listing.save()
+
+        if rooms is not None:
+            listing.rooms_data.all().delete()
+            ListingRoom.objects.bulk_create(
+                [
+                    ListingRoom(
+                        listing=listing,
+                        name=room["name"],
+                        area=room["area"],
+                        order=room.get("order", index),
+                    )
+                    for index, room in enumerate(rooms)
+                ]
+            )
+
+    if listing.status != ListingStatus.DRAFT and (
+        previous_search_source != _search_source_snapshot(listing)
+    ):
+        # Изменили адрес или описание опубликованного объявления — вектор
+        # поиска обязан догнать текст, иначе объект перестаёт находиться по
+        # новым словам и продолжает находиться по старым.
+        _schedule_search_reindex(listing)
 
     if new_price is not None and previous_price != new_price:
         # Цена — то, ради чего объявление и открывают; её изменения должны
@@ -866,14 +1106,20 @@ def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
 
 
 def publish_listing(listing: Listing) -> Listing:
-    """Отправляет объявление на модерацию или сразу в публикацию.
+    """Публикует черновик; отклонённое возвращает на повторную модерацию.
 
-    Доверенным пользователям модерация не нужна — объявление уходит в эфир
-    немедленно.
+    Черновик уходит в эфир сразу. Объявление, которое модератор уже отклонял,
+    второй раз без проверки в каталог не попадает — иначе отклонение
+    обходилось бы одним нажатием «Опубликовать».
     """
     from django.db import transaction
 
     from apps.catalog.tasks import update_listing_search_vector
+
+    if listing.status not in PUBLISHABLE_STATUSES:
+        raise ConflictError(
+            PUBLISH_CONFLICT_MESSAGES.get(listing.status, "Объявление опубликовать нельзя.")
+        )
 
     missing = missing_fields_for_publish(listing)
     if missing:
@@ -882,21 +1128,48 @@ def publish_listing(listing: Listing) -> Listing:
             {"missing_fields": missing},
         )
 
-    ensure_free_slot(listing)
-
     now = timezone.now()
-    listing.rejection_reason = ""
 
-    listing.status = ListingStatus.ACTIVE
-    listing.published_at = now
-    listing.expires_at = now + timedelta(days=settings.LISTING_ACTIVE_DAYS)
+    with transaction.atomic():
+        lock_owner(listing)
+        # Статус перечитываем под блокировкой: параллельный запрос мог
+        # опубликовать это же объявление, пока мы считали обязательные поля.
+        current = (
+            Listing.objects.select_for_update().values_list("status", flat=True).get(pk=listing.pk)
+        )
+        if current not in PUBLISHABLE_STATUSES:
+            raise ConflictError(
+                PUBLISH_CONFLICT_MESSAGES.get(current, "Объявление опубликовать нельзя.")
+            )
 
-    listing.save(
-        update_fields=["status", "published_at", "expires_at", "rejection_reason", "updated_at"]
-    )
+        to_moderation = current == ListingStatus.REJECTED
+        if not to_moderation:
+            ensure_free_slot(listing)
+
+        listing.rejection_reason = ""
+        listing.status = ListingStatus.PENDING if to_moderation else ListingStatus.ACTIVE
+        listing.published_at = None if to_moderation else now
+        listing.expires_at = (
+            None if to_moderation else now + timedelta(days=settings.LISTING_ACTIVE_DAYS)
+        )
+        listing.save(
+            update_fields=[
+                "status",
+                "published_at",
+                "expires_at",
+                "rejection_reason",
+                "updated_at",
+            ]
+        )
+
+        if to_moderation:
+            from apps.catalog.moderation.services import enqueue_moderation
+
+            enqueue_moderation(listing)
 
     transaction.on_commit(lambda: update_listing_search_vector.delay(listing.pk))
-    safe(observe_listing_published, auto=True)
+    if not to_moderation:
+        safe(observe_listing_published, auto=True)
     logger.info("Объявление %s -> %s", listing.slug, listing.status)
     return listing
 
@@ -921,6 +1194,12 @@ def approve_listing(listing: Listing) -> Listing:
 
 
 def archive_listing(listing: Listing) -> Listing:
+    """Убирает объявление из выдачи. Черновик убирать неоткуда."""
+    if listing.status == ListingStatus.DRAFT:
+        raise ConflictError("Черновик ещё не опубликован — архивировать нечего.")
+    if listing.status == ListingStatus.ARCHIVED:
+        return listing
+
     listing.status = ListingStatus.ARCHIVED
     listing.save(update_fields=["status", "updated_at"])
     return listing
@@ -928,20 +1207,36 @@ def archive_listing(listing: Listing) -> Listing:
 
 def restore_listing(listing: Listing) -> Listing:
     """Возвращает объявление из архива, продлевая срок публикации."""
+    from django.db import transaction
+
     if listing.status != ListingStatus.ARCHIVED:
         raise ConflictError("Вернуть из архива можно только архивное объявление.")
 
-    ensure_free_slot(listing)
-
     now = timezone.now()
-    listing.status = ListingStatus.ACTIVE
-    listing.published_at = listing.published_at or now
-    listing.expires_at = now + timedelta(days=settings.LISTING_ACTIVE_DAYS)
-    listing.save(update_fields=["status", "published_at", "expires_at", "updated_at"])
+    with transaction.atomic():
+        lock_owner(listing)
+        current = (
+            Listing.objects.select_for_update().values_list("status", flat=True).get(pk=listing.pk)
+        )
+        if current != ListingStatus.ARCHIVED:
+            raise ConflictError("Вернуть из архива можно только архивное объявление.")
+
+        ensure_free_slot(listing)
+
+        listing.status = ListingStatus.ACTIVE
+        listing.published_at = listing.published_at or now
+        listing.expires_at = now + timedelta(days=settings.LISTING_ACTIVE_DAYS)
+        listing.save(update_fields=["status", "published_at", "expires_at", "updated_at"])
     return listing
 
 
 def mark_listing_sold(listing: Listing) -> Listing:
+    """Отмечает объект проданным. Непубликовавшийся объект продать нельзя."""
+    if listing.status in (ListingStatus.DRAFT, ListingStatus.PENDING):
+        raise ConflictError("Объявление ещё не опубликовано.")
+    if listing.status == ListingStatus.SOLD:
+        return listing
+
     listing.status = ListingStatus.SOLD
     listing.save(update_fields=["status", "updated_at"])
     return listing
@@ -961,6 +1256,9 @@ def soft_delete_listing(listing: Listing) -> Listing:
 
 def bump_listing(listing: Listing) -> Listing:
     """Поднимает объявление в выдаче. Бесплатно — не чаще раза в сутки."""
+    if listing.status != ListingStatus.ACTIVE:
+        raise ConflictError("Поднять можно только опубликованное объявление.")
+
     cooldown = timedelta(hours=settings.LISTING_BUMP_COOLDOWN_HOURS)
     now = timezone.now()
 

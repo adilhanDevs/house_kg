@@ -7,9 +7,11 @@ import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/ad_media.dart';
 import '../../data/api_client.dart';
+import '../../data/api_exceptions.dart';
 import '../../data/kind_fields.dart';
 import '../../data/listing_payload.dart';
 import '../../data/listings.dart';
+import '../../data/video_poster.dart';
 
 class AdEditPage extends StatefulWidget {
   const AdEditPage({
@@ -140,9 +142,7 @@ class _AdEditPageState extends State<AdEditPage> {
       if (data != null) {
         _populateFields(data);
       } else {
-        // Fallback from default listings mock
-        final item = kListings.firstWhere((l) => l.slug == _slug, orElse: () => kListings.first);
-        _populateFromItem(item);
+        _error = 'Объявление не найдено на сервере';
       }
     } catch (e) {
       _error = 'Не удалось загрузить данные объявления: $e';
@@ -217,28 +217,6 @@ class _AdEditPageState extends State<AdEditPage> {
           .cast<Map<String, dynamic>>()
           .toList();
     }
-  }
-
-  void _populateFromItem(Listing item) {
-    _addressController.text = item.address;
-    _areaController.text = item.area > 0 ? item.area.toStringAsFixed(0) : '118';
-    _priceController.text = item.priceUsd > 0 ? item.priceUsd.toString() : '145000';
-    _floorController.text = item.floor > 0 ? item.floor.toString() : '8';
-    _floorsController.text = item.floors > 0 ? item.floors.toString() : '14';
-    _builderController.text = '';
-    _descriptionController.text = item.description;
-    _selectedRooms = item.rooms > 0 ? item.rooms : 3;
-    _selectedDistrict = item.district.isNotEmpty ? item.district : 'asanbay';
-    _selectedDistrictName = item.district.isNotEmpty ? item.district : 'Асанбай';
-    _selectedSeries = item.series ?? '106';
-
-    _photos = [
-      if (item.photo.isNotEmpty) {'url': item.photo, 'kind': 'photo', 'id': 1},
-      ...item.more.map((url) => {'url': url, 'kind': 'photo', 'id': url.hashCode}),
-    ];
-    _videos = item.videos
-        .map((v) => {'url': v.url, 'kind': 'video', 'id': v.url.hashCode, 'title': v.title})
-        .toList();
   }
 
   Future<void> _pickPhotos() async {
@@ -331,6 +309,13 @@ class _AdEditPageState extends State<AdEditPage> {
     return _districts;
   }
 
+  /// Текст ошибки загрузки: сообщение сервера, а не «Instance of ...».
+  String _uploadErrorText(Object error) {
+    if (error is ApiException) return error.message;
+    if (error is NetworkException) return error.message;
+    return error.toString();
+  }
+
   Future<void> _saveChanges() async {
     setState(() => _isSaving = true);
     final state = AppScope.read(context);
@@ -400,34 +385,77 @@ class _AdEditPageState extends State<AdEditPage> {
         }
       }
 
+      // Ошибки загрузки собираем, а не глушим: раньше файл мог не уйти
+      // (слишком большой, нет связи), а экран рапортовал «успешно обновлено»
+      // и закрывался — владелец узнавал о пропаже фото уже из каталога.
+      final failures = <String>[];
+
       // 2. Upload new photos if any
+      final uploadedPhotos = <dynamic>[];
       for (final photoFile in _newPhotoFiles) {
         try {
-          await state.apiClient.uploadMedia(_slug, photoFile, null, null, 'photo');
+          await state.apiClient.uploadMedia(_slug, file: photoFile, kind: 'photo');
+          uploadedPhotos.add(photoFile);
         } catch (pe) {
-          debugPrint('Upload photo error: $pe');
+          failures.add(_uploadErrorText(pe));
         }
       }
 
       // 3. Upload new videos if any
+      final uploadedVideos = <dynamic>[];
       for (final videoFile in _newVideoFiles) {
         try {
-          await state.apiClient.uploadMedia(_slug, videoFile, null, null, 'video');
+          // Кадр-обложку и длительность снимаем здесь же: сервер видео больше
+          // не разбирает.
+          final poster = await captureVideoPoster(videoFile.path);
+          await state.apiClient.uploadMedia(
+            _slug,
+            filePath: videoFile.path,
+            filename: videoFile.name,
+            kind: 'video',
+            thumbnailBytes: poster.bytes,
+            durationSeconds: poster.durationSeconds,
+            width: poster.width,
+            height: poster.height,
+          );
+          uploadedVideos.add(videoFile);
         } catch (ve) {
-          debugPrint('Upload video error: $ve');
+          failures.add(_uploadErrorText(ve));
         }
       }
 
-      if (mounted) {
+      // Загруженное из очереди убираем — повторное сохранение не должно
+      // отправлять те же файлы второй раз.
+      _newPhotoFiles.removeWhere(uploadedPhotos.contains);
+      _newVideoFiles.removeWhere(uploadedVideos.contains);
+
+      if (!mounted) return;
+
+      if (failures.isNotEmpty) {
+        // Поля объявления уже сохранены — об этом и говорим, но экран
+        // оставляем открытым: файлы ещё можно отправить повторно.
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Объявление успешно обновлено!'),
-            backgroundColor: Color(0xff2e7d32),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(
+              'Изменения сохранены, но файлы не загрузились '
+              '(${failures.length}): ${failures.first}',
+            ),
+            backgroundColor: const Color(0xfff5222d),
+            duration: const Duration(seconds: 6),
           ),
         );
-        Navigator.of(context).pop(true);
+        setState(() {});
+        return;
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Объявление успешно обновлено!'),
+          backgroundColor: Color(0xff2e7d32),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
