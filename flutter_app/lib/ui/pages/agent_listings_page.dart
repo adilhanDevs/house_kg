@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
-import '../../app/stage.dart';
 import '../../data/chat_controller.dart' show describeApiError;
 import '../../data/listings.dart';
 import '../../l10n/app_localizations.dart';
@@ -85,10 +84,7 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
   }
 
   Future<void> _loadData() async {
-    await Future.wait([
-      _loadSellerProfile(),
-      _loadListings(refresh: true),
-    ]);
+    await Future.wait([_loadSellerProfile(), _loadListings(refresh: true)]);
   }
 
   Future<void> _loadSellerProfile() async {
@@ -138,7 +134,8 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
       final local = kListings.where((l) {
         if (_selectedKind == null) return true;
         return l.kind.name == _selectedKind ||
-            (_selectedKind == 'new_building' && l.kind == PropertyKind.newBuilding);
+            (_selectedKind == 'new_building' &&
+                l.kind == PropertyKind.newBuilding);
       }).toList();
       setState(() {
         _listings = local;
@@ -218,19 +215,16 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
     if (currentUserId != null &&
         ((_seller != null && currentUserId == _seller!.id) ||
             (_sellerId > 0 && currentUserId == _sellerId))) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.sellerThisIsYou)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.sellerThisIsYou)));
       return;
     }
 
-    final slug = widget.args?.initialListingSlug ??
+    final slug =
+        widget.args?.initialListingSlug ??
         (_listings.isNotEmpty ? _listings.first.slug : '');
 
     if (slug.isEmpty) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.empty)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.empty)));
       return;
     }
 
@@ -239,15 +233,15 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
       final data = await state.apiClient.openConversation(slug);
       if (!mounted) return;
       final conversationId = data['id']?.toString() ?? '';
-      final title = widget.args?.initialListingTitle ??
-          (_listings.isNotEmpty ? _listings.first.address : (_seller?.displayName ?? ''));
+      final title =
+          widget.args?.initialListingTitle ??
+          (_listings.isNotEmpty
+              ? _listings.first.address
+              : (_seller?.displayName ?? ''));
 
       navigator.pushNamed(
         Routes.conversation,
-        arguments: ChatArgs(
-          conversationId,
-          listingTitle: title,
-        ),
+        arguments: ChatArgs(conversationId, listingTitle: title),
       );
     } catch (e) {
       if (mounted) {
@@ -261,7 +255,8 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
   }
 
   String _getContactLabel(AppLocalizations l10n) {
-    final kind = _seller?.sellerKind ?? widget.args?.initialSellerKind ?? 'owner';
+    final kind =
+        _seller?.sellerKind ?? widget.args?.initialSellerKind ?? 'owner';
     switch (kind) {
       case 'owner':
         return l10n.contactOwner;
@@ -293,10 +288,12 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
 
     final coverUrl = _seller?.coverUrl ?? widget.args?.initialCoverUrl;
     final avatarUrl = _seller?.avatarUrl ?? widget.args?.initialAvatarUrl;
-    final sellerName = _seller?.displayName ??
+    final sellerName =
+        _seller?.displayName ??
         widget.args?.initialSellerName ??
         (_isLoadingSeller ? '' : 'Продавец');
-    final sellerKind = _seller?.sellerKind ?? widget.args?.initialSellerKind ?? 'owner';
+    final sellerKind =
+        _seller?.sellerKind ?? widget.args?.initialSellerKind ?? 'owner';
     final isVerified = _seller?.isVerified ?? false;
     final activeCount = _seller?.activeListingsCount ?? _listings.length;
     final soldCount = _seller?.soldListingsCount ?? 0;
@@ -310,329 +307,253 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
       MapEntry('plot', l10n.kindPlot),
     ];
 
+    final width = MediaQuery.sizeOf(context).width;
+    final coverHeight = (width * 0.545).clamp(196.0, 260.0).toDouble();
+    final avatarSize = (width * 0.174).clamp(64.0, 76.0).toDouble();
+
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
-      body: Stack(
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        color: const Color(0xffea812e),
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _buildCover(coverUrl, coverHeight, l10n)),
+            SliverToBoxAdapter(
+              child: _buildSellerHeader(
+                avatarUrl: avatarUrl,
+                avatarSize: avatarSize,
+                sellerName: sellerName,
+                sellerKind: sellerKind,
+                isVerified: isVerified,
+                activeCount: activeCount,
+                soldCount: soldCount,
+                l10n: l10n,
+              ),
+            ),
+            SliverToBoxAdapter(child: _buildFilterTabs(filterTabs)),
+            _buildListingsSliver(state, l10n),
+            if (_isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(Color(0xffea812e)),
+                    ),
+                  ),
+                ),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        key: const ValueKey('agent-bottom-chrome'),
+        color: const Color(0xffffffff),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FigCta(
+              label: _isOpeningChat ? 'Загрузка...' : _getContactLabel(l10n),
+              onTap: _isOpeningChat ? null : _onContactPressed,
+            ),
+            const AppTabBar(active: 1),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCover(
+    String? coverUrl,
+    double coverHeight,
+    AppLocalizations l10n,
+  ) {
+    return SizedBox(
+      key: const ValueKey('agent-cover'),
+      height: coverHeight,
+      width: double.infinity,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (coverUrl != null && coverUrl.isNotEmpty)
+              buildSafeNetworkImage(
+                url: coverUrl,
+                fit: BoxFit.cover,
+                fallback: _buildDefaultCover(),
+              )
+            else
+              _buildDefaultCover(),
+            Positioned(
+              left: 17,
+              top: MediaQuery.paddingOf(context).top + 12,
+              child: Semantics(
+                button: true,
+                label: l10n.back,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      Navigator.pushReplacementNamed(context, Routes.home);
+                    }
+                  },
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: const BoxDecoration(
+                      color: Color(0x73000000),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSellerHeader({
+    required String? avatarUrl,
+    required double avatarSize,
+    required String sellerName,
+    required String sellerKind,
+    required bool isVerified,
+    required int activeCount,
+    required int soldCount,
+    required AppLocalizations l10n,
+  }) {
+    const statsStyle = TextStyle(
+      fontSize: 15,
+      height: 1.25,
+      fontWeight: FontWeight.w500,
+      color: Color(0xff858585),
+    );
+    final about = _seller?.about;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 25),
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // Scrollable content
-          RefreshIndicator(
-            onRefresh: _loadData,
-            color: const Color(0xffea812e),
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 120.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: EdgeInsets.only(top: avatarSize / 2 + 5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        sellerName.isNotEmpty ? sellerName : '...',
+                        key: const ValueKey('agent-profile-heading'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          height: 1.08,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xff000000),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: _buildRoleBadge(sellerKind, l10n),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(l10n.sellerObjectsCount(activeCount), style: statsStyle),
+                if (soldCount > 0) ...[
+                  const SizedBox(height: 1),
+                  Text(l10n.sellerSoldCount(soldCount), style: statsStyle),
+                ],
+                if (about != null && about.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    about,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.4,
+                      color: Color(0xff4b5563),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 22),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: -avatarSize / 2,
+            child: SizedBox(
+              key: const ValueKey('agent-avatar'),
+              width: avatarSize,
+              height: avatarSize,
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  // Cover with back button
-                  SizedBox(
-                    height: 221,
-                    width: double.infinity,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (coverUrl != null && coverUrl.isNotEmpty)
-                          buildSafeNetworkImage(
-                            url: coverUrl,
-                            fit: BoxFit.cover,
-                            fallback: _buildDefaultCover(),
-                          )
-                        else
-                          _buildDefaultCover(),
-                        Positioned(
-                          left: 17,
-                          top: 40,
-                          child: Semantics(
-                            button: true,
-                            label: l10n.back,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                if (Navigator.canPop(context)) {
-                                  Navigator.pop(context);
-                                } else {
-                                  Navigator.pushReplacementNamed(context, Routes.home);
-                                }
-                              },
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: const BoxDecoration(
-                                  color: Color(0x73000000),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.arrow_back_ios_new,
-                                    size: 15,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.white, width: 3),
+                      color: const Color(0xfff0f0f0),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: (avatarUrl != null && avatarUrl.isNotEmpty)
+                          ? buildSafeNetworkImage(
+                              url: avatarUrl,
+                              fit: BoxFit.cover,
+                              fallback: const Icon(
+                                Icons.person,
+                                size: 40,
+                                color: Color(0xff8e8e93),
                               ),
+                            )
+                          : const Icon(
+                              Icons.person,
+                              size: 40,
+                              color: Color(0xff8e8e93),
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-
-                  // Seller Info Card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Transform.translate(
-                          offset: const Offset(0, -37),
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                width: 74,
-                                height: 74,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 3),
-                                  color: const Color(0xfff0f0f0),
-                                ),
-                                child: ClipOval(
-                                  child: (avatarUrl != null && avatarUrl.isNotEmpty)
-                                      ? buildSafeNetworkImage(
-                                          url: avatarUrl,
-                                          fit: BoxFit.cover,
-                                          fallback: const Icon(
-                                            Icons.person,
-                                            size: 40,
-                                            color: Color(0xff8e8e93),
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.person,
-                                          size: 40,
-                                          color: Color(0xff8e8e93),
-                                        ),
-                                ),
-                              ),
-                              if (isVerified)
-                                Positioned(
-                                  right: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    width: 22,
-                                    height: 22,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xff188038),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: const Center(
-                                      child: Icon(Icons.check, size: 12, color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                  if (isVerified)
+                    Positioned(
+                      right: -2,
+                      bottom: -2,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: const Color(0xff188038),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.check,
+                            size: 12,
+                            color: Colors.white,
                           ),
-                        ),
-
-                        Transform.translate(
-                          offset: const Offset(0, -25),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                sellerName.isNotEmpty ? sellerName : '...',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xff000000),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              _buildRoleBadge(sellerKind, l10n),
-                              const SizedBox(height: 10),
-                              Wrap(
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(
-                                    l10n.sellerObjectsCount(activeCount),
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xff555555),
-                                    ),
-                                  ),
-                                  if (soldCount > 0) ...[
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                      child: Text(
-                                        '•',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xffd9d9d9),
-                                        ),
-                                      ),
-                                    ),
-                                    Text(
-                                      l10n.sellerSoldCount(soldCount),
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xff555555),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              if (_seller?.about != null && _seller!.about.isNotEmpty) ...[
-                                const SizedBox(height: 10),
-                                Text(
-                                  _seller!.about,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    height: 1.4,
-                                    color: Color(0xff4b5563),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Category Tabs
-                  SizedBox(
-                    height: 36,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      itemCount: filterTabs.length,
-                      separatorBuilder: (context, index) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final tab = filterTabs[index];
-                        final isSelected = _selectedKind == tab.key;
-                        return GestureDetector(
-                          onTap: () => _onKindSelected(tab.key),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xff1f2937)
-                                  : const Color(0xfff3f4f6),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Center(
-                              child: Text(
-                                tab.value,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight:
-                                      isSelected ? FontWeight.w600 : FontWeight.w500,
-                                  color: isSelected
-                                      ? const Color(0xffffffff)
-                                      : const Color(0xff4b5563),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Listings Grid / States
-                  if (_isLoadingListings)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40.0),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation(Color(0xffea812e)),
-                        ),
-                      ),
-                    )
-                  else if (_listingsError != null)
-                    Padding(
-                      padding: const EdgeInsets.all(25.0),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: Color(0xffea812e)),
-                            const SizedBox(height: 12),
-                            Text(
-                              _listingsError!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 14, color: Color(0xff555555)),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () => _loadListings(refresh: true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xffea812e),
-                                foregroundColor: Colors.white,
-                              ),
-                              child: Text(l10n.tryAgain),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else if (_listings.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(40.0),
-                      child: Center(
-                        child: Text(
-                          l10n.sellerNoListings,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 14, color: Color(0xff8e8e93)),
-                        ),
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 5.0,
-                          mainAxisSpacing: 24.0,
-                          childAspectRatio: kCardWidth / kCardHeight,
-                        ),
-                        itemCount: _listings.length,
-                        itemBuilder: (context, index) {
-                          final listing = _listings[index];
-                          final isFav = state.isFavourite(listing.slug.isNotEmpty ? listing.slug : listing.id);
-                          return ObjectCard(
-                            listing: listing,
-                            favourite: isFav,
-                            onTap: () {
-                              Navigator.of(context).pushNamed(
-                                Routes.listing,
-                                arguments: listing,
-                              );
-                            },
-                            onFavourite: () {
-                              state.toggleFavourite(listing.slug.isNotEmpty ? listing.slug : listing.id);
-                            },
-                          );
-                        },
-                      ),
-                    ),
-
-                  if (_isLoadingMore)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation(Color(0xffea812e)),
                         ),
                       ),
                     ),
@@ -640,24 +561,148 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // Pinned Bottom Bar: FigCta + AppTabBar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: kTabBarStrip,
+  Widget _buildFilterTabs(List<MapEntry<String?, String>> filterTabs) {
+    return SizedBox(
+      key: const ValueKey('agent-filter-tabs'),
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 25),
+        itemCount: filterTabs.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 18),
+        itemBuilder: (context, index) {
+          final tab = filterTabs[index];
+          final isSelected = _selectedKind == tab.key;
+          return GestureDetector(
+            onTap: () => _onKindSelected(tab.key),
+            child: Container(
+              key: ValueKey('agent-filter-${tab.key ?? 'all'}'),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xffffeadb)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  tab.value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected
+                        ? const Color(0xffea812e)
+                        : const Color(0xffb8b8ba),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildListingsSliver(AppState state, AppLocalizations l10n) {
+    if (_isLoadingListings) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(Color(0xffea812e)),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_listingsError != null) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FigCta(
-                  label: _isOpeningChat ? 'Загрузка...' : _getContactLabel(l10n),
-                  onTap: _isOpeningChat ? null : _onContactPressed,
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Color(0xffea812e),
                 ),
-                const AppTabBar(active: 1),
+                const SizedBox(height: 12),
+                Text(
+                  _listingsError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xff555555),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => _loadListings(refresh: true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xffea812e),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.tryAgain),
+                ),
               ],
             ),
           ),
-        ],
+        ),
+      );
+    }
+
+    if (_listings.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Center(
+            child: Text(
+              l10n.sellerNoListings,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Color(0xff8e8e93)),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      key: const ValueKey('agent-listings-grid'),
+      padding: const EdgeInsets.fromLTRB(25, 16, 25, 0),
+      sliver: SliverGrid.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 5,
+          mainAxisSpacing: 24,
+          childAspectRatio: kCardWidth / kCardHeight,
+        ),
+        itemCount: _listings.length,
+        itemBuilder: (context, index) {
+          final listing = _listings[index];
+          final listingKey = listing.slug.isNotEmpty
+              ? listing.slug
+              : listing.id;
+          return ObjectCard(
+            listing: listing,
+            favourite: state.isFavourite(listingKey),
+            adaptive: true,
+            onTap: () {
+              Navigator.of(
+                context,
+              ).pushNamed(Routes.listing, arguments: listing);
+            },
+            onFavourite: () => state.toggleFavourite(listingKey),
+          );
+        },
       ),
     );
   }
@@ -668,18 +713,11 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xff2d3748),
-            Color(0xff1a202c),
-          ],
+          colors: [Color(0xff2d3748), Color(0xff1a202c)],
         ),
       ),
       child: const Center(
-        child: Icon(
-          Icons.apartment,
-          size: 48,
-          color: Color(0x40ffffff),
-        ),
+        child: Icon(Icons.apartment, size: 48, color: Color(0x40ffffff)),
       ),
     );
   }
@@ -704,6 +742,7 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
     }
 
     return Container(
+      key: const ValueKey('agent-role-badge'),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
@@ -711,11 +750,7 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
       ),
       child: Text(
         _getRoleName(kind, l10n),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
       ),
     );
   }

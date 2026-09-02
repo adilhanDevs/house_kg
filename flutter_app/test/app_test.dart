@@ -363,11 +363,15 @@ void main() {
 
       final bar = tester.getRect(find.byType(AppTabBar));
       final cta = tester.getRect(ctaButton());
-      expect(bar.bottom, 500.0 - kTabBarStrip);
-      expect(cta.bottom, closeTo(bar.top - kCtaGap, 0.5));
+      // Полосу меню больше не двигают руками на kTabBarStrip от низа: она
+      // стала штатным bottomNavigationBar и стоит на самом низу окна, без
+      // пустой ленты под собой.
+      expect(bar.bottom, 500.0);
+      expect(cta.bottom, lessThanOrEqualTo(bar.top));
 
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -200));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -200));
       await tester.pumpAndSettle();
+      // Кнопка связи закреплена снизу — прокрутка её не уносит.
       expect(tester.getRect(ctaButton()), cta);
     });
 

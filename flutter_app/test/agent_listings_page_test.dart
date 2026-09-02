@@ -11,6 +11,7 @@ import 'package:house_kgz/app/routes.dart';
 import 'package:house_kgz/data/api_client.dart';
 import 'package:house_kgz/data/listings.dart';
 import 'package:house_kgz/l10n/app_localizations.dart';
+import 'package:house_kgz/ui/app_tab_bar.dart';
 import 'package:house_kgz/ui/fig_cta.dart';
 import 'package:house_kgz/ui/object_card.dart';
 import 'package:house_kgz/ui/pages/agent_listings_page.dart';
@@ -24,6 +25,7 @@ class _FakeServer extends http.BaseClient {
     this.isVerified = true,
     this.activeListingsCount = 3,
     this.soldListingsCount = 2,
+    this.about = 'Опытный специалист по недвижимости',
   });
 
   final String sellerKind;
@@ -32,6 +34,7 @@ class _FakeServer extends http.BaseClient {
   final bool isVerified;
   final int activeListingsCount;
   final int soldListingsCount;
+  final String? about;
   final bool openConversationSuccess = true;
 
   final List<String> visitedPaths = [];
@@ -57,7 +60,9 @@ class _FakeServer extends http.BaseClient {
       } catch (_) {}
     }
 
-    if (request.method == 'GET' && path.startsWith('/api/v1/sellers/') && path.endsWith('/listings/')) {
+    if (request.method == 'GET' &&
+        path.startsWith('/api/v1/sellers/') &&
+        path.endsWith('/listings/')) {
       return _json({
         'count': 2,
         'next': null,
@@ -108,7 +113,7 @@ class _FakeServer extends http.BaseClient {
         'logo_url': null,
         'avatar_url': null,
         'cover_url': null,
-        'about': 'Опытный специалист по недвижимости',
+        'about': about,
         'experience_years': 5,
         'is_verified': isVerified,
         'rating': '4.80',
@@ -116,7 +121,9 @@ class _FakeServer extends http.BaseClient {
         'active_listings_count': activeListingsCount,
         'sold_listings_count': soldListingsCount,
         'member_since': '2023-01-15T10:00:00Z',
-        'work_districts': [{'id': 1, 'name': 'Первомайский'}],
+        'work_districts': [
+          {'id': 1, 'name': 'Первомайский'},
+        ],
         'working_hours': {},
         'contacts': {
           'phone': '+996 700 111 222',
@@ -135,7 +142,9 @@ class _FakeServer extends http.BaseClient {
           'unread_count': 0,
         }, 201);
       } else {
-        return _json({'error': {'message': 'Нельзя написать самому себе'}}, 400);
+        return _json({
+          'error': {'message': 'Нельзя написать самому себе'},
+        }, 400);
       }
     }
 
@@ -149,8 +158,10 @@ Future<void> _pumpPage(
   AgentListingsArgs? args,
   bool isAuthenticated = true,
   int? loggedInUserId,
+  Size size = const Size(375, 812),
+  Locale locale = const Locale('ru'),
 }) async {
-  tester.view.physicalSize = const Size(375, 812);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -181,7 +192,7 @@ Future<void> _pumpPage(
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('ru'), Locale('ky')],
-        locale: const Locale('ru'),
+        locale: locale,
         onGenerateRoute: (settings) {
           if (settings.name == Routes.welcome) {
             return MaterialPageRoute(
@@ -194,7 +205,9 @@ Future<void> _pumpPage(
             return MaterialPageRoute(
               settings: settings,
               builder: (_) => Scaffold(
-                body: Text('ChatPage:${chatArgs?.conversationId}:${chatArgs?.listingTitle}'),
+                body: Text(
+                  'ChatPage:${chatArgs?.conversationId}:${chatArgs?.listingTitle}',
+                ),
               ),
             );
           }
@@ -202,7 +215,8 @@ Future<void> _pumpPage(
             final listing = settings.arguments as Listing?;
             return MaterialPageRoute(
               settings: settings,
-              builder: (_) => Scaffold(body: Text('ListingPage:${listing?.slug}')),
+              builder: (_) =>
+                  Scaffold(body: Text('ListingPage:${listing?.slug}')),
             );
           }
           return MaterialPageRoute(
@@ -222,7 +236,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Public Seller Profile (AgentListingsPage)', () {
-    testWidgets('renders seller details, role badge, stats and object cards', (tester) async {
+    testWidgets('renders seller details, role badge, stats and object cards', (
+      tester,
+    ) async {
       final server = _FakeServer(
         sellerKind: 'owner',
         sellerName: 'Айбек',
@@ -248,7 +264,9 @@ void main() {
       expect(find.text('Связаться с собственником'), findsOneWidget);
     });
 
-    testWidgets('renders realtor badge and CTA button for realtor profile', (tester) async {
+    testWidgets('renders realtor badge and CTA button for realtor profile', (
+      tester,
+    ) async {
       final server = _FakeServer(
         sellerKind: 'realtor',
         sellerName: 'Бакыт',
@@ -267,7 +285,9 @@ void main() {
       expect(find.text('Связаться с риелтором'), findsOneWidget);
     });
 
-    testWidgets('renders agency badge and CTA button for agency profile', (tester) async {
+    testWidgets('renders agency badge and CTA button for agency profile', (
+      tester,
+    ) async {
       final server = _FakeServer(
         sellerKind: 'agency',
         sellerName: 'Агентство',
@@ -283,27 +303,38 @@ void main() {
       expect(find.text('Связаться с агентством'), findsOneWidget);
     });
 
-    testWidgets('switching category tabs triggers filtered fetch', (tester) async {
+    testWidgets('switching category tabs triggers filtered fetch', (
+      tester,
+    ) async {
       final server = _FakeServer();
       await _pumpPage(tester, server: server);
 
       // Tap on 'Квартиры' tab
       final apartmentsTab = find.text('Квартиры');
       expect(apartmentsTab, findsOneWidget);
+      await tester.drag(
+        find.byKey(const ValueKey('agent-filter-tabs')),
+        const Offset(-160, 0),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(apartmentsTab);
       await tester.pumpAndSettle();
 
       // Verify that backend was requested with kind=apartment
-      final listingRequests = server.visitedPaths.where((p) => p.contains('/listings/')).toList();
+      final listingRequests = server.visitedPaths
+          .where((p) => p.contains('/listings/'))
+          .toList();
       expect(listingRequests.any((p) => p.contains('kind=apartment')), isTrue);
     });
 
-    testWidgets('tapping listing card navigates to ListingPage', (tester) async {
+    testWidgets('tapping listing card navigates to ListingPage', (
+      tester,
+    ) async {
       final server = _FakeServer();
       await _pumpPage(tester, server: server);
 
       // Drag to reveal the object cards well above the pinned bottom bar
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -350));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -350));
       await tester.pumpAndSettle();
 
       final firstCard = find.byType(ObjectCard).first;
@@ -313,37 +344,49 @@ void main() {
       expect(find.text('ListingPage:test-listing-1'), findsOneWidget);
     });
 
-    testWidgets('authenticated user tapping CTA initiates chat and opens ChatPage', (tester) async {
-      final server = _FakeServer(sellerKind: 'owner');
-      await _pumpPage(
-        tester,
-        server: server,
-        isAuthenticated: true,
-        loggedInUserId: 99, // Different from seller ID (42)
-      );
+    testWidgets(
+      'authenticated user tapping CTA initiates chat and opens ChatPage',
+      (tester) async {
+        final server = _FakeServer(sellerKind: 'owner');
+        await _pumpPage(
+          tester,
+          server: server,
+          isAuthenticated: true,
+          loggedInUserId: 99, // Different from seller ID (42)
+        );
 
-      // Tap CTA
-      final cta = find.descendant(of: find.byType(FigCta), matching: find.byType(GestureDetector));
-      await tester.tap(cta.first);
-      await tester.pumpAndSettle();
+        // Tap CTA
+        final cta = find.descendant(
+          of: find.byType(FigCta),
+          matching: find.byType(GestureDetector),
+        );
+        await tester.tap(cta.first);
+        await tester.pumpAndSettle();
 
-      // Verify backend was called to open conversation
-      expect(server.visitedPaths.any((p) => p.startsWith('POST /api/v1/conversations/')), isTrue);
-      expect(server.lastPostJson?['listing_slug'], 'test-listing-1');
+        // Verify backend was called to open conversation
+        expect(
+          server.visitedPaths.any(
+            (p) => p.startsWith('POST /api/v1/conversations/'),
+          ),
+          isTrue,
+        );
+        expect(server.lastPostJson?['listing_slug'], 'test-listing-1');
 
-      // Verify ChatPage was opened with correct conversation ID
-      expect(find.textContaining('ChatPage:conv-uuid-1234'), findsOneWidget);
-    });
+        // Verify ChatPage was opened with correct conversation ID
+        expect(find.textContaining('ChatPage:conv-uuid-1234'), findsOneWidget);
+      },
+    );
 
-    testWidgets('guest user tapping CTA redirects to WelcomePage', (tester) async {
+    testWidgets('guest user tapping CTA redirects to WelcomePage', (
+      tester,
+    ) async {
       final server = _FakeServer();
-      await _pumpPage(
-        tester,
-        server: server,
-        isAuthenticated: false,
-      );
+      await _pumpPage(tester, server: server, isAuthenticated: false);
 
-      final cta = find.descendant(of: find.byType(FigCta), matching: find.byType(GestureDetector));
+      final cta = find.descendant(
+        of: find.byType(FigCta),
+        matching: find.byType(GestureDetector),
+      );
       await tester.tap(cta.first);
       await tester.pumpAndSettle();
 
@@ -351,7 +394,9 @@ void main() {
       expect(find.text('WelcomePage'), findsOneWidget);
     });
 
-    testWidgets('user viewing own seller profile is prevented from self-chat', (tester) async {
+    testWidgets('user viewing own seller profile is prevented from self-chat', (
+      tester,
+    ) async {
       final server = _FakeServer();
       await _pumpPage(
         tester,
@@ -360,12 +405,122 @@ void main() {
         loggedInUserId: 42, // Same as seller ID (42)
       );
 
-      final cta = find.descendant(of: find.byType(FigCta), matching: find.byType(GestureDetector));
+      final cta = find.descendant(
+        of: find.byType(FigCta),
+        matching: find.byType(GestureDetector),
+      );
       await tester.tap(cta.first);
       await tester.pumpAndSettle();
 
       expect(find.text('Это ваш профиль'), findsOneWidget);
-      expect(server.visitedPaths.any((p) => p.startsWith('POST /api/v1/conversations/')), isFalse);
+      expect(
+        server.visitedPaths.any(
+          (p) => p.startsWith('POST /api/v1/conversations/'),
+        ),
+        isFalse,
+      );
     });
+
+    testWidgets('matches the approved Figma geometry at 390x844', (
+      tester,
+    ) async {
+      final server = _FakeServer(
+        sellerName: 'Садыр Жапаров',
+        activeListingsCount: 8,
+        soldListingsCount: 12,
+        about: null,
+      );
+
+      await _pumpPage(tester, server: server, size: const Size(390, 844));
+
+      final cover = tester.getRect(find.byKey(const ValueKey('agent-cover')));
+      final avatar = tester.getRect(find.byKey(const ValueKey('agent-avatar')));
+      final name = tester.getRect(find.text('Садыр Жапаров'));
+      final role = tester.getRect(
+        find.byKey(const ValueKey('agent-role-badge')),
+      );
+      final active = tester.getRect(find.text('8 объектов недвижимости'));
+      final sold = tester.getRect(find.text('Продано: 12 объектов'));
+      final tabs = tester.getRect(
+        find.byKey(const ValueKey('agent-filter-tabs')),
+      );
+      final cards = find.byType(ObjectCard);
+      final firstCard = tester.getRect(cards.at(0));
+      final secondCard = tester.getRect(cards.at(1));
+      final firstImage = tester.getRect(
+        find
+            .descendant(of: cards.at(0), matching: find.byType(ClipRRect))
+            .first,
+      );
+      final nav = tester.getRect(find.byType(AppTabBar));
+      final ctaButton = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(FigCta),
+              matching: find.byType(GestureDetector),
+            )
+            .first,
+      );
+
+      expect(cover.left, 0);
+      expect(cover.top, 0);
+      expect(cover.width, 390);
+      expect(cover.height, closeTo(212.5, 0.1));
+      expect(avatar.width, closeTo(68, 0.5));
+      expect(avatar.height, closeTo(68, 0.5));
+      expect(avatar.top, lessThan(cover.bottom));
+      expect(avatar.bottom, greaterThan(cover.bottom));
+      expect(name.left, closeTo(25, 0.1));
+      expect(name.top, greaterThan(cover.bottom));
+      expect(role.right, closeTo(365, 0.1));
+      expect(sold.top, greaterThan(active.bottom));
+      expect(tabs.top, greaterThan(sold.bottom));
+      expect(firstCard.left, closeTo(25, 0.1));
+      expect(firstCard.width, closeTo(167.5, 0.1));
+      expect(secondCard.left, closeTo(197.5, 0.1));
+      expect(firstImage.width, closeTo(firstCard.width, 0.1));
+      expect(ctaButton.bottom, lessThanOrEqualTo(nav.top));
+      expect(nav.bottom, closeTo(844, 0.1));
+
+      final allTab = tester.widget<Container>(
+        find.byKey(const ValueKey('agent-filter-all')),
+      );
+      final allDecoration = allTab.decoration! as BoxDecoration;
+      expect(allDecoration.color, const Color(0xffffeadb));
+      expect(tester.takeException(), isNull);
+    });
+
+    for (final size in const <Size>[
+      Size(320, 600),
+      Size(360, 844),
+      Size(375, 812),
+      Size(390, 950),
+      Size(412, 844),
+    ]) {
+      testWidgets('has no overflow at ${size.width}x${size.height}', (
+        tester,
+      ) async {
+        await _pumpPage(
+          tester,
+          server: _FakeServer(
+            sellerName: 'Очень длинное имя владельца недвижимости Кыргызстана',
+            about:
+                'Подробное описание продавца, которое занимает несколько строк и проверяет адаптивность.',
+          ),
+          size: size,
+          locale: const Locale('ky'),
+        );
+
+        await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ObjectCard), findsWidgets);
+        expect(
+          tester.getRect(find.byType(AppTabBar)).bottom,
+          closeTo(size.height, 0.1),
+        );
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 }

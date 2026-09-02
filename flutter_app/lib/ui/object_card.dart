@@ -40,6 +40,7 @@ class ObjectCard extends StatelessWidget {
     required this.favourite,
     this.onTap,
     this.onFavourite,
+    this.adaptive = false,
   });
 
   final Listing listing;
@@ -47,8 +48,38 @@ class ObjectCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onFavourite;
 
+  /// Opt-in sizing for grids whose columns follow the available viewport width.
+  /// The default preserves the 160×201.3 catalogue geometry.
+  final bool adaptive;
+
   @override
   Widget build(BuildContext context) {
+    if (!adaptive) return _buildFixedCard();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : kCardWidth;
+        final height = width * kCardHeight / kCardWidth;
+        return SizedBox(
+          width: width,
+          height: height,
+          child: FittedBox(
+            fit: BoxFit.fill,
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: kCardWidth,
+              height: kCardHeight,
+              child: _buildFixedCard(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFixedCard() {
     return Container(
       color: const Color(0xfffefefe),
       width: kCardWidth,
