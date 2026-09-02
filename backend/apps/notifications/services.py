@@ -5,6 +5,7 @@
 """
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 from django.db import transaction
@@ -13,6 +14,19 @@ from django.utils import timezone
 from apps.notifications.models import DeviceToken, Notification, NotificationType
 
 logger = logging.getLogger(__name__)
+
+#: Насколько назад ищем такой же переход цены, чтобы не продублировать уведомление.
+#:
+#: Защита нужна от повторного вызова на одном и том же событии. Искать «когда
+#: угодно в прошлом» нельзя: цена может подняться и снова упасть до той же
+#: отметки — это новое снижение, и подписчик обязан о нём узнать, иначе
+#: объявление замолкает для него навсегда.
+#:
+#: Точно отличить повтор вызова от повторившегося снижения по одной лишь
+#: истории уведомлений невозможно — в модели нет журнала изменений цены.
+#: Поэтому берём окно: внутри него одинаковый переход считается тем же
+#: событием, за его пределами — новым. Заодно это гасит скачки цены туда-сюда.
+PRICE_DROP_DUPLICATE_WINDOW = timedelta(hours=1)
 
 
 def _enqueue_push(notification_ids: list[int]) -> None:
@@ -114,3 +128,85 @@ def deactivate_device(user: Any, token: str) -> bool:
     """Гасит устройство при выходе из аккаунта."""
     updated = DeviceToken.objects.filter(user=user, token=token).update(is_active=False)
     return bool(updated)
+
+
+def notify_listing_price_drop(
+    listing: Any,
+    old_price: Any,
+    new_price: Any,
+    force_notify: bool = False,
+) -> list[Notification]:
+    """Отправляет уведомления о снижении цены всем подписчикам (избранное) объявления."""
+    from decimal import Decimal
+
+    from apps.catalog.covers import listing_cover_file
+    from apps.catalog.enums import ListingStatus
+    from apps.engagement.models import Favourite
+
+    if listing.status != ListingStatus.ACTIVE or old_price is None or new_price is None:
+        return []
+    if Decimal(str(new_price)) >= Decimal(str(old_price)):
+        return []
+
+    favourites = (
+        Favourite.objects.filter(listing=listing).exclude(user=listing.owner).select_related("user")
+    )
+    if not favourites.exists():
+        return []
+
+    cover = listing_cover_file(listing)
+    cover_url = cover.url if cover else ""
+    if cover_url and cover_url.startswith("/media/"):
+        cover_url = "/api/v1" + cover_url
+
+    district_name = listing.district.name if listing.district else ""
+    rooms_text = f"{listing.rooms}-комн." if listing.rooms and not listing.is_plot else ""
+    specs = [s for s in [district_name, rooms_text] if s]
+    body_text = f"Цена снизилась: {', '.join(specs)} — {listing.price_display}"
+
+    payload = {
+        "listing_id": listing.pk,
+        "listing_slug": listing.slug,
+        "old_price": str(old_price),
+        "new_price": str(new_price),
+        "currency": listing.currency,
+        "district": district_name,
+        "address": listing.address,
+        "rooms": listing.rooms,
+        "area": str(listing.area) if listing.area is not None else "",
+        "floor": listing.floor,
+        "floors": listing.floors,
+        "cover_url": cover_url,
+    }
+
+    created_notifications: list[Notification] = []
+    for favourite in favourites:
+        user = favourite.user
+        if not force_notify:
+            # Ключ — сам переход «было → стало», а не одна конечная цена:
+            # иначе повторное падение до той же отметки замолчало бы навсегда.
+            already_notified = Notification.objects.filter(
+                user=user,
+                type=NotificationType.PRICE_DROP,
+                listing=listing,
+                payload__old_price=str(old_price),
+                payload__new_price=str(new_price),
+                created_at__gte=timezone.now() - PRICE_DROP_DUPLICATE_WINDOW,
+            ).exists()
+            if already_notified:
+                continue
+
+        notification = notify(
+            user=user,
+            notification_type=NotificationType.PRICE_DROP,
+            title="Цена снизилась",
+            body=body_text,
+            payload=payload,
+            listing=listing,
+        )
+        created_notifications.append(notification)
+        if favourite.price_at_add != listing.price_usd:
+            favourite.price_at_add = listing.price_usd
+            favourite.save(update_fields=["price_at_add", "updated_at"])
+
+    return created_notifications

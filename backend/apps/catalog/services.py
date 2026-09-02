@@ -1139,6 +1139,16 @@ def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
             extra={"currency": listing.currency, "status": listing.status},
         )
 
+    if (
+        previous_price is not None
+        and new_price is not None
+        and listing.status == ListingStatus.ACTIVE
+        and new_price < previous_price
+    ):
+        from apps.notifications.services import notify_listing_price_drop
+
+        transaction.on_commit(lambda: notify_listing_price_drop(listing, previous_price, new_price))
+
     return listing
 
 
