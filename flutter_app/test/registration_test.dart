@@ -22,10 +22,20 @@ import 'package:house_kgz/ui/pages/welcome_page.dart';
 
 /// «Сервер», который ведёт себя как настоящий: код 1234, всё прочее — 400.
 class _AuthServer extends http.BaseClient {
-  _AuthServer({this.termsVersion = '3', this.expectedCode = '1234'});
+  _AuthServer({
+    this.termsVersion = '3',
+    this.expectedCode = '1234',
+    this.otpRequestFails = false,
+  });
 
   final String? termsVersion;
   final String expectedCode;
+
+  /// Запрос кода отвечает 429 — проверяем, что форма после ошибки оживает.
+  final bool otpRequestFails;
+
+  /// Сколько раз запрашивали код: двойной тап не должен слать второй.
+  int otpRequests = 0;
 
   Map<String, dynamic>? lastVerifyBody;
   Map<String, dynamic>? lastResetBody;
@@ -56,7 +66,17 @@ class _AuthServer extends http.BaseClient {
     }
 
     if (path == '/api/v1/auth/otp/request/') {
+      otpRequests += 1;
       lastRequestBody = body;
+      if (otpRequestFails) {
+        return _json({
+          'error': {
+            'code': 'throttled',
+            'message': 'Слишком часто. Повторите через минуту.',
+            'details': {'retry_after': 60},
+          }
+        }, 429);
+      }
       return _json({'expires_in': 300, 'resend_after': 60, 'is_new_user': true}, 200);
     }
 
@@ -143,10 +163,10 @@ AppState _state(http.BaseClient client) => AppState(
     );
 
 Future<void> _fillForm(WidgetTester tester) async {
-  final fields = find.byType(TextField);
-  await tester.enterText(fields.at(0), '+996700111222');
-  await tester.enterText(fields.at(1), 'Азамат');
-  await tester.enterText(fields.at(2), 'Дом-Бишкек-2026');
+  // По ключам, а не по порядку в дереве: порядок ломается от любой правки вёрстки.
+  await tester.enterText(find.byKey(kRegisterPhoneFieldKey), '+996700111222');
+  await tester.enterText(find.byKey(kRegisterNameFieldKey), 'Азамат');
+  await tester.enterText(find.byKey(kRegisterPasswordFieldKey), 'Дом-Бишкек-2026');
   await tester.pump();
 }
 
@@ -178,7 +198,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     await _fillForm(tester);
-    await tester.tap(_zone('Далее'));
+    await tester.tap(find.byKey(kRegisterSubmitKey));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -199,7 +219,7 @@ void main() {
     await _fillForm(tester);
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
-    await tester.tap(_zone('Далее'));
+    await tester.tap(find.byKey(kRegisterSubmitKey));
     await tester.pumpAndSettle();
 
     expect(server.lastRequestBody?['purpose'], 'register');
@@ -246,7 +266,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     await _fillForm(tester);
-    await tester.tap(_zone('Далее'));
+    await tester.tap(find.byKey(kRegisterSubmitKey));
     await tester.pump();
 
     expect(server.lastRequestBody, isNull);
@@ -326,5 +346,146 @@ void main() {
 
     expect(find.byType(CodePage), findsOneWidget);
     expect(find.textContaining('Неверный код'), findsOneWidget);
+  });
+
+  // -- интерактивность формы -------------------------------------------------
+  //
+  // Экран собирался наложением настоящих полей на растр кадра 07. Кадр свёрстан
+  // потоком, высота описания зависит от шрифта, и на устройстве нарисованные
+  // поля уезжали относительно настоящих: пользователь видел два поля телефона
+  // и два поля имени, тапал по нарисованным — и ничего не происходило.
+
+  testWidgets('на экране ровно одно поле телефона и одно поле имени', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app(_state(_AuthServer())));
+    await tester.pump();
+
+    expect(find.byType(TextField), findsNWidgets(3));
+    expect(find.byKey(kRegisterPhoneFieldKey), findsOneWidget);
+    expect(find.byKey(kRegisterNameFieldKey), findsOneWidget);
+    expect(find.byKey(kRegisterPasswordFieldKey), findsOneWidget);
+    expect(find.text('Номер телефона (с WhatsApp)'), findsOneWidget);
+    expect(find.text('Имя'), findsOneWidget);
+  });
+
+  testWidgets('поля принимают нажатие и получают фокус', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app(_state(_AuthServer())));
+    await tester.pump();
+
+    for (final key in [
+      kRegisterNameFieldKey,
+      kRegisterPhoneFieldKey,
+      kRegisterPasswordFieldKey,
+    ]) {
+      // warnIfMissed по умолчанию: если поверх поля окажется чужой слой,
+      // тест упадёт, а не пройдёт молча.
+      await tester.tap(find.byKey(key));
+      await tester.pump();
+      final field = tester.widget<TextField>(
+        find.descendant(of: find.byKey(key), matching: find.byType(TextField)),
+      );
+      expect(field.focusNode?.hasFocus, isTrue, reason: 'поле $key не получило фокус');
+    }
+  });
+
+  testWidgets('введённый текст доходит до запроса', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final server = _AuthServer();
+    await tester.pumpWidget(_app(_state(server)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await _fillForm(tester);
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+    await tester.tap(find.byKey(kRegisterSubmitKey));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '1234');
+    await tester.pumpAndSettle();
+
+    expect(server.lastVerifyBody?['name'], 'Азамат');
+    expect(server.lastVerifyBody?['phone'], '+996700111222');
+  });
+
+  testWidgets('повторный тап по «Далее» не шлёт второй запрос', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final server = _AuthServer();
+    await tester.pumpWidget(_app(_state(server)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await _fillForm(tester);
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+
+    await tester.tap(find.byKey(kRegisterSubmitKey));
+    await tester.tap(find.byKey(kRegisterSubmitKey), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(server.otpRequests, 1, reason: 'двойной тап отправил два кода');
+  });
+
+  testWidgets('после ошибки форма снова работает', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final server = _AuthServer(otpRequestFails: true);
+    await tester.pumpWidget(_app(_state(server)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await _fillForm(tester);
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+    await tester.tap(find.byKey(kRegisterSubmitKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Сообщение сервера, а не «Instance of ApiException».
+    expect(find.textContaining('Слишком часто'), findsOneWidget);
+
+    // Экран остался на месте, поля живы, кнопка снова нажимается.
+    expect(find.byKey(kRegisterPhoneFieldKey), findsOneWidget);
+    await tester.tap(find.byKey(kRegisterNameFieldKey));
+    await tester.pump();
+    await tester.enterText(find.byKey(kRegisterNameFieldKey), 'Азамат Второй');
+    await tester.pump();
+    expect(find.text('Азамат Второй'), findsOneWidget);
+  });
+
+  testWidgets('на маленьком экране форма прокручивается без переполнения', (tester) async {
+    tester.view.physicalSize = const Size(320, 480);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app(_state(_AuthServer())));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+
+    // До кнопки можно доскроллить и по ней можно попасть.
+    await tester.ensureVisible(find.byKey(kRegisterSubmitKey));
+    await tester.pump();
+    await tester.tap(find.byKey(kRegisterSubmitKey));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    // Форма не заполнена — экран отвечает подсказкой, а не молчанием.
+    expect(find.textContaining('Заполните'), findsOneWidget);
   });
 }

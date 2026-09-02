@@ -1,8 +1,17 @@
-// Регистрация обычного пользователя — кадр 07 «Добро пожаловать · 2».
+// Регистрация обычного пользователя — по кадру 07 «Добро пожаловать · 2».
 //
-// Кадр в макете есть с самого начала, но в карте маршрутов его считали дублем
-// кадра 05 (вход), поэтому кнопка «Зарегистрироваться» вела в онбординг и
-// возвращала обратно на приветствие — по кругу.
+// Экран собран настоящими виджетами, а не наложением на растр кадра, и вот
+// почему. Кадр 07 свёрстан потоком: заголовок, описание и колонка полей идут
+// друг за другом с отступами. Высота описания зависит от шрифта, поэтому
+// поля кадра стоят на разной высоте в тестовом окружении и на устройстве —
+// разница доходила до сотни точек. Наложения были прибиты к координатам,
+// снятым в тестах, и на реальном экране разъезжались с рисунком: пользователь
+// видел два поля телефона и два поля имени, нарисованные поля не реагировали
+// на нажатие, а оранжевую кнопку «Далее» закрывала белая подложка соседнего
+// поля — нажимать было буквально не на что.
+//
+// Оформление повторяет кадр: заголовок 21/600, описание 15/500 серым, поля
+// высотой 36 с радиусом 10, оранжевая кнопка 324×36.
 //
 // Порядок такой: здесь собираются телефон, имя и пароль, сервер высылает код,
 // экран кода подтверждает номер — и только тогда заводится аккаунт с паролем.
@@ -11,11 +20,22 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
-import '../../app/stage.dart';
 import '../../data/api_exceptions.dart';
 import '../../data/code_flow.dart';
+import '../../fig/fig.dart';
 import '../fig_controls.dart';
 import '../widgets/consent_row.dart';
+
+/// Ключи для тестов и отладки: искать поля по порядку в дереве ненадёжно.
+const Key kRegisterPhoneFieldKey = Key('registration_phone_field');
+const Key kRegisterNameFieldKey = Key('registration_name_field');
+const Key kRegisterPasswordFieldKey = Key('registration_password_field');
+const Key kRegisterSubmitKey = Key('registration_submit_button');
+const Key kRegisterConsentKey = Key('registration_consent');
+
+const Color _accent = Color(0xffea812e);
+const Color _muted = Color(0xff7d7d7d);
+const Color _danger = Color(0xffd93025);
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -80,7 +100,7 @@ class _RegisterPageState extends State<RegisterPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xffd93025),
+        backgroundColor: _danger,
         duration: const Duration(seconds: 4),
       ),
     );
@@ -131,93 +151,200 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold нужен не ради оформления: SnackBar показывается через
-    // ближайший зарегистрированный Scaffold, а FigStage — это Material.
-    // Без него сообщения об ошибках просто не появлялись на экране.
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
-      // Отступ под клавиатуру считает сама сцена.
-      resizeToAvoidBottomInset: false,
-      body: FigStage(
-      frame: frame('07'),
-      background: const Color(0xffffffff),
-      overlays: [
-        // Координаты полей и кнопки сняты с самого кадра, а не подобраны.
-        Positioned(
-          left: 25.0,
-          top: 297.0,
-          child: FigInputBox(
-            width: 324.0,
-            controller: _phoneController,
-            hint: 'Номер телефона (с WhatsApp)',
-            keyboardType: TextInputType.phone,
-          ),
-        ),
-        Positioned(
-          left: 25.0,
-          top: 345.0,
-          child: FigInputBox(
-            width: 324.0,
-            controller: _nameController,
-            hint: 'Имя',
-            keyboardType: TextInputType.name,
-          ),
-        ),
-        Positioned(
-          left: 25.0,
-          top: 393.0,
-          child: FigInputBox(
-            width: 324.0,
-            controller: _passwordController,
-            hint: 'Пароль',
-            keyboardType: TextInputType.visiblePassword,
-          ),
-        ),
-        FigZone(
-          25.0,
-          441.0,
-          324.0,
-          36.0,
-          label: 'Далее',
-          onTap: _onNext,
-        ),
-        // Согласие на обработку ПДн. В макете этой строки нет: раньше клиент
-        // отправлял версию соглашения сам, не спрашивая, — то есть принимал
-        // документ за пользователя.
-        Positioned(
-          left: 25.0,
-          top: 489.0,
-          width: 324.0,
-          child: ConsentRow(
-            value: _accepted,
-            loading: _loadingTerms,
-            error: _termsError,
-            onChanged: (value) => setState(() => _accepted = value),
-          ),
-        ),
-        Positioned(
-          left: 0.0,
-          top: 560.0,
-          width: 375.0,
-          height: 40.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              color: const Color(0xffffffff),
-              alignment: Alignment.center,
-              child: const Text(
-                'У меня уже есть аккаунт',
-                style: TextStyle(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xffea812e),
+      // Форма прокручивается, поэтому клавиатуре можно подвинуть содержимое:
+      // кнопка «Далее» не должна оставаться под ней на невысоких экранах.
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Link(
+                label: 'Вернуться назад',
+                onTap: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(height: 24.0),
+              Text(
+                'Добро пожаловать!',
+                style: figStyle(
+                  fontSize: 21.0,
+                  family: FigFont.display,
+                  weight: 600,
+                  height: 1.0,
+                  color: const Color(0xff000000),
                 ),
               ),
-            ),
+              const SizedBox(height: 6.0),
+              Text(
+                'Зарегистрируйтесь по номеру телефона. Мы пришлём код '
+                'подтверждения, а войти потом можно будет по паролю.',
+                style: figStyle(
+                  fontSize: 15.0,
+                  family: FigFont.display,
+                  weight: 500,
+                  height: 1.333,
+                  color: _muted,
+                ),
+              ),
+              const SizedBox(height: 24.0),
+              _Field(
+                fieldKey: kRegisterPhoneFieldKey,
+                controller: _phoneController,
+                hint: 'Номер телефона (с WhatsApp)',
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12.0),
+              _Field(
+                fieldKey: kRegisterNameFieldKey,
+                controller: _nameController,
+                hint: 'Имя',
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 12.0),
+              _Field(
+                fieldKey: kRegisterPasswordFieldKey,
+                controller: _passwordController,
+                hint: 'Пароль',
+                keyboardType: TextInputType.visiblePassword,
+              ),
+              const SizedBox(height: 16.0),
+              ConsentRow(
+                key: kRegisterConsentKey,
+                value: _accepted,
+                loading: _loadingTerms,
+                error: _termsError,
+                onChanged: (value) => setState(() => _accepted = value),
+              ),
+              const SizedBox(height: 16.0),
+              _PrimaryButton(
+                buttonKey: kRegisterSubmitKey,
+                label: 'Далее',
+                busy: _isSending,
+                onTap: _onNext,
+              ),
+              const SizedBox(height: 16.0),
+              Center(
+                child: _Link(
+                  label: 'У меня уже есть аккаунт',
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+/// Поле формы: та же плитка, что в кадре, — высота 36, радиус 10.
+class _Field extends StatelessWidget {
+  const _Field({
+    required this.fieldKey,
+    required this.controller,
+    required this.hint,
+    this.keyboardType,
+  });
+
+  final Key fieldKey;
+  final TextEditingController controller;
+  final String hint;
+  final TextInputType? keyboardType;
+
+  @override
+  Widget build(BuildContext context) {
+    // Ширину берём у фактических ограничений, а не у размера экрана и не из
+    // 375-точечного макета: иначе поле вылезает за край на узких устройствах.
+    return LayoutBuilder(
+      builder: (context, constraints) => FigInputBox(
+        key: fieldKey,
+        width: constraints.maxWidth,
+        controller: controller,
+        hint: hint,
+        keyboardType: keyboardType,
+      ),
+    );
+  }
+}
+
+/// Кнопка кадра: 36 в высоту, радиус 10, текст 17/600 белым.
+class _PrimaryButton extends StatelessWidget {
+  const _PrimaryButton({
+    required this.buttonKey,
+    required this.label,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final Key buttonKey;
+  final String label;
+  final bool busy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: buttonKey,
+      behavior: HitTestBehavior.opaque,
+      // Пока запрос в пути, повторное нажатие не проходит — второй SMS-код
+      // сбросил бы первый и упёрся бы в лимит на стороне сервера.
+      onTap: busy ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        height: 36.0,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: busy ? _accent.withValues(alpha: 0.6) : _accent,
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        child: busy
+            ? const SizedBox(
+                width: 16.0,
+                height: 16.0,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.0,
+                  color: Color(0xffffffff),
+                ),
+              )
+            : Text(
+                label,
+                style: figStyle(
+                  fontSize: 17.0,
+                  family: FigFont.display,
+                  weight: 600,
+                  height: 1.294,
+                  color: const Color(0xffffffff),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+/// Текстовая ссылка тем же оранжевым, что и на остальных экранах входа.
+class _Link extends StatelessWidget {
+  const _Link({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Text(
+        label,
+        style: figStyle(
+          fontSize: 15.0,
+          family: FigFont.display,
+          weight: 500,
+          height: 1.333,
+          color: _accent,
+        ),
       ),
     );
   }

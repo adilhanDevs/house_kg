@@ -33,9 +33,13 @@ class ConsentRow extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2.0, color: Color(0xffea812e)),
             ),
             SizedBox(width: 10.0),
-            Text(
-              'Загружаем соглашение…',
-              style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+            // Без Expanded строка не помещалась на узких экранах: Row
+            // переполнялся на 34 точки уже при 320 в ширину.
+            Expanded(
+              child: Text(
+                'Загружаем соглашение…',
+                style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+              ),
             ),
           ],
         ),
