@@ -320,17 +320,25 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _buildCover(coverUrl, coverHeight, l10n)),
+            // Обложка и шапка — один слайвер: аватар наполовину выходит за
+            // край обложки, а на границе двух слайверов этот выступ
+            // подрезался, и аватар был виден лишь наполовину.
             SliverToBoxAdapter(
-              child: _buildSellerHeader(
-                avatarUrl: avatarUrl,
-                avatarSize: avatarSize,
-                sellerName: sellerName,
-                sellerKind: sellerKind,
-                isVerified: isVerified,
-                activeCount: activeCount,
-                soldCount: soldCount,
-                l10n: l10n,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildCover(coverUrl, coverHeight, l10n),
+                  _buildSellerHeader(
+                    avatarUrl: avatarUrl,
+                    avatarSize: avatarSize,
+                    sellerName: sellerName,
+                    sellerKind: sellerKind,
+                    isVerified: isVerified,
+                    activeCount: activeCount,
+                    soldCount: soldCount,
+                    l10n: l10n,
+                  ),
+                ],
               ),
             ),
             SliverToBoxAdapter(child: _buildFilterTabs(filterTabs)),
@@ -515,7 +523,7 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(color: Colors.white, width: 3),
-                      color: const Color(0xfff0f0f0),
+                      color: const Color(0xfffdf1e8),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
@@ -523,17 +531,9 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
                           ? buildSafeNetworkImage(
                               url: avatarUrl,
                               fit: BoxFit.cover,
-                              fallback: const Icon(
-                                Icons.person,
-                                size: 40,
-                                color: Color(0xff8e8e93),
-                              ),
+                              fallback: _avatarPlaceholder(avatarSize),
                             )
-                          : const Icon(
-                              Icons.person,
-                              size: 40,
-                              color: Color(0xff8e8e93),
-                            ),
+                          : _avatarPlaceholder(avatarSize),
                     ),
                   ),
                   if (isVerified)
@@ -709,17 +709,32 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
     );
   }
 
+  /// Заглушка аватара — та же, что в профиле: персиковый фон, оранжевая фигура.
+  Widget _avatarPlaceholder(double size) {
+    return Container(
+      color: const Color(0xfffdf1e8),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.person_outline,
+        size: size * 0.5,
+        color: const Color(0xffea812e),
+      ),
+    );
+  }
+
   Widget _buildDefaultCover() {
     return Container(
+      // Та же заглушка, что в профиле: тёмно-серая полоса выглядела ошибкой
+      // загрузки, хотя фото просто нет.
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xff2d3748), Color(0xff1a202c)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xfff7931e), Color(0xffea812e), Color(0xffcb6015)],
         ),
       ),
       child: const Center(
-        child: Icon(Icons.apartment, size: 48, color: Color(0x40ffffff)),
+        child: Icon(Icons.photo_outlined, color: Colors.white70, size: 36),
       ),
     );
   }
