@@ -57,12 +57,17 @@ class ListingGrid extends StatelessWidget {
       final left = listings[i];
       final right = i + 1 < listings.length ? listings[i + 1] : null;
       if (rows.isNotEmpty) rows.add(const SizedBox(height: kGridRowGap));
-      rows.add(Row(
-        children: [
-          _card(state, left),
-          const SizedBox(width: kGridGap),
-          if (right != null) _card(state, right),
-        ],
+      rows.add(FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _card(state, left),
+            const SizedBox(width: kGridGap),
+            if (right != null) _card(state, right),
+          ],
+        ),
       ));
     }
 
