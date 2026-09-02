@@ -182,6 +182,9 @@ class AppNotification {
   /// Уведомление о новом сообщении — по нему открывается диалог.
   bool get isNewMessage => type == 'new_message';
 
+  /// Уведомление о снижении цены.
+  bool get isPriceDrop => type == 'price_drop';
+
   /// Диалог из payload. Пусто, если сервер его не прислал.
   String? get conversationId {
     final value = payload['conversation_id'];
@@ -194,6 +197,28 @@ class AppNotification {
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString() ?? '');
   }
+
+  String? get oldPrice =>
+      payload['old_price']?.toString() ?? payload['old_price_usd']?.toString();
+
+  String? get newPrice =>
+      payload['new_price']?.toString() ?? payload['new_price_usd']?.toString();
+
+  String? get currency => payload['currency']?.toString();
+
+  String? get districtName =>
+      payload['district']?.toString() ?? payload['district_name']?.toString();
+
+  int? get rooms => (payload['rooms'] as num?)?.toInt();
+
+  String? get area => payload['area']?.toString();
+
+  int? get floor => (payload['floor'] as num?)?.toInt();
+
+  int? get floors => (payload['floors'] as num?)?.toInt();
+
+  String? get coverUrl => payload['cover_url']?.toString();
+
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'];

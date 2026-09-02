@@ -16,6 +16,7 @@ import "../../data/chat_controller.dart" show describeApiError;
 import "../../data/chat_models.dart";
 import "../../fig/fig.dart";
 import "../pages/chat_page.dart";
+import "price_drop_notification_tile.dart";
 
 const Key kProfileNotificationsSectionKey = Key("profile_notifications_section");
 const Key kProfileNotificationsSeeAllKey = Key("profile_notifications_see_all");
@@ -348,6 +349,14 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
   }
 
   Widget _buildItemTile(AppNotification item) {
+    if (item.isPriceDrop) {
+      return PriceDropNotificationTile(
+        key: kProfileNotificationTileKey(item.id),
+        notification: item,
+        onTap: () => _open(item),
+        backgroundColor: Colors.transparent,
+      );
+    }
     return GestureDetector(
       key: kProfileNotificationTileKey(item.id),
       behavior: HitTestBehavior.opaque,

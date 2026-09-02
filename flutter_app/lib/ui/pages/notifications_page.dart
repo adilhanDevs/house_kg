@@ -9,6 +9,7 @@ import '../../data/chat_models.dart';
 import '../../fig/fig.dart';
 import '../../l10n/l10n.dart';
 import '../app_tab_bar.dart';
+import '../widgets/price_drop_notification_tile.dart';
 import 'chat_page.dart';
 
 const Key kNotificationsListKey = Key('notifications_list');
@@ -206,12 +207,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
         child: ListView.separated(
           key: kNotificationsListKey,
           itemCount: _items.length,
-          separatorBuilder: (_, __) =>
+          separatorBuilder: (_, _) =>
               const Divider(height: 1.0, color: Color(0xffeeeeee)),
-          itemBuilder: (context, index) => _NotificationTile(
-            notification: _items[index],
-            onTap: () => _open(_items[index]),
-          ),
+          itemBuilder: (context, index) {
+            final item = _items[index];
+            if (item.isPriceDrop) {
+              return PriceDropNotificationTile(
+                notification: item,
+                onTap: () => _open(item),
+              );
+            }
+            return _NotificationTile(
+              notification: item,
+              onTap: () => _open(item),
+            );
+          },
         ),
       ),
     );
