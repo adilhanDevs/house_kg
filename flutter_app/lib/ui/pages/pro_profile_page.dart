@@ -11,6 +11,7 @@ import '../../data/listings.dart';
 import '../../data/listing_repository.dart';
 import '../object_card.dart';
 import '../widgets/profile_identity.dart';
+import '../widgets/latest_notifications.dart';
 
 class ProProfilePage extends StatefulWidget {
   const ProProfilePage({super.key});
@@ -442,6 +443,17 @@ class _ProProfilePageState extends State<ProProfilePage> {
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
           ),
+        ),
+
+        // Настоящее уведомление поверх нарисованной карточки кадра.
+        // Полоса между заголовком (заканчивается на 849) и ссылкой
+        // «Посмотреть все» (начинается на 922) — измерено по кадру 38.
+        const Positioned(
+          left: 25.0,
+          top: 855.0,
+          width: 325.0,
+          height: 62.0,
+          child: LatestNotifications(width: 325.0, height: 62.0, maxItems: 1),
         ),
 
         // Клик по настройке «Тарифы» (Y=976)
