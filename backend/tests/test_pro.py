@@ -198,8 +198,26 @@ def test_password_login_returns_tokens_for_pro(api_client: APIClient) -> None:
 
 
 @pytest.mark.django_db
-def test_password_login_rejects_non_pro(api_client: APIClient) -> None:
-    UserFactory(phone=PHONE, is_pro=False, password=PASSWORD)
+def test_password_login_works_for_an_ordinary_user(api_client: APIClient) -> None:
+    """Вход по паролю — общий, а не привилегия исполнителя.
+
+    Обычный пользователь задаёт пароль при регистрации и дальше входит им же,
+    без SMS. Раньше пароль принимался только у pro — потому что остальным его
+    просто негде было задать.
+    """
+    user = UserFactory(phone=PHONE, is_pro=False, password=PASSWORD)
+
+    response = api_client.post(LOGIN_URL, {"phone": PHONE, "password": PASSWORD})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["access"] and body["refresh"]
+    assert body["user"]["id"] == user.pk
+
+
+@pytest.mark.django_db
+def test_password_login_rejects_a_blocked_account(api_client: APIClient) -> None:
+    UserFactory(phone=PHONE, is_active=False, password=PASSWORD)
 
     response = api_client.post(LOGIN_URL, {"phone": PHONE, "password": PASSWORD})
 

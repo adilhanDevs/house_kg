@@ -13,6 +13,7 @@ from apps.common.models import TimeStampedModel
 
 
 class NotificationType(models.TextChoices):
+    NEW_MESSAGE = "new_message", "Новое сообщение"
     PRICE_DROP = "price_drop", "Снижение цены"
     SAVED_FILTER_MATCH = "saved_filter_match", "Новые объекты по фильтру"
     LISTING_MODERATED = "listing_moderated", "Модерация объявления"
@@ -118,6 +119,7 @@ class NotificationSettings(models.Model):
     )
     push_enabled = models.BooleanField("Push-уведомления", default=True)
 
+    new_message_enabled = models.BooleanField("Новые сообщения", default=True)
     price_drop_enabled = models.BooleanField("Снижение цены", default=True)
     saved_filter_enabled = models.BooleanField("Новые объекты по фильтру", default=True)
     listing_moderated_enabled = models.BooleanField("Модерация объявлений", default=True)
@@ -134,6 +136,7 @@ class NotificationSettings(models.Model):
 
     # Тип уведомления -> поле с флагом.
     TYPE_FIELDS = {
+        NotificationType.NEW_MESSAGE: "new_message_enabled",
         NotificationType.PRICE_DROP: "price_drop_enabled",
         NotificationType.SAVED_FILTER_MATCH: "saved_filter_enabled",
         NotificationType.LISTING_MODERATED: "listing_moderated_enabled",

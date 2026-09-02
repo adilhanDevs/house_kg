@@ -115,6 +115,13 @@ def test_every_throttle_scope_has_a_rate(settings):
     assert not missing, f"нет ставок для scope: {missing}"
 
 
+def test_message_send_throttle_has_product_rate(settings):
+    """Чат ограничен отдельно от общего пользовательского трафика."""
+    rates = settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]
+
+    assert rates["message_send"] == "30/min"
+
+
 # -- 2. Маскирование ПДн в логах ---------------------------------------------
 
 

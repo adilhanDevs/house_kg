@@ -52,7 +52,11 @@ def pick_cover(items: Iterable[ListingMedia] | None) -> ListingMedia | None:
 
 
 def cover_file(media: ListingMedia | None) -> Any:
-    """Файл обложки: облегчённое превью, если оно уже собрано, иначе оригинал."""
+    """Файл обложки для карточки каталога: маленькое превью.
+
+    В сетке карточка занимает 160 pt, поэтому её кормит `url_thumb` (400 px).
+    Для детального экрана этого мало — там берётся `cover_detail_file`.
+    """
     if media is None:
         return None
     if media.kind == MediaKind.VIDEO:
@@ -60,8 +64,22 @@ def cover_file(media: ListingMedia | None) -> Any:
     return media.url_thumb or media.file or None
 
 
-def listing_cover_file(listing: Any) -> Any:
-    """Обложка объявления по уже загруженным медиа.
+def cover_detail_file(media: ListingMedia | None) -> Any:
+    """Файл той же обложки, но пригодный для крупного показа.
+
+    Это ровно тот же `ListingMedia`, что и у `cover_file`, — просто другой
+    вариант размера. Клиент по этим двум URL не должен решать, одно это фото
+    или разные: идентичность даёт `cover_media_id`.
+    """
+    if media is None:
+        return None
+    if media.kind == MediaKind.VIDEO:
+        return media.thumbnail or None
+    return media.url_medium or media.url_original or media.file or None
+
+
+def listing_cover(listing: Any) -> ListingMedia | None:
+    """Медиа, выбранное обложкой объявления, — единственный источник истины.
 
     Берёт кандидатов из `cover_media` (их кладёт Prefetch списочных запросов),
     а если их нет — из обычной связи `media`.
@@ -69,4 +87,9 @@ def listing_cover_file(listing: Any) -> Any:
     candidates = getattr(listing, COVER_ATTR, None)
     if candidates is None:
         candidates = listing.media.all()
-    return cover_file(pick_cover(candidates))
+    return pick_cover(candidates)
+
+
+def listing_cover_file(listing: Any) -> Any:
+    """Файл обложки объявления для карточки каталога."""
+    return cover_file(listing_cover(listing))

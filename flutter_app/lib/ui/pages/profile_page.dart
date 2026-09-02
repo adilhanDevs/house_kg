@@ -11,6 +11,7 @@ import '../auth_guard.dart';
 import '../../app/stage.dart';
 import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
+import '../widgets/latest_notifications.dart';
 import '../widgets/profile_identity.dart';
 import 'pro_profile_page.dart';
 
@@ -20,7 +21,10 @@ const double _rowWidth = 327;
 const double _rowHeight = 26;
 
 /// «Посмотреть все» под последними уведомлениями.
-const Rect _seeAll = Rect.fromLTWH(24, 314, 326, 24);
+// Полоса нарисованных карточек уведомлений и ссылка «Посмотреть все» —
+// координаты сняты измерением кадра, а не подобраны.
+const Rect _latestNotifications = Rect.fromLTWH(24, 215, 326, 143);
+const Rect _seeAll = Rect.fromLTWH(24, 360, 326, 20);
 
 /// «Продать недвижимость».
 const Rect _sell = Rect.fromLTWH(101, 698, 185.3, 30);
@@ -182,6 +186,17 @@ class _ProfilePageState extends State<ProfilePage> {
           _seeAll.left, _seeAll.top, _seeAll.width, _seeAll.height,
           label: 'Посмотреть все уведомления',
           onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
+        ),
+        // Настоящие уведомления поверх нарисованных карточек кадра.
+        Positioned(
+          left: _latestNotifications.left,
+          top: _latestNotifications.top,
+          width: _latestNotifications.width,
+          height: _latestNotifications.height,
+          child: const LatestNotifications(
+            width: _latestNotifications.width,
+            height: _latestNotifications.height,
+          ),
         ),
         FigZone(
           _rowLeft, 381, _rowWidth, _rowHeight,

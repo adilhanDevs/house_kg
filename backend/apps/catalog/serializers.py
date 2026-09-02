@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.catalog.constants import MAX_FILES_PER_REQUEST
-from apps.catalog.covers import listing_cover_file
+from apps.catalog.covers import cover_detail_file, listing_cover, listing_cover_file
 from apps.catalog.enums import ListingStatus, MediaKind
 from apps.catalog.field_rules import strip_inapplicable
 from apps.catalog.models import (
@@ -319,6 +319,7 @@ class ListingListSerializer(serializers.ModelSerializer):
     kind_label = serializers.CharField(source="get_kind_display", read_only=True)
     district = DistrictBriefSerializer(read_only=True)
     cover_url = serializers.SerializerMethodField()
+    cover_media_id = serializers.SerializerMethodField()
     photos_count = serializers.IntegerField(read_only=True)
     series_code = serializers.CharField(source="series.code", default=None, read_only=True)
     is_promoted = serializers.SerializerMethodField()
@@ -341,6 +342,7 @@ class ListingListSerializer(serializers.ModelSerializer):
             "floor",
             "floors",
             "cover_url",
+            "cover_media_id",
             "photos_count",
             "is_secondary",
             "series_code",
@@ -360,6 +362,17 @@ class ListingListSerializer(serializers.ModelSerializer):
         # Кандидаты приходят из Prefetch(to_attr=...) — без запроса на объект.
         # Правило выбора общее для всего каталога, см. apps/catalog/covers.py.
         return absolute_file_url(listing_cover_file(obj), self.context.get("request"))
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_cover_media_id(self, obj: Listing) -> int | None:
+        """id медиа, которое сервер выбрал обложкой.
+
+        Клиенту он нужен, чтобы не гадать по URL, какое из `media[]` уже
+        показано как обложка: у одного и того же снимка в ответе разные
+        варианты размера и, значит, разные адреса.
+        """
+        cover = listing_cover(obj)
+        return cover.pk if cover is not None else None
 
     @extend_schema_field(serializers.BooleanField())
     def get_is_promoted(self, obj: Listing) -> bool:
@@ -414,6 +427,7 @@ class ListingDetailSerializer(ListingListSerializer):
 
     builder = BuilderBriefSerializer(read_only=True)
     media = ListingMediaSerializer(many=True, read_only=True)
+    cover_detail_url = serializers.SerializerMethodField()
     seller = serializers.SerializerMethodField()
     rooms_breakdown = ListingRoomSerializer(source="rooms_data", many=True, read_only=True)
     videos = serializers.SerializerMethodField()
@@ -421,6 +435,7 @@ class ListingDetailSerializer(ListingListSerializer):
     class Meta(ListingListSerializer.Meta):
         fields = [
             *ListingListSerializer.Meta.fields,
+            "cover_detail_url",
             "description",
             "address",
             "latitude",
@@ -448,6 +463,19 @@ class ListingDetailSerializer(ListingListSerializer):
             "seller",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_cover_detail_url(self, obj: Listing) -> str | None:
+        """Та же обложка, что и `cover_url`, но крупным вариантом.
+
+        В сетке каталога хватает превью на 400 px, а на весь экран оно
+        расплывается. Медиа то же самое — отличается только вариант размера,
+        поэтому `cover_media_id` у обоих полей один.
+        """
+        return absolute_file_url(
+            cover_detail_file(listing_cover(obj)),
+            self.context.get("request"),
+        )
 
     @extend_schema_field(ListingMediaSerializer(many=True))
     def get_videos(self, obj: Listing) -> list[dict[str, Any]]:

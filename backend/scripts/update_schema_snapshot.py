@@ -6,7 +6,7 @@ from pathlib import Path
 
 import django
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.test")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 from drf_spectacular.generators import SchemaGenerator  # noqa: E402

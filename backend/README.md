@@ -351,13 +351,70 @@ Celery-задачей `common.notify_support_ticket`; если брокер не
   номер, 20 в час на IP. Превышение — `429` с `details.retry_after`.
 - **Неверный код**: `400`, сообщение «Неверный код», `details.attempts_left`. После пяти
   неудачных попыток код сжигается (`is_used=True`) — нужен новый.
-- **SMS** уходит Celery-задачей `users.send_otp_sms` (3 ретрая). Провайдер выбирается
-  настройкой `SMS_PROVIDER`: `console` (лог) или `http` (POST на `SMS_API_URL`,
-  таймаут 10 с, 2 ретрая с экспоненциальной задержкой).
+- **SMS / OTP** уходит Celery-задачей `users.send_otp_sms` (3 ретрая). Провайдер выбирается
+  настройкой `SMS_PROVIDER`:
+  - `console`: лог (для разработки)
+  - `http`: классический HTTP SMS-шлюз оператора (`SMS_API_URL`, `SMS_API_TOKEN`)
+  - `telegram`: официальный Telegram Gateway API (`https://gatewayapi.telegram.org`)
 - **Токены**: access 15 минут, refresh 30 дней, ротация с занесением старого refresh
   в blacklist (`rest_framework_simplejwt.token_blacklist`).
 - **Чистка**: Celery Beat раз в сутки (03:15) запускает `users.purge_old_otp_codes` —
   удаляет коды старше `OTP_RETENTION_DAYS` (7 дней).
+
+### Telegram Gateway OTP
+
+Интеграция с официальным шлюзом [Telegram Gateway](https://gateway.telegram.org) для отправки OTP-кодов верификации в мессенджер Telegram.
+
+#### 1. Получение токена шлюза
+1. Перейдите на [gateway.telegram.org](https://gateway.telegram.org).
+2. Авторизуйтесь через аккаунт Telegram.
+3. В панели управления перейдите в раздел **API / Settings** и создайте/скопируйте API Token.
+4. Пополните баланс шлюза для реальных отправок.
+
+#### 2. Переменные окружения (.env)
+```env
+SMS_PROVIDER=telegram
+TELEGRAM_GATEWAY_TOKEN=your_token_here
+TELEGRAM_GATEWAY_BASE_URL=https://gatewayapi.telegram.org
+TELEGRAM_GATEWAY_TTL=300
+TELEGRAM_GATEWAY_TIMEOUT=10
+```
+
+#### 3. Переключение провайдера
+Чтобы включить отправку кодов через Telegram, в `.env` задайте:
+```bash
+SMS_PROVIDER=telegram
+```
+
+#### 4. Запуск бэкенда
+```bash
+python manage.py migrate
+python manage.py runserver
+# или в Docker:
+make up
+```
+
+#### 5. Тестирование отправки через CLI
+Для безопасной проверки шлюза без запуска регистрации создана management-команда:
+```bash
+python manage.py test_telegram_gateway +996XXXXXXXXX
+# или с кастомным кодом:
+python manage.py test_telegram_gateway +996XXXXXXXXX --code 123456
+```
+Команда выведет статус доставки, ID запроса и стоимость без раскрытия токена.
+
+#### 6. Проверка через мобильное приложение / API
+1. Запросите код: `POST /api/v1/auth/otp/request/` с телом `{"phone": "+996XXXXXXXXX", "purpose": "login"}`.
+2. Пользователь получает верификационное сообщение от официального шлюза Telegram.
+3. Подтвердите код: `POST /api/v1/auth/otp/verify/` с телом `{"phone": "+996XXXXXXXXX", "code": "1234", "purpose": "login"}`.
+4. Приложение получает JWT `access` и `refresh` токены, а бэкенд в фоне отправляет статистику конверсии в Telegram Gateway (`checkVerificationStatus`).
+
+#### 7. Возможные ошибки Telegram Gateway
+- `UNAUTHORIZED (401)`: неверный или отозванный `TELEGRAM_GATEWAY_TOKEN`.
+- `FLOOD_WAIT (429)`: превышен лимит частоты отправок Telegram.
+- `PHONE_NUMBER_INVALID`: номер не соответствует формату E.164.
+- `INTERNAL_SERVER_ERROR (500)`: временная недоступность шлюза Telegram.
+
 
 ### Регистрация исполнителя (pro)
 

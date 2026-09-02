@@ -244,6 +244,7 @@ class AuditLog(models.Model):
         USER_FLAGS_CHANGED = "user.flags_changed", "Изменены права пользователя"
         USER_DELETED = "user.deleted", "Аккаунт удалён"
         PASSWORD_LOGIN = "auth.password_login", "Вход по паролю"
+        PASSWORD_RESET = "auth.password_reset", "Пароль изменён по коду из SMS"
         DATA_EXPORTED = "user.data_exported", "Выгрузка персональных данных"
         CONSENT_GRANTED = "user.consent_granted", "Дано согласие на обработку ПДн"
         # Каталог.

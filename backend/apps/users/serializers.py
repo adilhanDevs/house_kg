@@ -1,5 +1,6 @@
 """Сериализаторы профиля пользователя и публичного профиля продавца."""
 
+import logging
 import re
 from typing import Any
 
@@ -27,6 +28,8 @@ from apps.users.phone import normalize_phone
 from apps.users.services import REVIEW_APPROVE, REVIEW_REJECT, build_signed_files
 from apps.users.validators import validate_iin
 
+logger = logging.getLogger(__name__)
+
 BRICK_CURRENCY = "brick"
 
 # Время в часах работы: «09:00», «18:30».
@@ -45,6 +48,8 @@ class UserMeSerializer(serializers.ModelSerializer):
 
     iin = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
+    cover_url = serializers.SerializerMethodField()
+    profile_cover_url = serializers.SerializerMethodField()
     wallet_balance = serializers.SerializerMethodField()
     is_pro = serializers.SerializerMethodField()
     has_seller_profile = serializers.SerializerMethodField()
@@ -59,7 +64,10 @@ class UserMeSerializer(serializers.ModelSerializer):
             "has_seller_profile",
             "seller_kind",
             "iin",
+            "whatsapp_phone",
             "avatar_url",
+            "cover_url",
+            "profile_cover_url",
             "date_joined",
             "wallet_balance",
         ]
@@ -89,6 +97,18 @@ class UserMeSerializer(serializers.ModelSerializer):
         url = obj.avatar.url
         return request.build_absolute_uri(url) if request else url
 
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_cover_url(self, obj: User) -> str | None:
+        if not obj.profile_cover:
+            return None
+        request = self.context.get("request")
+        url = obj.profile_cover.url
+        return request.build_absolute_uri(url) if request else url
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_profile_cover_url(self, obj: User) -> str | None:
+        return self.get_cover_url(obj)
+
     @extend_schema_field(WalletBalanceSerializer)
     def get_wallet_balance(self, obj: User) -> dict[str, Any]:
         wallet = getattr(obj, "wallet", None)
@@ -99,16 +119,137 @@ class UserMeSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """Изменение профиля: доступны только имя и аватар.
+    """Изменение профиля: доступны имя, аватар, обложка и WhatsApp.
 
     Остальные поля объявлены read-only — попытка их передать молча игнорируется,
     а не возвращает 400.
     """
 
+    avatar = serializers.ImageField(required=False, allow_null=True)
+    profile_cover = serializers.ImageField(required=False, allow_null=True)
+    cover = serializers.ImageField(source="profile_cover", required=False, allow_null=True)
+    delete_avatar = serializers.BooleanField(required=False, write_only=True)
+    delete_cover = serializers.BooleanField(required=False, write_only=True)
+    whatsapp_phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = User
-        fields = ["name", "avatar", "phone", "is_pro", "iin", "is_staff"]
+        fields = [
+            "name",
+            "avatar",
+            "profile_cover",
+            "cover",
+            "delete_avatar",
+            "delete_cover",
+            "whatsapp_phone",
+            "phone",
+            "is_pro",
+            "iin",
+            "is_staff",
+        ]
         read_only_fields = ["phone", "is_pro", "iin", "is_staff"]
+
+    def validate_whatsapp_phone(self, value: str | None) -> str | None:
+        if not value:
+            return None
+        value = value.strip()
+        if not value:
+            return None
+        try:
+            return normalize_phone(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
+
+    def update(self, instance: User, validated_data: dict[str, Any]) -> User:
+        if validated_data.pop("delete_avatar", False):
+            validated_data["avatar"] = None
+        if validated_data.pop("delete_cover", False):
+            validated_data["profile_cover"] = None
+
+        old_avatar = instance.avatar if "avatar" in validated_data else None
+        old_cover = instance.profile_cover if "profile_cover" in validated_data else None
+
+        user = super().update(instance, validated_data)
+
+        if old_avatar and old_avatar != user.avatar:
+            try:
+                old_avatar.delete(save=False)
+            except Exception as exc:
+                logger.warning("Не удалось удалить старый файл аватара: %s", exc)
+        if old_cover and old_cover != user.profile_cover:
+            try:
+                old_cover.delete(save=False)
+            except Exception as exc:
+                logger.warning("Не удалось удалить старый файл обложки: %s", exc)
+        return user
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Смена пароля текущим авторизованным пользователем."""
+
+    current_password = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        write_only=True,
+        style={"input_type": "password"},
+    )
+    new_password = serializers.CharField(
+        required=True,
+        write_only=True,
+        style={"input_type": "password"},
+    )
+    new_password_confirmation = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        write_only=True,
+        style={"input_type": "password"},
+    )
+    new_password_confirm = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        write_only=True,
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        user: User = self.context["request"].user
+        current = attrs.get("current_password") or ""
+        new_password = attrs.get("new_password") or ""
+        confirm = attrs.get("new_password_confirmation") or attrs.get("new_password_confirm") or ""
+
+        # 1. Проверка текущего пароля (если у пользователя уже задан пароль)
+        if user.has_usable_password():
+            if not current:
+                raise serializers.ValidationError({"current_password": ["Введите текущий пароль."]})
+            if not user.check_password(current):
+                raise serializers.ValidationError(
+                    {"current_password": ["Неверный текущий пароль."]}
+                )
+            if current == new_password:
+                raise serializers.ValidationError(
+                    {"new_password": ["Новый пароль должен отличаться от текущего."]}
+                )
+
+        # 2. Проверка подтверждения нового пароля (если передано)
+        if confirm and confirm != new_password:
+            raise serializers.ValidationError(
+                {"new_password_confirmation": ["Пароли не совпадают."]}
+            )
+
+        # 3. Валидация стандартными правилами Django
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"new_password": list(exc.messages)}) from exc
+
+        return attrs
+
+    def save(self, **kwargs: Any) -> User:
+        user: User = self.context["request"].user
+        new_password = self.validated_data["new_password"]
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        return user
 
 
 class OtpRequestSerializer(serializers.Serializer):
@@ -260,6 +401,32 @@ class PasswordLoginSerializer(serializers.Serializer):
 
     def validate_phone(self, value: str) -> str:
         return normalize_phone(value)
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    """Смена пароля по коду из SMS — экран «Забыли пароль»."""
+
+    phone = serializers.CharField(max_length=32)
+    code = serializers.RegexField(r"^\d{4}$", help_text="4 цифры из SMS.")
+    password = serializers.CharField(
+        max_length=128,
+        write_only=True,
+        style={"input_type": "password"},
+        help_text="Новый пароль.",
+    )
+
+    def validate_phone(self, value: str) -> str:
+        return normalize_phone(value)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # Те же правила, что при регистрации: иначе восстановление пароля
+        # становится способом обойти требования к нему.
+        candidate = User(phone=attrs["phone"])
+        try:
+            validate_password(attrs["password"], user=candidate)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"password": list(exc.messages)}) from exc
+        return attrs
 
 
 class IdentitySubmitSerializer(serializers.ModelSerializer):

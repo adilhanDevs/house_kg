@@ -420,6 +420,8 @@ class Listing(TimeStampedModel):
         """На сколько процентов цена ниже прежней."""
         if self.price is None or not self.old_price or self.old_price <= self.price:
             return None
+        diff = (self.old_price - self.price) / self.old_price * 100
+        return round(diff)
 class ListingRoom(models.Model):
     """Комната или помещение в объявлении с указанием квадратуры."""
 

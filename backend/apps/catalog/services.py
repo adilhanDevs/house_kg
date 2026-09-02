@@ -249,10 +249,16 @@ def add_listing_media(
 ) -> ListingMedia:
     """Прикладывает файл к объявлению с проверкой лимита.
 
-    Порядок и обложка проставляются автоматически: первое фото становится
-    обложкой карточки.
+    Порядок и обложка проставляются автоматически: фото становится обложкой,
+    только если обложки у объявления ещё нет.
+
+    Правило намеренно то же, что в `_store_upload`. Раньше здесь считалось
+    количество уже загруженных фото, и это расходилось с флагом: если первое
+    фото удаляли, а обложка переезжала на второе, счётчик мог снова оказаться
+    нулевым — и следующая загрузка ломалась об ограничение
+    `listing_media_single_cover`.
     """
-    existing = listing.media.filter(kind=kind).count()
+    has_cover = listing.media.filter(is_cover=True).exists()
     # Явная проверка на None: `or` сломался бы на нулевом порядке первого файла.
     top_order = listing.media.aggregate(top=Max("order"))["top"]
     next_order = 0 if top_order is None else top_order + 1
@@ -262,7 +268,7 @@ def add_listing_media(
         file=file,
         kind=kind,
         order=next_order,
-        is_cover=(existing == 0 and kind == MediaKind.PHOTO) if is_cover is None else is_cover,
+        is_cover=(kind == MediaKind.PHOTO and not has_cover) if is_cover is None else is_cover,
         **extra,
     )
     # Лимит проверяется и здесь, и в модели: сервис даёт понятную ошибку,
@@ -571,6 +577,9 @@ def reorder_listing_media(listing: Listing, order: list[int]) -> list[ListingMed
             item.order = position
         ListingMedia.objects.bulk_update(items, ["order"])
 
+    # Порядок задаёт обложку, когда явного флага нет (covers.pick_cover), а
+    # bulk_update сигналов не шлёт — сбрасываем кэш подборок вручную.
+    invalidate_filter_options_cache()
     return items
 
 
@@ -930,6 +939,34 @@ def ensure_free_slot(listing: Listing) -> None:
         return
 
     if active_listings_count(listing.owner) >= limit:
+        from apps.billing.models import Subscription, SubscriptionStatus
+
+        now = timezone.now()
+        had_paid_sub = (
+            Subscription.objects.filter(
+                user=listing.owner,
+                ends_at__lte=now,
+            )
+            .exclude(tariff__code="free")
+            .exists()
+        )
+        has_active_sub = (
+            Subscription.objects.filter(
+                user=listing.owner,
+                status=SubscriptionStatus.ACTIVE,
+                starts_at__lte=now,
+                ends_at__gt=now,
+            )
+            .exclude(tariff__code="free")
+            .exists()
+        )
+        if had_paid_sub and not has_active_sub:
+            raise ConflictError(
+                "Срок действия вашего тарифа закончился. "
+                f"На бесплатном тарифе доступно {limit} активных объявлений. "
+                "Продлите тариф или архивируйте активные объявления."
+            )
+
         raise ConflictError(
             f"Достигнут лимит активных объявлений: одновременно можно держать {limit}. "
             "Архивируйте одно из активных или перейдите на другой тариф."

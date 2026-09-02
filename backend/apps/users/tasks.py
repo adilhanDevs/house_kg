@@ -21,13 +21,38 @@ SMS_MAX_RETRIES = 3
     max_retries=SMS_MAX_RETRIES,
     ignore_result=True,
 )
-def send_otp_sms(self, phone: str, code: str) -> None:
-    """Отправляет SMS с кодом. Код в логи не пишем — только замаскированный номер."""
+def send_otp_sms(self, phone: str, code: str, otp_id: int | None = None) -> None:
+    """Отправляет SMS/OTP с кодом. Код в логи не пишем — только замаскированный номер."""
+    from apps.users.models import OtpCode
+
     provider = get_sms_provider()
     text = settings.OTP_SMS_TEMPLATE.format(code=code)
 
     try:
-        provider.send(phone, text)
+        if hasattr(provider, "send_code"):
+            result = provider.send_code(
+                phone=phone,
+                code=code,
+                ttl=getattr(settings, "OTP_CODE_TTL_SECONDS", 300),
+            )
+        else:
+            result = provider.send(phone, text)
+
+        # Сохраняем request_id шлюза, если он вернулся
+        request_id = getattr(result, "request_id", None)
+        if request_id:
+            if otp_id:
+                OtpCode.objects.filter(pk=otp_id).update(request_id=request_id)
+            else:
+                latest = (
+                    OtpCode.objects.filter(phone=phone, is_used=False, request_id="")
+                    .order_by("-created_at")
+                    .first()
+                )
+                if latest:
+                    latest.request_id = request_id
+                    latest.save(update_fields=["request_id"])
+
     except Exception as exc:
         attempt = self.request.retries + 1
         logger.warning(
@@ -41,6 +66,22 @@ def send_otp_sms(self, phone: str, code: str) -> None:
         raise self.retry(exc=exc, countdown=10 * (2**self.request.retries)) from exc
 
     logger.info("SMS с кодом отправлена на %s", mask_phone(phone))
+
+
+@shared_task(name="users.report_telegram_verification_status", ignore_result=True)
+def report_telegram_verification_status(request_id: str, code: str) -> None:
+    """Уведомляет Telegram Gateway о введённом коде для сбора статистики конверсий."""
+    from apps.users.sms import TelegramGatewayProvider
+
+    try:
+        provider = TelegramGatewayProvider()
+        provider.check_verification_status(request_id, code)
+    except Exception as exc:
+        logger.warning(
+            "Не удалось отправить checkVerificationStatus в Telegram Gateway (request_id=%s): %s",
+            request_id,
+            exc.__class__.__name__,
+        )
 
 
 @shared_task(name="users.purge_old_otp_codes", ignore_result=True)

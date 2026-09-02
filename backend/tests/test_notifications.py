@@ -251,12 +251,19 @@ def test_delete_own_notification_only(auth: APIClient, user) -> None:
 def test_settings_read_and_update(auth: APIClient, user) -> None:
     body = auth.get(SETTINGS_URL).json()
     assert body["push_enabled"] is True
+    assert body["new_message_enabled"] is True
 
-    response = auth.patch(SETTINGS_URL, {"price_drop_enabled": False}, format="json")
+    response = auth.patch(
+        SETTINGS_URL,
+        {"price_drop_enabled": False, "new_message_enabled": False},
+        format="json",
+    )
 
     assert response.status_code == 200
     assert response.json()["price_drop_enabled"] is False
+    assert response.json()["new_message_enabled"] is False
     assert NotificationSettings.objects.get(user=user).price_drop_enabled is False
+    assert NotificationSettings.objects.get(user=user).new_message_enabled is False
 
 
 @pytest.mark.django_db

@@ -208,3 +208,213 @@ def test_deleted_user_cannot_authenticate(auth_client: APIClient, user: User) ->
 
     # Токен ещё валиден по подписи, но пользователь деактивирован.
     assert auth_client.get(ME_URL).status_code == 401
+
+
+# -- Обложка профиля (profile_cover) и независимость от аватара ----------------
+
+
+@pytest.mark.django_db
+def test_me_returns_cover_url(auth_client: APIClient, user: User) -> None:
+    user.profile_cover = make_image("cover.png")
+    user.save()
+
+    response = auth_client.get(ME_URL)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cover_url"].startswith("http")
+    assert body["profile_cover_url"] == body["cover_url"]
+
+
+@pytest.mark.django_db
+def test_patch_profile_cover(auth_client: APIClient, user: User) -> None:
+    response = auth_client.patch(
+        ME_URL,
+        {"profile_cover": make_image("banner.png")},
+        format="multipart",
+    )
+
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.profile_cover
+    assert response.json()["cover_url"].startswith("http")
+
+
+@pytest.mark.django_db
+def test_avatar_and_cover_are_independent(auth_client: APIClient, user: User) -> None:
+    # 1. Загружаем аватар
+    auth_client.patch(ME_URL, {"avatar": make_image("av1.png")}, format="multipart")
+    user.refresh_from_db()
+    avatar_url = user.avatar.url
+    assert not user.profile_cover
+
+    # 2. Загружаем обложку — аватар не должен измениться
+    auth_client.patch(ME_URL, {"profile_cover": make_image("cov1.png")}, format="multipart")
+    user.refresh_from_db()
+    assert user.avatar.url == avatar_url
+    cover_url = user.profile_cover.url
+    assert cover_url
+
+    # 3. Меняем аватар — обложка остаётся прежней
+    auth_client.patch(ME_URL, {"avatar": make_image("av2.png")}, format="multipart")
+    user.refresh_from_db()
+    assert user.profile_cover.url == cover_url
+    assert user.avatar.url != avatar_url
+
+    # 4. Меняем имя — ни аватар, ни обложка не тронуты
+    auth_client.patch(ME_URL, {"name": "Новое Имя"})
+    user.refresh_from_db()
+    assert user.name == "Новое Имя"
+    assert user.profile_cover.url == cover_url
+
+
+@pytest.mark.django_db
+def test_delete_avatar_and_cover(auth_client: APIClient, user: User) -> None:
+    user.avatar = make_image("av.png")
+    user.profile_cover = make_image("cov.png")
+    user.save()
+
+    # Удаление аватара через delete_avatar
+    resp1 = auth_client.patch(ME_URL, {"delete_avatar": True})
+    assert resp1.status_code == 200
+    user.refresh_from_db()
+    assert not user.avatar
+    assert user.profile_cover
+    assert resp1.json()["avatar_url"] is None
+    assert resp1.json()["cover_url"] is not None
+
+    # Удаление обложки через delete_cover
+    resp2 = auth_client.patch(ME_URL, {"delete_cover": True})
+    assert resp2.status_code == 200
+    user.refresh_from_db()
+    assert not user.profile_cover
+    assert resp2.json()["cover_url"] is None
+
+
+# -- Смена пароля (PasswordChangeView) ----------------------------------------
+
+PASSWORD_CHANGE_URL = "/api/v1/auth/password/change/"
+
+
+@pytest.mark.django_db
+def test_password_change_requires_authentication(api_client: APIClient) -> None:
+    response = api_client.post(
+        PASSWORD_CHANGE_URL,
+        {"new_password": "new-strong-password-123"},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_password_change_wrong_current_password(auth_client: APIClient, user: User) -> None:
+    user.set_password("correct-password-123")
+    user.save()
+
+    response = auth_client.post(
+        PASSWORD_CHANGE_URL,
+        {
+            "current_password": "wrong-password",
+            "new_password": "new-strong-password-123",
+            "new_password_confirmation": "new-strong-password-123",
+        },
+    )
+    assert response.status_code == 400
+    assert "current_password" in response.json()["error"]["details"]
+
+
+@pytest.mark.django_db
+def test_password_change_weak_new_password(auth_client: APIClient, user: User) -> None:
+    user.set_password("correct-password-123")
+    user.save()
+
+    response = auth_client.post(
+        PASSWORD_CHANGE_URL,
+        {
+            "current_password": "correct-password-123",
+            "new_password": "123",  # слишком короткий
+            "new_password_confirmation": "123",
+        },
+    )
+    assert response.status_code == 400
+    assert "new_password" in response.json()["error"]["details"]
+
+
+@pytest.mark.django_db
+def test_password_change_confirmation_mismatch(auth_client: APIClient, user: User) -> None:
+    user.set_password("correct-password-123")
+    user.save()
+
+    response = auth_client.post(
+        PASSWORD_CHANGE_URL,
+        {
+            "current_password": "correct-password-123",
+            "new_password": "new-strong-password-123",
+            "new_password_confirmation": "different-password-123",
+        },
+    )
+    assert response.status_code == 400
+    assert "new_password_confirmation" in response.json()["error"]["details"]
+
+
+@pytest.mark.django_db
+def test_password_change_success(auth_client: APIClient, user: User) -> None:
+    user.set_password("old-password-123")
+    user.save()
+
+    response = auth_client.post(
+        PASSWORD_CHANGE_URL,
+        {
+            "current_password": "old-password-123",
+            "new_password": "new-password-456",
+            "new_password_confirmation": "new-password-456",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["message"] == "Пароль успешно изменён."
+
+    user.refresh_from_db()
+    assert user.check_password("new-password-456")
+    assert not user.check_password("old-password-123")
+    # Проверка, что сырой пароль нигде не сохранился
+    assert "new-password-456" not in user.password
+
+
+@pytest.mark.django_db
+def test_password_change_otp_user_without_password(auth_client: APIClient, user: User) -> None:
+    user.set_unusable_password()
+    user.save()
+    assert not user.has_usable_password()
+
+    response = auth_client.post(
+        PASSWORD_CHANGE_URL,
+        {
+            "new_password": "first-password-123",
+            "new_password_confirmation": "first-password-123",
+        },
+    )
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.has_usable_password()
+    assert user.check_password("first-password-123")
+
+
+@pytest.mark.django_db
+def test_patch_whatsapp_phone(auth_client: APIClient, user: User) -> None:
+    # 1. Установка корректного номера в местном формате
+    response = auth_client.patch(ME_URL, {"whatsapp_phone": "0700123456"})
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.whatsapp_phone == "+996700123456"
+    assert response.json()["whatsapp_phone"] == "+996700123456"
+
+    # 2. Очистка номера
+    resp_clear = auth_client.patch(ME_URL, {"whatsapp_phone": ""})
+    assert resp_clear.status_code == 200
+    user.refresh_from_db()
+    assert user.whatsapp_phone is None
+
+
+@pytest.mark.django_db
+def test_patch_invalid_whatsapp_phone(auth_client: APIClient, user: User) -> None:
+    response = auth_client.patch(ME_URL, {"whatsapp_phone": "not-a-valid-phone"})
+    assert response.status_code == 400
+    assert "whatsapp_phone" in response.json()["error"]["details"]

@@ -81,7 +81,7 @@ def issue_otp(phone: str, purpose: str = OtpPurpose.LOGIN) -> tuple[OtpCode, boo
     else:
         from apps.users.tasks import send_otp_sms
 
-        transaction.on_commit(lambda: send_otp_sms.delay(phone, code))
+        transaction.on_commit(lambda: send_otp_sms.delay(phone, code, otp_id=otp.pk))
 
     return otp, is_new_user
 
@@ -156,6 +156,13 @@ def verify_otp(
             activate_pro(user)
         if needs_consent:
             record_consent(user, version, request=request)
+
+    if otp.request_id:
+        from apps.users.tasks import report_telegram_verification_status
+
+        transaction.on_commit(
+            lambda: report_telegram_verification_status.delay(otp.request_id, code)
+        )
 
     logger.info("Успешный вход %s (новый: %s)", mask_phone(phone), is_new_user)
     return user, is_new_user
@@ -287,6 +294,68 @@ def authenticate_by_password(phone: str, password: str) -> User:
     return user
 
 
+def reset_password(phone: str, code: str, new_password: str) -> User:
+    """Меняет пароль по коду из SMS. Возвращает пользователя.
+
+    Единственный способ вернуться в аккаунт, когда пароль забыт: вход у нас
+    парольный, а код подтверждает владение номером.
+
+    Про существование номера ответ не рассказывает: на незарегистрированный
+    телефон отдаётся то же «Неверный код», что и на верный номер с неверным
+    кодом. Иначе форма восстановления превращается в проверку, есть ли у
+    человека аккаунт.
+    """
+    otp = _active_otp(phone, OtpPurpose.PASSWORD_RESET)
+    if otp is None:
+        raise ApiValidationError("Код не найден, запросите новый.")
+
+    if otp.is_expired:
+        raise ApiValidationError("Код истёк, запросите новый.")
+
+    if not check_password(code, otp.code_hash):
+        otp.attempts += 1
+        attempts_left = max(0, settings.OTP_MAX_ATTEMPTS - otp.attempts)
+
+        if otp.attempts >= settings.OTP_MAX_ATTEMPTS:
+            otp.is_used = True
+            otp.save(update_fields=["attempts", "is_used"])
+            logger.info("Код смены пароля для %s сожжён", mask_phone(phone))
+            raise ApiValidationError("Код заблокирован, запросите новый.", {"attempts_left": 0})
+
+        otp.save(update_fields=["attempts"])
+        raise ApiValidationError("Неверный код", {"attempts_left": attempts_left})
+
+    user = User.objects.filter(phone=phone, is_active=True).first()
+    if user is None:
+        # Код верный, но аккаунта нет. Код всё равно гасим: он одноразовый.
+        otp.is_used = True
+        otp.save(update_fields=["is_used"])
+        raise ApiValidationError("Неверный код", {"attempts_left": 0})
+
+    with transaction.atomic():
+        otp.is_used = True
+        otp.save(update_fields=["is_used"])
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+    if otp.request_id:
+        from apps.users.tasks import report_telegram_verification_status
+
+        transaction.on_commit(
+            lambda: report_telegram_verification_status.delay(otp.request_id, code)
+        )
+
+    audit(
+        actor=user,
+        action=AuditLog.Action.PASSWORD_RESET,
+        target=user,
+        target_user=user,
+        extra={"result": "success"},
+    )
+    logger.info("Пароль изменён по коду: %s", mask_phone(phone))
+    return user
+
+
 def issue_tokens(user: User) -> dict[str, str]:
     """Пара JWT для пользователя."""
     refresh = RefreshToken.for_user(user)
@@ -341,11 +410,14 @@ def anonymize_user(user: User) -> int:
 
     if user.avatar:
         user.avatar.delete(save=False)
+    if user.profile_cover:
+        user.profile_cover.delete(save=False)
 
     user.phone = build_deleted_phone()
     user.name = ""
     user.iin = ""
     user.avatar = None
+    user.profile_cover = None
     user.seller_kind = ""
     user.is_pro = False
     user.is_active = False
@@ -356,6 +428,7 @@ def anonymize_user(user: User) -> int:
             "name",
             "iin",
             "avatar",
+            "profile_cover",
             "seller_kind",
             "is_pro",
             "is_active",

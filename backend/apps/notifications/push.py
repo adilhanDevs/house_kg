@@ -8,7 +8,17 @@
 import base64
 import json
 import logging
-from itertools import batched
+try:
+    from itertools import batched
+except ImportError:
+    from itertools import islice
+
+    def batched(iterable: Any, n: int) -> Any:
+        if n < 1:
+            raise ValueError("n must be at least one")
+        it = iter(iterable)
+        while batch := tuple(islice(it, n)):
+            yield batch
 from pathlib import Path
 from typing import Any
 

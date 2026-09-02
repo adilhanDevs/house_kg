@@ -13,6 +13,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 
 @pytest.fixture(autouse=True)
+def disable_ssl_redirect_for_tests(settings):
+    settings.SECURE_SSL_REDIRECT = False
+
+
+@pytest.fixture(autouse=True)
 def clear_cache():
     """Кэш конфига и счётчики троттлинга не должны протекать между тестами."""
     cache.clear()

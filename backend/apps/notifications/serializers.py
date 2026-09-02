@@ -57,6 +57,7 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
         model = NotificationSettings
         fields = [
             "push_enabled",
+            "new_message_enabled",
             "price_drop_enabled",
             "saved_filter_enabled",
             "listing_moderated_enabled",

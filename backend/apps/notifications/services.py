@@ -19,7 +19,14 @@ def _enqueue_push(notification_ids: list[int]) -> None:
     from apps.notifications.tasks import send_push
 
     for notification_id in notification_ids:
-        send_push.delay(notification_id)
+        try:
+            send_push.delay(notification_id)
+        except Exception as exc:  # noqa: BLE001 - ошибка брокера уже после commit
+            logger.error(
+                "Не удалось поставить push в очередь: notification_id=%s, error=%s",
+                notification_id,
+                type(exc).__name__,
+            )
 
 
 def notify(

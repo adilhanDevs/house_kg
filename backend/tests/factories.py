@@ -5,6 +5,7 @@
 обрастают флагами и перестают быть читаемыми.
 """
 
+import uuid
 from datetime import timedelta
 from decimal import Decimal
 
@@ -63,6 +64,7 @@ from apps.engagement.models import (
     SavedFilter,
     ViewHistory,
 )
+from apps.messaging.models import Conversation, Message
 from apps.notifications.models import (
     DevicePlatform,
     DeviceToken,
@@ -192,6 +194,35 @@ class FavouriteFactory(DjangoModelFactory):
 
     user = factory.SubFactory(UserFactory)
     listing = factory.SubFactory(ListingFactory)
+
+
+# ---------------------------------------------------------------------------
+# Диалоги и сообщения
+# ---------------------------------------------------------------------------
+
+
+class ConversationFactory(DjangoModelFactory):
+    class Meta:
+        model = Conversation
+
+    listing = factory.SubFactory(ListingFactory)
+    buyer = factory.SubFactory(UserFactory)
+    seller = factory.SelfAttribute("listing.owner")
+    listing_slug = factory.SelfAttribute("listing.slug")
+    listing_title = "Объявление"
+    listing_price = factory.SelfAttribute("listing.price")
+    listing_currency = factory.SelfAttribute("listing.currency")
+    listing_cover_url = ""
+
+
+class MessageFactory(DjangoModelFactory):
+    class Meta:
+        model = Message
+
+    conversation = factory.SubFactory(ConversationFactory)
+    sender = factory.SelfAttribute("conversation.buyer")
+    text = "Здравствуйте! Объявление актуально?"
+    client_message_id = factory.LazyFunction(uuid.uuid4)
 
 
 # ---------------------------------------------------------------------------

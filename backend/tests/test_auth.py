@@ -337,10 +337,195 @@ def test_static_code_does_not_work_for_an_ordinary_number(api_client: APIClient)
 
 @pytest.mark.django_db
 def test_account_without_password_cannot_log_in_with_one(api_client: APIClient) -> None:
-    """Аккаунты, заведённые до пароля, входят не так — и не пускают чужого."""
-    user = UserFactory(phone=TEST_PHONE)
+    """Аккаунты, заведённые до пароля, входят не так — и не пускают чужого.
+
+    Такие пользователи есть: до этих правок аккаунт создавался подтверждением
+    кода и пароля не имел вовсе, а фабрика в тестах пароль ставит всегда.
+    """
+    user = User.objects.create_user(phone=TEST_PHONE, name="Без пароля")
     assert not user.has_usable_password()
 
     response = api_client.post(PASSWORD_LOGIN_URL, {"phone": TEST_PHONE, "password": GOOD_PASSWORD})
 
     assert response.status_code == 401
+
+
+# -- восстановление пароля ---------------------------------------------------
+#
+# Вход парольный, поэтому забытый пароль означает потерю аккаунта. Код из SMS
+# подтверждает владение номером и разрешает задать новый.
+
+RESET_URL = "/api/v1/auth/password/reset/"
+NEW_PASSWORD = "Новый-Пароль-2026"
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_password_reset_sets_a_new_password_and_logs_in(api_client: APIClient) -> None:
+    user = UserFactory(phone=TEST_PHONE)
+    user.set_password(GOOD_PASSWORD)
+    user.save(update_fields=["password"])
+
+    issue_otp(TEST_PHONE, "password_reset")
+    response = api_client.post(
+        RESET_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": NEW_PASSWORD}
+    )
+
+    assert response.status_code == 200, response.json()
+    assert response.json()["access"]
+
+    user.refresh_from_db()
+    assert user.check_password(NEW_PASSWORD)
+
+    logged_in = api_client.post(PASSWORD_LOGIN_URL, {"phone": TEST_PHONE, "password": NEW_PASSWORD})
+    assert logged_in.status_code == 200
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_password_reset_code_is_single_use(api_client: APIClient) -> None:
+    user = UserFactory(phone=TEST_PHONE)
+    issue_otp(TEST_PHONE, "password_reset")
+
+    first = api_client.post(
+        RESET_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": NEW_PASSWORD}
+    )
+    second = api_client.post(
+        RESET_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": "Ещё-Один-Пароль-9"}
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 400
+
+    user.refresh_from_db()
+    assert user.check_password(NEW_PASSWORD)
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_login_code_does_not_work_for_password_reset(api_client: APIClient) -> None:
+    """Код выписан на вход — сменить им пароль нельзя."""
+    UserFactory(phone=TEST_PHONE)
+    issue_otp(TEST_PHONE, "login")
+
+    response = api_client.post(
+        RESET_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": NEW_PASSWORD}
+    )
+
+    assert response.status_code == 400
+    assert "Код не найден" in response.json()["error"]["message"]
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_password_reset_hides_whether_the_phone_is_registered(api_client: APIClient) -> None:
+    """На незарегистрированный номер — тот же ответ, что и на неверный код."""
+    issue_otp(TEST_PHONE, "password_reset")
+
+    response = api_client.post(
+        RESET_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": NEW_PASSWORD}
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["message"] == "Неверный код"
+    assert User.objects.filter(phone=TEST_PHONE).count() == 0
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_password_reset_rejects_a_weak_password(api_client: APIClient) -> None:
+    user = UserFactory(phone=TEST_PHONE)
+    user.set_password(GOOD_PASSWORD)
+    user.save(update_fields=["password"])
+
+    issue_otp(TEST_PHONE, "password_reset")
+    response = api_client.post(
+        RESET_URL, {"phone": TEST_PHONE, "code": DEBUG_CODE, "password": "12345678"}
+    )
+
+    assert response.status_code == 400
+    assert "password" in response.json()["error"]["details"]
+
+    user.refresh_from_db()
+    assert user.check_password(GOOD_PASSWORD)
+
+
+# -- регистрация не плодит пользователей -------------------------------------
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_registration_with_an_existing_phone_does_not_create_a_second_user(
+    api_client: APIClient,
+) -> None:
+    """Номер уже зарегистрирован — регистрация приводит к тому же аккаунту."""
+    existing = UserFactory(phone=TEST_PHONE, name="Азамат")
+
+    issue_otp(TEST_PHONE, "register")
+    response = api_client.post(
+        VERIFY_URL,
+        {
+            "phone": TEST_PHONE,
+            "code": DEBUG_CODE,
+            "purpose": "register",
+            "name": "Кто-то другой",
+            "password": GOOD_PASSWORD,
+            **CONSENT,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["is_new_user"] is False
+    assert User.objects.filter(phone=TEST_PHONE).count() == 1
+
+    existing.refresh_from_db()
+    assert existing.name == "Азамат", "имя владельца номера перезаписывать нельзя"
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_repeated_verification_does_not_create_a_duplicate(api_client: APIClient) -> None:
+    """Двойной тап по «Подтвердить»: второй запрос не заводит второй аккаунт."""
+    issue_otp(TEST_PHONE, "register")
+    payload = {
+        "phone": TEST_PHONE,
+        "code": DEBUG_CODE,
+        "purpose": "register",
+        "name": "Азамат",
+        "password": GOOD_PASSWORD,
+        **CONSENT,
+    }
+
+    first = api_client.post(VERIFY_URL, payload)
+    second = api_client.post(VERIFY_URL, payload)
+
+    assert first.status_code == 200
+    # Код одноразовый, поэтому повтор отклоняется — но аккаунт остаётся один.
+    assert second.status_code == 400
+    assert User.objects.filter(phone=TEST_PHONE).count() == 1
+
+
+@pytest.mark.django_db
+@with_test_phone
+def test_registration_name_reaches_the_profile(api_client: APIClient) -> None:
+    """Имя из формы должно вернуться в /users/me — иначе поле собрано зря."""
+    issue_otp(TEST_PHONE, "register")
+    registered = api_client.post(
+        VERIFY_URL,
+        {
+            "phone": TEST_PHONE,
+            "code": DEBUG_CODE,
+            "purpose": "register",
+            "name": "Азамат Осмонов",
+            "password": GOOD_PASSWORD,
+            **CONSENT,
+        },
+    )
+    assert registered.status_code == 200
+
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {registered.json()['access']}")
+    me = api_client.get(ME_URL)
+
+    assert me.status_code == 200
+    assert me.json()["name"] == "Азамат Осмонов"
+    assert me.json()["phone"] == TEST_PHONE

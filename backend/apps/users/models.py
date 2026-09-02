@@ -83,6 +83,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Номер для связи в WhatsApp, E.164.",
     )
     avatar = models.ImageField("Аватар", upload_to="avatars/%Y/%m/", blank=True, null=True)
+    profile_cover = models.ImageField(
+        "Обложка профиля",
+        upload_to="profile_covers/%Y/%m/",
+        blank=True,
+        null=True,
+    )
 
     is_active = models.BooleanField("Активен", default=True)
     is_staff = models.BooleanField("Доступ в админку", default=False)
@@ -147,6 +153,7 @@ class OtpPurpose(models.TextChoices):
 
     LOGIN = "login", "Вход"
     REGISTER = "register", "Регистрация"
+    PASSWORD_RESET = "password_reset", "Восстановление пароля"
     PRO_REGISTER = "pro_register", "Регистрация исполнителя"
 
 
@@ -167,6 +174,7 @@ class OtpCode(models.Model):
     )
     attempts = models.PositiveSmallIntegerField("Неудачных попыток", default=0)
     is_used = models.BooleanField("Использован", default=False)
+    request_id = models.CharField("ID запроса шлюза", max_length=128, blank=True, default="")
     created_at = models.DateTimeField("Создан", auto_now_add=True)
     expires_at = models.DateTimeField("Действует до")
 

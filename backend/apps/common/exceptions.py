@@ -175,23 +175,51 @@ def _extract_code(exc: Exception, status_code: int) -> str:
     return CODE_BY_STATUS.get(status_code, "error")
 
 
-def _seconds_word(value: int) -> str:
-    """секунду / секунды / секунд — по правилам русского счёта."""
+def _plural(value: int, one: str, few: str, many: str) -> str:
+    """Русский счёт: 1 секунда, 2 секунды, 5 секунд."""
     if 11 <= value % 100 <= 14:
-        return "секунд"
+        return many
     remainder = value % 10
     if remainder == 1:
-        return "секунду"
+        return one
     if remainder in (2, 3, 4):
-        return "секунды"
-    return "секунд"
+        return few
+    return many
+
+
+def format_wait(seconds: int) -> str:
+    """«42 секунды», «12 минут», «около 1 часа».
+
+    Ограничения у нас разного масштаба: повтор кода — минута, часовой лимит —
+    до часа. В секундах длинное ожидание читается как «Повторите через 3062
+    секунды» — технически верно и совершенно нечитаемо.
+    """
+    if seconds <= 0:
+        return "сейчас"
+
+    if seconds < 60:
+        return f"{seconds} {_plural(seconds, 'секунду', 'секунды', 'секунд')}"
+
+    if seconds < 3600:
+        # Округляем вверх: «через 1 минуту» за 90 секунд до разблокировки
+        # хуже, чем «через 2 минуты».
+        minutes = -(-seconds // 60)
+        return f"{minutes} {_plural(minutes, 'минуту', 'минуты', 'минут')}"
+
+    # Винительный падеж после «через»: час, 2 часа, 5 часов.
+    hours = round(seconds / 3600)
+    if hours <= 1:
+        return "час"
+    return f"{hours} {_plural(hours, 'час', 'часа', 'часов')}"
 
 
 def _extract_message(exc: Exception, code: str) -> str:
     if isinstance(exc, Throttled):
+        # Ограничений может сработать несколько сразу; DRF уже выбрал из них
+        # максимальное время ожидания (APIView.check_throttles), поэтому здесь
+        # ровно одно число — оно и уходит клиенту.
         if exc.wait:
-            seconds = int(exc.wait)
-            return f"Повторите через {seconds} {_seconds_word(seconds)}."
+            return f"Повторите через {format_wait(int(exc.wait))}."
         return MESSAGE_BY_CODE["throttled"]
 
     detail = getattr(exc, "detail", None)

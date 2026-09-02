@@ -138,6 +138,12 @@ class ContactRevealThrottle(UserScopedThrottle):
     scope = "contact_reveal"
 
 
+class MessageSendThrottle(UserScopedThrottle):
+    """Тридцать отправок сообщений в минуту на пользователя."""
+
+    scope = "message_send"
+
+
 class MediaUploadThrottle(UserScopedThrottle):
     """Сто файлов в час на пользователя.
 

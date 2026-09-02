@@ -1166,6 +1166,17 @@
             "readOnly": true,
             "title": "Состояние и ремонт"
           },
+          "cover_detail_url": {
+            "format": "uri",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "cover_media_id": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
           "cover_url": {
             "format": "uri",
             "nullable": true,
@@ -1430,6 +1441,8 @@
           "ceiling_height",
           "commercial_purpose",
           "condition",
+          "cover_detail_url",
+          "cover_media_id",
           "cover_url",
           "currency",
           "description",
@@ -1549,6 +1562,17 @@
             ],
             "readOnly": true,
             "title": "Состояние и ремонт"
+          },
+          "cover_detail_url": {
+            "format": "uri",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "cover_media_id": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
           },
           "cover_url": {
             "format": "uri",
@@ -1815,6 +1839,8 @@
           "commercial_purpose",
           "completeness",
           "condition",
+          "cover_detail_url",
+          "cover_media_id",
           "cover_url",
           "currency",
           "description",
@@ -1873,6 +1899,11 @@
             "readOnly": true,
             "title": "Ниже рынка",
             "type": "boolean"
+          },
+          "cover_media_id": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
           },
           "cover_url": {
             "format": "uri",
@@ -2015,6 +2046,7 @@
         "required": [
           "area",
           "below_market",
+          "cover_media_id",
           "cover_url",
           "currency",
           "district",
@@ -2206,6 +2238,11 @@
             "title": "Ниже рынка",
             "type": "boolean"
           },
+          "cover_media_id": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
           "cover_url": {
             "format": "uri",
             "nullable": true,
@@ -2354,6 +2391,7 @@
         "required": [
           "area",
           "below_market",
+          "cover_media_id",
           "cover_url",
           "currency",
           "district",
@@ -2488,8 +2526,7 @@
             "type": "string"
           },
           "order": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 2147483647,
             "minimum": 0,
             "title": "Порядок",
             "type": "integer"
@@ -2518,8 +2555,7 @@
             "type": "string"
           },
           "order": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 2147483647,
             "minimum": 0,
             "title": "Порядок",
             "type": "integer"
@@ -2675,15 +2711,13 @@
             "type": "boolean"
           },
           "floor": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Этаж",
             "type": "integer"
           },
           "floors": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Этажность",
             "type": "integer"
@@ -2781,8 +2815,7 @@
             "type": "string"
           },
           "rooms": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Комнат",
             "type": "integer"
@@ -2890,10 +2923,15 @@
         "type": "string"
       },
       "MediaUploadRequest": {
-        "description": "Пачка файлов из галереи телефона.",
+        "description": "Пачка файлов из галереи телефона.\n\nДля видео приложение прикладывает кадр-обложку и метаданные ролика: оно\nи так открывает файл в плеере, а серверу это экономит запуск ffmpeg на\nкаждую загрузку.",
         "properties": {
           "description": {
             "type": "string"
+          },
+          "duration_seconds": {
+            "description": "Длительность ролика в секундах — из плеера приложения.",
+            "minimum": 0,
+            "type": "integer"
           },
           "files": {
             "description": "Несколько файлов одним запросом — пользователь выбирает их скопом.",
@@ -2904,6 +2942,10 @@
             "maxItems": 20,
             "type": "array"
           },
+          "height": {
+            "minimum": 0,
+            "type": "integer"
+          },
           "kind": {
             "allOf": [
               {
@@ -2912,9 +2954,18 @@
             ],
             "default": "photo"
           },
+          "thumbnail": {
+            "description": "Кадр-обложка ролика, снятый приложением. Только для kind=video.",
+            "format": "binary",
+            "type": "string"
+          },
           "title": {
             "maxLength": 100,
             "type": "string"
+          },
+          "width": {
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -3166,6 +3217,11 @@
             ],
             "readOnly": true
           },
+          "cover_media_id": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
           "cover_url": {
             "format": "uri",
             "nullable": true,
@@ -3337,6 +3393,7 @@
           "area",
           "below_market",
           "completeness",
+          "cover_media_id",
           "cover_url",
           "currency",
           "district",
@@ -3552,6 +3609,13 @@
             "default": "",
             "maxLength": 120,
             "type": "string"
+          },
+          "password": {
+            "default": "",
+            "description": "Пароль для входа. Учитывается только при создании аккаунта.",
+            "maxLength": 128,
+            "type": "string",
+            "writeOnly": true
           },
           "phone": {
             "maxLength": 32,
@@ -3852,6 +3916,32 @@
         ],
         "type": "object"
       },
+      "PasswordChangeRequest": {
+        "description": "Смена пароля текущим авторизованным пользователем.",
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "new_password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "new_password_confirm": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "new_password_confirmation": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "new_password"
+        ],
+        "type": "object"
+      },
       "PasswordLoginRequest": {
         "description": "Вход исполнителя по паролю.",
         "properties": {
@@ -3868,6 +3958,35 @@
           }
         },
         "required": [
+          "password",
+          "phone"
+        ],
+        "type": "object"
+      },
+      "PasswordResetRequest": {
+        "description": "Смена пароля по коду из SMS — экран «Забыли пароль».",
+        "properties": {
+          "code": {
+            "description": "4 цифры из SMS.",
+            "minLength": 1,
+            "pattern": "^\\d{4}$",
+            "type": "string"
+          },
+          "password": {
+            "description": "Новый пароль.",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "phone": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
           "password",
           "phone"
         ],
@@ -3992,15 +4111,13 @@
             "type": "boolean"
           },
           "floor": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Этаж",
             "type": "integer"
           },
           "floors": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Этажность",
             "type": "integer"
@@ -4098,8 +4215,7 @@
             "type": "string"
           },
           "rooms": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Комнат",
             "type": "integer"
@@ -4216,8 +4332,7 @@
             "type": "string"
           },
           "experience_years": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Опыт, лет",
             "type": "integer"
@@ -4253,17 +4368,38 @@
         "type": "object"
       },
       "PatchedUserUpdateRequest": {
-        "description": "Изменение профиля: доступны только имя и аватар.\n\nОстальные поля объявлены read-only — попытка их передать молча игнорируется,\nа не возвращает 400.",
+        "description": "Изменение профиля: доступны имя, аватар, обложка и WhatsApp.\n\nОстальные поля объявлены read-only — попытка их передать молча игнорируется,\nа не возвращает 400.",
         "properties": {
           "avatar": {
             "format": "binary",
             "nullable": true,
-            "title": "Аватар",
             "type": "string"
+          },
+          "cover": {
+            "format": "binary",
+            "nullable": true,
+            "type": "string"
+          },
+          "delete_avatar": {
+            "type": "boolean",
+            "writeOnly": true
+          },
+          "delete_cover": {
+            "type": "boolean",
+            "writeOnly": true
           },
           "name": {
             "maxLength": 120,
             "title": "Имя",
+            "type": "string"
+          },
+          "profile_cover": {
+            "format": "binary",
+            "nullable": true,
+            "type": "string"
+          },
+          "whatsapp_phone": {
+            "nullable": true,
             "type": "string"
           }
         },
@@ -4733,9 +4869,11 @@
         "type": "string"
       },
       "PurposeEnum": {
-        "description": "* `login` - Вход\n* `pro_register` - Регистрация исполнителя",
+        "description": "* `login` - Вход\n* `register` - Регистрация\n* `password_reset` - Восстановление пароля\n* `pro_register` - Регистрация исполнителя",
         "enum": [
           "login",
+          "register",
+          "password_reset",
           "pro_register"
         ],
         "type": "string"
@@ -5177,8 +5315,7 @@
             "type": "string"
           },
           "experience_years": {
-            "format": "int64",
-            "maximum": 9223372036854775807,
+            "maximum": 32767,
             "minimum": 0,
             "title": "Опыт, лет",
             "type": "integer"
@@ -5904,6 +6041,12 @@
             "readOnly": true,
             "type": "string"
           },
+          "cover_url": {
+            "format": "uri",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "date_joined": {
             "format": "date-time",
             "readOnly": true,
@@ -5937,6 +6080,12 @@
             "title": "Телефон",
             "type": "string"
           },
+          "profile_cover_url": {
+            "format": "uri",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "seller_kind": {
             "allOf": [
               {
@@ -5953,10 +6102,18 @@
               }
             ],
             "readOnly": true
+          },
+          "whatsapp_phone": {
+            "description": "Номер для связи в WhatsApp, E.164.",
+            "nullable": true,
+            "readOnly": true,
+            "title": "WhatsApp",
+            "type": "string"
           }
         },
         "required": [
           "avatar_url",
+          "cover_url",
           "date_joined",
           "has_seller_profile",
           "id",
@@ -5964,8 +6121,10 @@
           "is_pro",
           "name",
           "phone",
+          "profile_cover_url",
           "seller_kind",
-          "wallet_balance"
+          "wallet_balance",
+          "whatsapp_phone"
         ],
         "type": "object"
       },
@@ -6038,6 +6197,11 @@
             "readOnly": true,
             "title": "Ниже рынка",
             "type": "boolean"
+          },
+          "cover_media_id": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
           },
           "cover_url": {
             "format": "uri",
@@ -6185,6 +6349,7 @@
         "required": [
           "area",
           "below_market",
+          "cover_media_id",
           "cover_url",
           "currency",
           "district",
@@ -6619,7 +6784,7 @@
     },
     "/api/v1/auth/otp/verify/": {
       "post": {
-        "description": "Проверяет последний неиспользованный код номера. Новый пользователь создаётся автоматически — имя берётся из поля `name`.\n\nНеверный код: 400 «Неверный код» и `details.attempts_left`. После пяти неудачных попыток код сжигается.\n\nДля нового пользователя обязателен `accepted_terms_version` — версия принятого соглашения об обработке персональных данных. Без него регистрация отклоняется с 400.",
+        "description": "Проверяет последний неиспользованный код номера. Новый пользователь создаётся автоматически — имя берётся из поля `name`, пароль из `password`. Пароль существующего аккаунта этим запросом не меняется: код подтверждает владение номером, но не даёт права переписать учётные данные.\n\nНеверный код: 400 «Неверный код» и `details.attempts_left`. После пяти неудачных попыток код сжигается.\n\nДля нового пользователя обязателен `accepted_terms_version` — версия принятого соглашения об обработке персональных данных. Без него регистрация отклоняется с 400.",
         "operationId": "auth_otp_verify",
         "requestBody": {
           "content": {
@@ -6669,9 +6834,69 @@
         ]
       }
     },
+    "/api/v1/auth/password/change/": {
+      "post": {
+        "description": "Меняет пароль текущего авторизованного пользователя.",
+        "operationId": "auth_password_change",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Пароль успешно изменён"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "summary": "Смена пароля",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/password/login/": {
       "post": {
-        "description": "Доступен подтверждённым исполнителям. При неверных данных — 401 с общим сообщением: по ответу нельзя понять, зарегистрирован ли номер.\n\nЛимиты: 10 попыток в час на номер, 30 — с одного IP.",
+        "description": "Основной способ входа: пароль задаётся при регистрации, после подтверждения кода из SMS. При неверных данных — 401 с общим сообщением: по ответу нельзя понять, зарегистрирован ли номер.\n\nАккаунты без пароля войти так не могут — им нужна регистрация или вход по коду.",
         "operationId": "auth_password_login",
         "requestBody": {
           "content": {
@@ -6725,7 +6950,69 @@
             "description": ""
           }
         },
-        "summary": "Вход по паролю (только pro)",
+        "summary": "Вход по паролю",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/reset/": {
+      "post": {
+        "description": "Меняет пароль по коду, запрошенному через `/auth/otp/request/` с `purpose=password_reset`, и сразу возвращает пару токенов.\n\nОтвет не говорит, зарегистрирован ли номер: на неизвестный телефон приходит то же «Неверный код».",
+        "operationId": "auth_password_reset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokens"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Восстановление пароля",
         "tags": [
           "auth"
         ]
@@ -7764,7 +8051,7 @@
     },
     "/api/v1/listings/draft/": {
       "get": {
-        "description": "POST /api/v1/listings/draft/ — черновик объявления на сервере.",
+        "description": "POST /api/v1/listings/draft/ — черновик объявления на сервере.\n\nЧерновик привязан к пользователю, поэтому анониму здесь делать нечего:\nподстановка «первого попавшегося» аккаунта отдавала бы его форму любому.",
         "operationId": "listings_draft_get",
         "responses": {
           "200": {
@@ -7781,8 +8068,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Получить текущий черновик",
         "tags": [
@@ -7807,8 +8093,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Получить или создать/обновить черновик",
         "tags": [
@@ -7914,8 +8199,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "tags": [
           "listings"
@@ -8014,8 +8298,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "tags": [
           "listings"
@@ -8051,8 +8334,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Убрать объявление в архив",
         "tags": [
@@ -8099,8 +8381,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Поднять объявление в выдаче",
         "tags": [
@@ -8316,8 +8597,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Отметить объект проданным",
         "tags": [
@@ -8389,8 +8669,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Загрузить фото или видео",
         "tags": [
@@ -8459,8 +8738,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Переставить файлы объявления",
         "tags": [
@@ -8518,8 +8796,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Удалить файл объявления",
         "tags": [
@@ -8611,8 +8888,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Обновить метаданные файла",
         "tags": [
@@ -8677,8 +8953,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Сделать файл обложкой",
         "tags": [
@@ -8916,8 +9191,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Опубликовать объявление",
         "tags": [
@@ -9041,8 +9315,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Вернуть объявление из архива",
         "tags": [
@@ -11176,7 +11449,7 @@
         ]
       },
       "patch": {
-        "description": "Менять можно только `name` и `avatar`. Поля `phone`, `is_pro`, `iin`, `is_staff` доступны только на чтение — если их передать, они молча игнорируются.",
+        "description": "Менять можно `name`, `avatar`, `profile_cover`, `whatsapp_phone`. Поля `phone`, `is_pro`, `iin`, `is_staff` доступны только на чтение — если их передать, они молча игнорируются.",
         "operationId": "users_me_update",
         "requestBody": {
           "content": {
@@ -11460,8 +11733,7 @@
         "security": [
           {
             "jwtAuth": []
-          },
-          {}
+          }
         ],
         "summary": "Мои объявления",
         "tags": [

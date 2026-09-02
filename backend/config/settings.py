@@ -5,11 +5,10 @@
 """
 
 from datetime import timedelta
-import os
 from pathlib import Path
 
-from celery.schedules import crontab
 import environ
+from celery.schedules import crontab
 
 # backend/config/settings.py -> backend/
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -79,6 +78,7 @@ LOCAL_APPS = [
     "apps.engagement",
     "apps.billing",
     "apps.notifications",
+    "apps.messaging",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -124,13 +124,13 @@ TEMPLATES = [
 # База данных
 # ----------------------------------------------------------------------------
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'quantum_db',
-        'USER': 'quantum_user',
-        'PASSWORD': 'Adil2008!',
-        'HOST': 'localhost',
-        'PORT': '', # Оставьте пустым, по умолчанию используется 5432
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "quantum_db",
+        "USER": "quantum_user",
+        "PASSWORD": "Adil2008!",
+        "HOST": "localhost",
+        "PORT": "",  # Оставьте пустым, по умолчанию используется 5432
     }
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = False
@@ -256,16 +256,21 @@ REST_FRAMEWORK = {
         "review_create": env.str("REVIEW_CREATE_THROTTLE", default="1000/day"),
         "media_upload": env.str("MEDIA_UPLOAD_THROTTLE", default="1000/hour"),
         "wallet_topup": env.str("WALLET_TOPUP_THROTTLE", default="1000/hour"),
+        "message_send": env.str("MESSAGE_SEND_THROTTLE", default="30/min"),
     },
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=15)),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=30)),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=env.int("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=15)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=env.int("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=30)
+    ),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
-    "SIGNING_KEY": env.str("JWT_SIGNING_KEY", default=SECRET_KEY),
+    "SIGNING_KEY": env.str("JWT_SIGNING_KEY", default=SECRET_KEY) or SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
@@ -399,6 +404,14 @@ SMS_API_TOKEN = env.str("SMS_API_TOKEN", default="")
 SMS_TIMEOUT = env.int("SMS_TIMEOUT", default=10)
 SMS_RETRIES = env.int("SMS_RETRIES", default=2)
 SMS_RETRY_BACKOFF = env.float("SMS_RETRY_BACKOFF", default=1.0)
+
+# Telegram Gateway API
+TELEGRAM_GATEWAY_TOKEN = env.str("TELEGRAM_GATEWAY_TOKEN", default="")
+TELEGRAM_GATEWAY_BASE_URL = env.str(
+    "TELEGRAM_GATEWAY_BASE_URL", default="https://gatewayapi.telegram.org"
+)
+TELEGRAM_GATEWAY_TTL = env.int("TELEGRAM_GATEWAY_TTL", default=300)
+TELEGRAM_GATEWAY_TIMEOUT = env.int("TELEGRAM_GATEWAY_TIMEOUT", default=10)
 
 # ----------------------------------------------------------------------------
 # drf-spectacular (OpenAPI)
