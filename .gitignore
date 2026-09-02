@@ -30,6 +30,9 @@ Thumbs.db
 
 # Test artifacts and screenshots
 *.png
+# Иллюстрации экранов входа — часть сборки, на них ссылается pubspec.yaml.
+# Без исключения свежий клон не собирается: ассета нет, а Flutter его требует.
+!flutter_app/assets/login/**
 *.mp4
 Safa-app-backend/
 backend/sample_videos/
