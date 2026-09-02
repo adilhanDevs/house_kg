@@ -683,9 +683,9 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
           crossAxisCount: 2,
           crossAxisSpacing: 5,
           mainAxisSpacing: 24,
-          // В профиле продавца карточки крупнее каталожных:
-          // на строку их две, и снимок занимает почти всю ширину колонки.
-          childAspectRatio: 0.66,
+          // Те же пропорции, что на главном экране: выше карточка становилась
+          // слишком крупной, а подписи под ценой налезали друг на друга.
+          childAspectRatio: kCardWidth / kCardHeight,
         ),
         itemCount: _listings.length,
         itemBuilder: (context, index) {
