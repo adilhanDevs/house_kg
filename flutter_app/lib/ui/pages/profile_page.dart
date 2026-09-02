@@ -193,10 +193,10 @@ class _ProfilePageState extends State<ProfilePage> {
           top: _latestNotifications.top,
           width: _latestNotifications.width,
           height: _latestNotifications.height,
-          child: const LatestNotifications(
-            width: _latestNotifications.width,
-            height: _latestNotifications.height,
-          ),
+          child: LatestNotifications(
+              width: _latestNotifications.width,
+              height: _latestNotifications.height,
+            ),
         ),
         FigZone(
           _rowLeft, 381, _rowWidth, _rowHeight,

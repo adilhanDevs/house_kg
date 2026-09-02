@@ -258,113 +258,166 @@ class _CodePageState extends State<CodePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffffffff),
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Код подтверждения',
-                style: figStyle(
-                  fontSize: 21.0,
-                  family: FigFont.display,
-                  weight: 600,
-                  height: 1.0,
-                  color: const Color(0xff000000),
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: const Color(0xffffffff),
+
+    // При открытии клавиатуры нижняя картинка просто уменьшится,
+    // а сама страница не станет прокручиваемой.
+    resizeToAvoidBottomInset: true,
+
+    body: SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          // ==========================================
+          // ВЕРХНЯЯ ЧАСТЬ — КОД ПОДТВЕРЖДЕНИЯ
+          // ==========================================
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              25.0,
+              24.0,
+              25.0,
+              0.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Код подтверждения',
+                  style: figStyle(
+                    fontSize: 21.0,
+                    family: FigFont.display,
+                    weight: 600,
+                    height: 1.0,
+                    color: const Color(0xff000000),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8.0),
-              // Номер подставляется, а не рисуется: в кадре он был зашит
-              // в картинку одним и тем же значением для всех пользователей.
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: _prettyPhone.isEmpty
-                          ? 'Напишите 4-значный код из SMS.'
-                          : 'Напишите 4-значный код, который был отправлен на номер ',
-                    ),
-                    if (_prettyPhone.isNotEmpty)
+
+                const SizedBox(height: 8.0),
+
+                Text.rich(
+                  TextSpan(
+                    children: [
                       TextSpan(
-                        text: _prettyPhone,
+                        text: _prettyPhone.isEmpty
+                            ? 'Напишите 4-значный код из SMS.'
+                            : 'Напишите 4-значный код, который был отправлен на номер ',
+                      ),
+
+                      if (_prettyPhone.isNotEmpty)
+                        TextSpan(
+                          text: _prettyPhone,
+                          style: figStyle(
+                            fontSize: 15.0,
+                            family: FigFont.display,
+                            weight: 600,
+                            height: 1.333,
+                            color: _accent,
+                          ),
+                        ),
+                    ],
+                    style: figStyle(
+                      fontSize: 15.0,
+                      family: FigFont.display,
+                      weight: 500,
+                      height: 1.333,
+                      color: _muted,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 28.0),
+
+                _CodeInput(
+                  key: kOtpInputKey,
+                  controller: _codeController,
+                  focusNode: _focusNode,
+                  code: _code,
+                  onChanged: _onCodeChanged,
+                  onTap: _focusCode,
+                ),
+
+                // Ошибка неправильного кода
+                if (_error != null) ...[
+                  const SizedBox(height: 12.0),
+
+                  Text(
+                    _error!,
+                    style: figStyle(
+                      fontSize: 13.0,
+                      family: FigFont.display,
+                      weight: 500,
+                      height: 1.3,
+                      color: _danger,
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 24.0),
+
+                _ResendButton(
+                  key: kOtpResendKey,
+                  secondsLeft: _resendIn,
+                  busy: _isResending,
+                  onTap: _resend,
+                ),
+
+                const SizedBox(height: 8.0),
+
+                Center(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _onGoBack,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8.0,
+                      ),
+                      child: Text(
+                        'Вернуться назад',
                         style: figStyle(
                           fontSize: 15.0,
                           family: FigFont.display,
-                          weight: 600,
+                          weight: 500,
                           height: 1.333,
                           color: _accent,
                         ),
                       ),
-                  ],
-                  style: figStyle(
-                    fontSize: 15.0,
-                    family: FigFont.display,
-                    weight: 500,
-                    height: 1.333,
-                    color: _muted,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28.0),
-              _CodeInput(
-                key: kOtpInputKey,
-                controller: _codeController,
-                focusNode: _focusNode,
-                code: _code,
-                onChanged: _onCodeChanged,
-                onTap: _focusCode,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12.0),
-                Text(
-                  _error!,
-                  style: figStyle(
-                    fontSize: 13.0,
-                    family: FigFont.display,
-                    weight: 500,
-                    height: 1.3,
-                    color: _danger,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24.0),
-              _ResendButton(
-                key: kOtpResendKey,
-                secondsLeft: _resendIn,
-                busy: _isResending,
-                onTap: _resend,
-              ),
-              const SizedBox(height: 8.0),
-              Center(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _onGoBack,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Вернуться назад',
-                      style: figStyle(
-                        fontSize: 15.0,
-                        family: FigFont.display,
-                        weight: 500,
-                        height: 1.333,
-                        color: _accent,
-                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+          // Небольшой промежуток перед изображением.
+          const SizedBox(height: 12.0),
+
+          // ==========================================
+          // НИЖНЯЯ КАРТИНКА
+          // ==========================================
+          Expanded(
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/login/Register-screen-photo.png',
+                  width: double.infinity,
+
+                  // Картинка сохраняет свои пропорции
+                  // и занимает всю ширину.
+                  fit: BoxFit.fitWidth,
+
+                  alignment: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 /// Четыре цифры кода. Настоящее поле спрятано, но нажатие ловит вся полоса.
