@@ -8,7 +8,7 @@ import '../../app/stage.dart';
 import '../../data/api_client.dart';
 import '../../fig/fig.dart';
 import '../fig_controls.dart';
-import '../widgets/finik_payment_sheet.dart';
+import '../widgets/finik_payment_flow.dart';
 
 class AdPromoPage extends StatefulWidget {
   const AdPromoPage({super.key});
@@ -90,7 +90,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
         return false;
       }
 
-      final paid = await showFinikPaymentSheet(
+      final paid = await startFinikPayment(
         context: context,
         amountSom: missing,
         purposeTitle: 'Пополнение на продвижение объявления',

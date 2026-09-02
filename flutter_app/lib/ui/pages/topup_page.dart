@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
-import '../widgets/finik_payment_sheet.dart';
+import '../widgets/finik_payment_flow.dart';
 
 class TopUpPage extends StatefulWidget {
   const TopUpPage({super.key});
@@ -49,7 +49,7 @@ class _TopUpPageState extends State<TopUpPage> {
     final amount = _enteredAmount;
     state.setTopupAmount(amount);
 
-    final paid = await showFinikPaymentSheet(
+    final paid = await startFinikPayment(
       context: context,
       amountSom: amount,
       purposeTitle: 'Пополнение кошелька House KG',

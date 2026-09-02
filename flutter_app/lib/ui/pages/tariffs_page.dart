@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
-import '../../app/stage.dart';
 import '../../data/tariff.dart';
 import '../../data/api_client.dart';
 import '../../l10n/l10n.dart';
-import '../widgets/finik_payment_sheet.dart';
+import '../widgets/finik_payment_flow.dart';
 
 class TariffsPage extends StatefulWidget {
   const TariffsPage({super.key});
@@ -42,7 +41,7 @@ class _TariffsPageState extends State<TariffsPage> {
 
     if (!withBricks && !plan.isFree) {
       // Открываем интерфейс оплаты Finik Pay
-      final paid = await showFinikPaymentSheet(
+      final paid = await startFinikPayment(
         context: context,
         amountSom: plan.priceSom,
         purposeTitle: 'Подписка на тариф «${plan.name}» (1 месяц)',
@@ -130,7 +129,7 @@ class _TariffsPageState extends State<TariffsPage> {
         );
 
         if (topUp == true && mounted && missing != null) {
-          final paid = await showFinikPaymentSheet(
+          final paid = await startFinikPayment(
             context: context,
             amountSom: missing,
             purposeTitle: 'Пополнение на тариф «${plan.name}»',
