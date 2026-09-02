@@ -326,9 +326,12 @@ class _CodePageState extends State<CodePage> {
                 ),
               ),
             ),
-            // На этом экране клавиатура открывается сразу — иллюстрация
-            // иначе занимает место, нужное полю кода.
-            if (MediaQuery.viewInsetsOf(context).bottom == 0)
+            // Клавиатура открывается сразу, поэтому иллюстрацию показываем
+            // только когда высоты хватает и ей, и полю кода. Смотрим
+            // оставшуюся высоту: в вебе viewInsets приходит не всегда.
+            if (MediaQuery.sizeOf(context).height -
+                    MediaQuery.viewInsetsOf(context).bottom >=
+                600)
               const AuthBottomIllustration(),
           ],
         ),
