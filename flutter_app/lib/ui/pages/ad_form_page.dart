@@ -1083,34 +1083,6 @@ class _AdFormPageState extends State<AdFormPage> {
                     style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                   ),
                   const SizedBox(height: 10.0),
-                  for (final landmark in state.draftLandmarks)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 44.0,
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                              alignment: Alignment.centerLeft,
-                              decoration: BoxDecoration(
-                                color: const Color(0xfff5f5f7),
-                                borderRadius: BorderRadius.circular(10.0),
-                              ),
-                              child: Text(
-                                landmark,
-                                style: const TextStyle(fontSize: 15.0),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 20, color: Color(0xff7d7d7d)),
-                            onPressed: () =>
-                                state.setDraft(() => state.draftLandmarks.remove(landmark)),
-                          ),
-                        ],
-                      ),
-                    ),
                   Row(
                     children: [
                       Expanded(
@@ -1134,6 +1106,52 @@ class _AdFormPageState extends State<AdFormPage> {
                       ),
                     ],
                   ),
+                  if (state.draftLandmarks.isNotEmpty) ...[
+                    const SizedBox(height: 10.0),
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      children: [
+                        for (final landmark in state.draftLandmarks)
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(12.0, 7.0, 8.0, 7.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xfff5f5f7),
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    landmark,
+                                    style: const TextStyle(
+                                      fontSize: 13.0,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xff000000),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 6.0),
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () =>
+                                      state.setDraft(() => state.draftLandmarks.remove(landmark)),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 16.0,
+                                    color: Color(0xff7d7d7d),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
 

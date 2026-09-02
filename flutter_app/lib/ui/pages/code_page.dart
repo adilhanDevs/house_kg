@@ -13,19 +13,19 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/api_exceptions.dart';
-import 'register_page.dart';
+import '../../data/code_flow.dart';
 
 class CodePage extends StatefulWidget {
-  const CodePage({super.key, this.nextRoute = Routes.home, this.phone, this.draft});
+  const CodePage({super.key, this.nextRoute = Routes.home, this.phone, this.flow});
 
   final String nextRoute;
   final String? phone;
 
-  /// Заполненная форма регистрации: имя, пароль и версия соглашения.
-  /// Аккаунт создаётся только после того, как код принят.
-  final RegistrationDraft? draft;
+  /// Заполненная форма: регистрация, регистрация исполнителя или новый пароль.
+  /// Всё это доводится до конца только после того, как код принят.
+  final CodeFlow? flow;
 
-  String? get targetPhone => draft?.phone ?? phone;
+  String? get targetPhone => flow?.phone ?? phone;
 
   @override
   State<CodePage> createState() => _CodePageState();
@@ -91,7 +91,7 @@ class _CodePageState extends State<CodePage> {
 
     final state = AppScope.read(context);
     try {
-      await state.sendOtp(phone, purpose: widget.draft?.purpose);
+      await state.sendOtp(phone, purpose: widget.flow?.otpPurpose);
       if (!mounted) return;
       setState(() => _error = null);
       _startResendCountdown();
@@ -127,19 +127,27 @@ class _CodePageState extends State<CodePage> {
 
     setState(() => _isChecking = true);
     final state = AppScope.read(context);
-    final draft = widget.draft;
+    final flow = widget.flow;
     try {
-      if (draft != null) {
-        await state.confirmRegistration(
-          phone: draft.phone,
-          code: value,
-          name: draft.name,
-          password: draft.password,
-          termsVersion: draft.termsVersion,
-          purpose: draft.purpose,
-        );
-      } else {
-        await state.verifyAndLogin(phone, value);
+      switch (flow?.kind) {
+        case CodeFlowKind.register:
+        case CodeFlowKind.proRegister:
+          await state.confirmRegistration(
+            phone: flow!.phone,
+            code: value,
+            name: flow.name,
+            password: flow.password,
+            termsVersion: flow.termsVersion,
+            purpose: flow.otpPurpose,
+          );
+        case CodeFlowKind.passwordReset:
+          await state.confirmPasswordReset(
+            phone: flow!.phone,
+            code: value,
+            password: flow.password,
+          );
+        case null:
+          await state.verifyAndLogin(phone, value);
       }
     } catch (e) {
       if (!mounted) return;

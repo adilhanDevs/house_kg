@@ -14,7 +14,9 @@ import 'package:house_kgz/app/app_state.dart';
 import 'package:house_kgz/app/stage.dart';
 import 'package:house_kgz/app/routes.dart';
 import 'package:house_kgz/data/api_client.dart';
+import 'package:house_kgz/data/code_flow.dart';
 import 'package:house_kgz/ui/pages/code_page.dart';
+import 'package:house_kgz/ui/pages/password_reset_page.dart';
 import 'package:house_kgz/ui/pages/register_page.dart';
 import 'package:house_kgz/ui/pages/welcome_page.dart';
 
@@ -26,6 +28,7 @@ class _AuthServer extends http.BaseClient {
   final String expectedCode;
 
   Map<String, dynamic>? lastVerifyBody;
+  Map<String, dynamic>? lastResetBody;
   Map<String, dynamic>? lastRequestBody;
   int verifyCalls = 0;
 
@@ -77,6 +80,25 @@ class _AuthServer extends http.BaseClient {
       }, 200);
     }
 
+    if (path == '/api/v1/auth/password/reset/') {
+      lastResetBody = body;
+      if (body['code'] != expectedCode) {
+        return _json({
+          'error': {
+            'code': 'validation_error',
+            'message': 'Неверный код',
+            'details': {'attempts_left': 4},
+          }
+        }, 400);
+      }
+      return _json({
+        'access': 'access-token',
+        'refresh': 'refresh-token',
+        'user': {'name': 'Азамат', 'phone': body['phone'], 'is_pro': false},
+        'is_new_user': false,
+      }, 200);
+    }
+
     if (path == '/api/v1/users/me/') {
       return _json({'name': 'Азамат', 'phone': '+996700111222', 'is_pro': false}, 200);
     }
@@ -95,12 +117,13 @@ Widget _app(AppState state, {String initialRoute = Routes.register}) {
         builder: (context) => switch (settings.name) {
           Routes.welcome => const WelcomePage(),
           Routes.register => const RegisterPage(),
+          Routes.passwordReset => const PasswordResetPage(),
           Routes.code => Builder(
               builder: (context) {
                 final args = ModalRoute.of(context)?.settings.arguments;
                 return CodePage(
                   phone: args is String ? args : null,
-                  draft: args is RegistrationDraft ? args : null,
+                  flow: args is CodeFlow ? args : null,
                 );
               },
             ),
@@ -228,5 +251,80 @@ void main() {
 
     expect(server.lastRequestBody, isNull);
     expect(find.textContaining('Соглашение недоступно'), findsWidgets);
+  });
+
+  // -- забытый пароль --------------------------------------------------------
+
+  testWidgets('«Забыли пароль?» открывает восстановление', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app(_state(_AuthServer()), initialRoute: Routes.welcome));
+    await tester.pump();
+
+    await tester.tap(find.text('Забыли пароль?'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PasswordResetPage), findsOneWidget);
+  });
+
+  testWidgets('новый пароль применяется только после кода', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final server = _AuthServer();
+    await tester.pumpWidget(_app(_state(server), initialRoute: Routes.passwordReset));
+    await tester.pump();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '+996700111222');
+    await tester.enterText(fields.at(1), 'Новый-Пароль-2026');
+    await tester.pump();
+
+    await tester.tap(find.text('Получить код'));
+    await tester.pumpAndSettle();
+
+    // Пароль до подтверждения кода никуда не уходит.
+    expect(server.lastRequestBody?['purpose'], 'password_reset');
+    expect(server.lastResetBody, isNull);
+    expect(find.byType(CodePage), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, '1234');
+    await tester.pumpAndSettle();
+
+    expect(server.lastResetBody?['phone'], '+996700111222');
+    expect(server.lastResetBody?['password'], 'Новый-Пароль-2026');
+    expect(server.lastResetBody?['code'], '1234');
+  });
+
+  testWidgets('неверный код при смене пароля не пускает дальше', (tester) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final server = _AuthServer(expectedCode: '1234');
+    await tester.pumpWidget(
+      AppScope(
+        state: _state(server),
+        child: const MaterialApp(
+          home: CodePage(
+            flow: CodeFlow(
+              kind: CodeFlowKind.passwordReset,
+              phone: '+996700111222',
+              password: 'Новый-Пароль-2026',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField).first, '0000');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CodePage), findsOneWidget);
+    expect(find.textContaining('Неверный код'), findsOneWidget);
   });
 }

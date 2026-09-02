@@ -38,6 +38,8 @@ import '../ui/pages/topup_page.dart';
 import '../ui/pages/view_history_page.dart';
 import '../ui/pages/video_page.dart';
 import '../ui/pages/wallet_history_page.dart';
+import '../data/code_flow.dart';
+import '../ui/pages/password_reset_page.dart';
 import '../ui/pages/register_page.dart';
 import '../ui/pages/welcome_page.dart';
 import '../data/ad_media.dart';
@@ -120,6 +122,7 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
         Routes.splash => const SplashPage(),
         Routes.welcome => const FramePage(route: Routes.welcome),
         Routes.register => const RegisterPage(),
+        Routes.passwordReset => const PasswordResetPage(),
         Routes.onboarding => const OnboardingPage(),
         // Экран кода принимает либо номер (вход), либо заполненную форму
         // регистрации — жёсткий каст на String ронял второй случай.
@@ -128,7 +131,7 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
                 final args = ModalRoute.of(context)?.settings.arguments;
                 return CodePage(
                   phone: args is String ? args : null,
-                  draft: args is RegistrationDraft ? args : null,
+                  flow: args is CodeFlow ? args : null,
                 );
               },
             ),
@@ -226,7 +229,7 @@ class FramePage extends StatelessWidget {
       return CodePage(
         nextRoute: Routes.proPhoto1,
         phone: args is String ? args : null,
-        draft: args is RegistrationDraft ? args : null,
+        flow: args is CodeFlow ? args : null,
       );
     }
     if (route == Routes.proPhoto1 || route == Routes.proPhoto2) {

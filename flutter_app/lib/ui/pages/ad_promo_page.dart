@@ -132,6 +132,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
     final slug = state.draftSlug ?? 'draft-slug';
     try {
       await state.apiClient.publishListing(slug);
+      state.resetDraft();
 
       // Продвижение оплачивается кирпичами. Если их не хватает, предлагаем
       // пополнить кошелёк через Finik и повторяем списание — молча

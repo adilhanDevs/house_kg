@@ -5,8 +5,9 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/api_exceptions.dart';
+import '../../data/code_flow.dart';
 import '../fig_controls.dart';
-import 'register_page.dart';
+import '../widgets/consent_row.dart';
 
 class ProSignupPage extends StatefulWidget {
   const ProSignupPage({super.key});
@@ -106,12 +107,12 @@ class _ProSignupPageState extends State<ProSignupPage> {
         // иначе сервер ищет код входа и не находит.
         Navigator.of(context).pushNamed(
           Routes.proCode,
-          arguments: RegistrationDraft(
+          arguments: CodeFlow(
+            kind: CodeFlowKind.proRegister,
             phone: phone,
             name: name,
             password: password,
             termsVersion: version,
-            purpose: 'pro_register',
           ),
         );
       }

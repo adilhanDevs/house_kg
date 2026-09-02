@@ -13,6 +13,7 @@ abstract final class Routes {
   static const onboarding = '/onboarding';
   static const welcome = '/welcome';
   static const register = '/register';
+  static const passwordReset = '/password/reset';
   static const code = '/code';
 
   // вкладки

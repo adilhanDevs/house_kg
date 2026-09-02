@@ -462,6 +462,24 @@ class AppState extends ChangeNotifier {
     await _saveTokens(response);
   }
 
+  /// Первый шаг восстановления: высылает код на номер.
+  ///
+  /// Ответ одинаков и для зарегистрированного номера, и для чужого: по нему
+  /// нельзя узнать, есть ли у человека аккаунт.
+  Future<void> startPasswordReset(String phone) async {
+    await apiClient.requestOtp(phone, purpose: 'password_reset');
+  }
+
+  /// Второй шаг: код принят — ставим новый пароль и входим им же.
+  Future<void> confirmPasswordReset({
+    required String phone,
+    required String code,
+    required String password,
+  }) async {
+    final response = await apiClient.resetPassword(phone, code, password);
+    await _saveTokens(response);
+  }
+
   Future<void> loginWithPassword(String phone, String password) async {
     final response = await apiClient.loginWithPassword(phone, password);
     await _saveTokens(response);
@@ -1227,14 +1245,35 @@ class AppState extends ChangeNotifier {
     draftFloor = 1;
     draftFloors = 1;
     draftArea = '';
+    draftLandArea = '';
     draftDistrict = 'Район Бишкека';
     draftBuilder = '';
+    draftSeries = '';
     draftPrice = '';
     draftUsd = true;
     draftOwner = true;
     draftAllowDownload = true;
     draftUseAdInfo = true;
     draftSlug = null;
+    draftAddress = '';
+    draftDescription = '';
+    draftSecondary = false;
+    draftFurniture = '';
+    draftCondition = '';
+    draftHeating = '';
+    draftHasGas = false;
+    draftExchange = false;
+    draftDirectSale = true;
+    draftMortgage = true;
+    draftContactName = '';
+    draftContactPhone = '';
+    draftPlotPurpose = '';
+    draftCommercialPurpose = '';
+    draftSeparateEntrance = false;
+    draftBuildingLine = '';
+    draftCeilingHeight = '';
+    draftLandmarks.clear();
+    draftRoomList.clear();
     draftGallery.clear();
     draftVideoList.clear();
     notifyListeners();

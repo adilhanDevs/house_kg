@@ -909,6 +909,31 @@ class ListingApiClient {
     }
   }
 
+  /// Новый пароль по коду из SMS. В ответе — сразу пара токенов.
+  Future<Map<String, dynamic>> resetPassword(
+    String phone,
+    String code,
+    String password,
+  ) async {
+    final uri = Uri.parse('$baseUrl/api/v1/auth/password/reset/');
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'phone': phone, 'code': code, 'password': password}),
+      );
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> loginWithPassword(String phone, String password) async {
     final uri = Uri.parse('$baseUrl/api/v1/auth/password/login/');
     try {

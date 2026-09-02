@@ -78,6 +78,10 @@ class _WelcomePageState extends State<WelcomePage> {
     Navigator.of(context).pushNamed(Routes.register);
   }
 
+  void _onForgotPassword() {
+    Navigator.of(context).pushNamed(Routes.passwordReset);
+  }
+
   void _onProMode() {
     final state = AppScope.read(context);
     state.pro = true;
@@ -136,6 +140,30 @@ class _WelcomePageState extends State<WelcomePage> {
           20.0,
           label: 'Зарегистрироваться',
           onTap: _onRegister,
+        ),
+        // «Забыли пароль?» — в макете этой строки нет: пароль там негде было
+        // и задать. Ставим под кнопками входа, тем же оранжевым.
+        Positioned(
+          left: 0.0,
+          top: 780.0,
+          width: 375.0,
+          height: 22.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _onForgotPassword,
+            child: Container(
+              color: const Color(0xffffffff),
+              alignment: Alignment.center,
+              child: const Text(
+                'Забыли пароль?',
+                style: TextStyle(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xffea812e),
+                ),
+              ),
+            ),
+          ),
         ),
         // Кнопка Режим исполнителя
         FigZone(

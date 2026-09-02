@@ -13,28 +13,9 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/api_exceptions.dart';
+import '../../data/code_flow.dart';
 import '../fig_controls.dart';
-
-/// Что экран кода получает от регистрации, чтобы завершить её после ввода кода.
-@immutable
-class RegistrationDraft {
-  const RegistrationDraft({
-    required this.phone,
-    required this.name,
-    required this.password,
-    required this.termsVersion,
-    this.purpose = 'register',
-  });
-
-  final String phone;
-  final String name;
-  final String password;
-  final String termsVersion;
-
-  /// Цель кода: сервер ищет код по паре «номер + цель», и код, выписанный на
-  /// регистрацию исполнителя, при проверке с целью «вход» просто не находится.
-  final String purpose;
-}
+import '../widgets/consent_row.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -133,7 +114,8 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       Navigator.of(context).pushNamed(
         Routes.code,
-        arguments: RegistrationDraft(
+        arguments: CodeFlow(
+          kind: CodeFlowKind.register,
           phone: phone,
           name: name,
           password: password,
@@ -237,79 +219,6 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ],
       ),
-    );
-  }
-}
-
-/// Галка «принимаю соглашение» с ссылкой на текст.
-class ConsentRow extends StatelessWidget {
-  const ConsentRow({
-    super.key,
-    required this.value,
-    required this.loading,
-    required this.error,
-    required this.onChanged,
-  });
-
-  final bool value;
-  final bool loading;
-  final String? error;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    if (loading) {
-      return const SizedBox(
-        height: 22.0,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 16.0,
-              height: 16.0,
-              child: CircularProgressIndicator(strokeWidth: 2.0, color: Color(0xffea812e)),
-            ),
-            SizedBox(width: 10.0),
-            Text(
-              'Загружаем соглашение…',
-              style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (error != null) {
-      return Text(
-        error!,
-        style: const TextStyle(fontSize: 13.0, color: Color(0xffd93025)),
-      );
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 24.0,
-          height: 24.0,
-          child: Checkbox(
-            value: value,
-            onChanged: (checked) => onChanged(checked ?? false),
-            activeColor: const Color(0xffea812e),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
-        ),
-        const SizedBox(width: 8.0),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => onChanged(!value),
-            child: const Text(
-              'Принимаю соглашение об обработке персональных данных',
-              style: TextStyle(fontSize: 13.0, height: 1.3, color: Color(0xff1c1939)),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -7,7 +6,6 @@ import '../../data/ad_media.dart';
 import '../../data/api_client.dart';
 import '../add_media.dart';
 import '../fig_controls.dart';
-import '../media_tile.dart';
 
 class AdVideoPage extends StatefulWidget {
   const AdVideoPage({super.key});
@@ -20,12 +18,167 @@ class _AdVideoPageState extends State<AdVideoPage> {
   bool _useInfo = true;
   bool _isSaving = false;
 
+  @override
+  void initState() {
+    super.initState();
+    final state = AppScope.read(context);
+    _useInfo = state.draftUseAdInfo;
+  }
+
+  Future<void> _pickAndAddVideo(AppState state) async {
+    final prevCount = state.draftVideoList.length;
+    await addAdMedia(context, video: true);
+    if (mounted && state.draftVideoList.length > prevCount) {
+      final newIndex = state.draftVideoList.length - 1;
+      await _showVideoMetadataSheet(context, newIndex, state);
+    }
+  }
+
+  Future<void> _showVideoMetadataSheet(
+    BuildContext context,
+    int index,
+    AppState state,
+  ) async {
+    if (index < 0 || index >= state.draftVideoList.length) return;
+    final video = state.draftVideoList[index];
+
+    final titleCtrl = TextEditingController(text: video.title ?? '');
+    final descCtrl = TextEditingController(text: video.description ?? '');
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            24.0,
+            16.0,
+            24.0,
+            MediaQuery.of(ctx).viewInsets.bottom + 24.0,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36.0,
+                    height: 4.0,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffe5e5ea),
+                      borderRadius: BorderRadius.circular(2.0),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+                const Text(
+                  'Информация о видео',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff000000),
+                  ),
+                ),
+                const SizedBox(height: 6.0),
+                const Text(
+                  'Укажите заголовок и краткое описание для REELS',
+                  style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+                ),
+                const SizedBox(height: 20.0),
+                TextFormField(
+                  controller: titleCtrl,
+                  maxLength: 100,
+                  decoration: InputDecoration(
+                    labelText: 'Заголовок видео',
+                    hintText: 'Например, обзор дома',
+                    filled: true,
+                    fillColor: const Color(0xfff8f8fa),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide: const BorderSide(color: Color(0xffe5e5ea)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide: const BorderSide(color: Color(0xffe5e5ea)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide: const BorderSide(color: Color(0xffea812e), width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12.0),
+                TextFormField(
+                  controller: descCtrl,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Описание видео',
+                    hintText: 'Расскажите подробнее о видео...',
+                    filled: true,
+                    fillColor: const Color(0xfff8f8fa),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide: const BorderSide(color: Color(0xffe5e5ea)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide: const BorderSide(color: Color(0xffe5e5ea)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide: const BorderSide(color: Color(0xffea812e), width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20.0),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48.0,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (index < state.draftVideoList.length) {
+                        setState(() {
+                          state.draftVideoList[index] = state.draftVideoList[index].copyWith(
+                            title: titleCtrl.text.trim(),
+                            description: descCtrl.text.trim(),
+                          );
+                        });
+                      }
+                      Navigator.of(ctx).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xffea812e),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
+                    child: const Text(
+                      'Сохранить',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _saveAndNext(AppState state) async {
     setState(() => _isSaving = true);
     final apiClient = state.apiClient;
-
-    // Ошибки загрузки роликов больше не уходят в debugPrint: пользователь
-    // видел «всё хорошо» и шёл дальше без видео.
     final failures = <String>[];
 
     try {
@@ -42,11 +195,10 @@ class _AdVideoPageState extends State<AdVideoPage> {
 
         if (realMediaId == null) {
           try {
-            final fileName = video.name.toLowerCase().endsWith('.mp4') || video.name.toLowerCase().endsWith('.mov')
+            final fileName = video.name.toLowerCase().endsWith('.mp4') ||
+                    video.name.toLowerCase().endsWith('.mov')
                 ? video.name
                 : 'video_${DateTime.now().millisecondsSinceEpoch}.mp4';
-            // Ролик уходит потоком с диска, а вместе с ним — кадр-обложка и
-            // длительность, снятые при выборе файла.
             final uploadResponse = await apiClient.uploadMedia(
               realSlug,
               filePath: video.path,
@@ -70,13 +222,13 @@ class _AdVideoPageState extends State<AdVideoPage> {
             failures.add(_uploadErrorText(e));
           }
         }
-        
+
         if (realMediaId != null) {
           try {
             await apiClient.updateMediaMetadata(
-              realSlug, 
-              realMediaId, 
-              video.title, 
+              realSlug,
+              realMediaId,
+              video.title,
               video.description,
             );
           } catch (e) {
@@ -84,10 +236,9 @@ class _AdVideoPageState extends State<AdVideoPage> {
           }
         }
       }
-      
+
       if (!mounted) return;
 
-      // Ролик не загрузился — остаёмся на экране: дальше идти не с чем.
       if (failures.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -150,11 +301,11 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     ),
                     const SizedBox(height: 20.0),
 
-                    // Заголовок и подзаголовок аккуратного размера
+                    // Заголовок и подзаголовок
                     const Text(
                       'Добавьте видео обзор REELS',
                       style: TextStyle(
-                        fontSize: 18.0,
+                        fontSize: 20.0,
                         fontWeight: FontWeight.bold,
                         color: Color(0xff000000),
                         height: 1.25,
@@ -164,7 +315,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     const Text(
                       'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.',
                       style: TextStyle(
-                        fontSize: 13.0,
+                        fontSize: 14.0,
                         height: 1.35,
                         color: Color(0xff7d7d7d),
                       ),
@@ -173,7 +324,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
 
                     // Блок загрузки видео
                     GestureDetector(
-                      onTap: () => addAdMedia(context, video: true),
+                      onTap: () => _pickAndAddVideo(state),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
@@ -185,7 +336,8 @@ class _AdVideoPageState extends State<AdVideoPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.video_call_outlined, size: 28.0, color: orangeColor),
+                            const Icon(Icons.add_photo_alternate_outlined,
+                                size: 28.0, color: orangeColor),
                             const SizedBox(width: 14.0),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,15 +376,19 @@ class _AdVideoPageState extends State<AdVideoPage> {
                           child: Text(
                             'Использовать информацию из объявления',
                             style: TextStyle(
-                              fontSize: 14.0,
-                              color: Color(0xff3c3c43),
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xff85858a),
                             ),
                           ),
                         ),
                         FigToggle(
                           value: _useInfo,
                           label: 'Использовать информацию из объявления',
-                          onChanged: (val) => setState(() => _useInfo = val),
+                          onChanged: (val) {
+                            setState(() => _useInfo = val);
+                            state.draftUseAdInfo = val;
+                          },
                         ),
                       ],
                     ),
@@ -244,35 +400,31 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     const Text(
                       'Было добавлено',
                       style: TextStyle(
-                        fontSize: 16.0,
+                        fontSize: 18.0,
                         fontWeight: FontWeight.bold,
                         color: Color(0xff000000),
                       ),
                     ),
-                    const SizedBox(height: 12.0),
+                    const SizedBox(height: 16.0),
                     if (state.draftVideoList.isEmpty)
                       const Text(
                         'Пока ни одного ролика',
                         style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                       )
                     else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      Wrap(
+                        spacing: 16.0,
+                        runSpacing: 16.0,
                         children: [
-                          for (int i = 0; i < state.draftVideoList.length; i++) ...[
-                            if (i > 0) const SizedBox(height: 24),
-                            _VideoFormItem(
+                          for (int i = 0; i < state.draftVideoList.length; i++)
+                            _VideoCardItem(
                               media: state.draftVideoList[i],
-                              onChanged: (newMedia) {
-                                setState(() {
-                                  state.draftVideoList[i] = newMedia;
-                                });
-                              },
+                              onTap: () => _showVideoMetadataSheet(context, i, state),
                               onRemove: () {
-                                state.removeMedia(state.draftVideoList, state.draftVideoList[i]);
+                                state.removeMedia(
+                                    state.draftVideoList, state.draftVideoList[i]);
                               },
                             ),
-                          ]
                         ],
                       ),
                   ],
@@ -295,8 +447,12 @@ class _AdVideoPageState extends State<AdVideoPage> {
                       borderRadius: BorderRadius.circular(12.0),
                     ),
                   ),
-                  child: _isSaving 
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
                       : const Text(
                           'Далее',
                           style: TextStyle(
@@ -315,84 +471,150 @@ class _AdVideoPageState extends State<AdVideoPage> {
   }
 }
 
-class _VideoFormItem extends StatefulWidget {
+class _VideoCardItem extends StatelessWidget {
   final AdMedia media;
-  final ValueChanged<AdMedia> onChanged;
+  final VoidCallback onTap;
   final VoidCallback onRemove;
 
-  const _VideoFormItem({
+  const _VideoCardItem({
     required this.media,
-    required this.onChanged,
+    required this.onTap,
     required this.onRemove,
   });
 
-  @override
-  State<_VideoFormItem> createState() => _VideoFormItemState();
-}
-
-class _VideoFormItemState extends State<_VideoFormItem> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _descController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.media.title);
-    _descController = TextEditingController(text: widget.media.description);
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    super.dispose();
+  String _formatDuration(int? seconds) {
+    if (seconds == null || seconds <= 0) return '01:04';
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            AdMediaTile(
-              media: widget.media,
-              size: 80.0,
-              onRemove: widget.onRemove,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                controller: _titleController,
-                maxLength: 100,
-                decoration: const InputDecoration(
-                  labelText: 'Заголовок видео',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    final durationStr = _formatDuration(media.durationSeconds);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: SizedBox(
+                  width: 100.0,
+                  height: 100.0,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _VideoPreview(media: media),
+                      const Center(
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          size: 32,
+                          color: Color(0xe6ffffff),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                onChanged: (val) => widget.onChanged(widget.media.copyWith(title: val)),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _descController,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Описание видео',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              Positioned(
+                top: 4.0,
+                right: 4.0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onRemove,
+                  child: Container(
+                    width: 22.0,
+                    height: 22.0,
+                    decoration: const BoxDecoration(
+                      color: Color(0x99000000),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 14.0,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          onChanged: (val) => widget.onChanged(widget.media.copyWith(description: val)),
-        ),
-      ],
+          const SizedBox(height: 6.0),
+          Text(
+            'REELS | $durationStr',
+            style: const TextStyle(
+              fontSize: 13.0,
+              fontWeight: FontWeight.w500,
+              color: Color(0xff85858a),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// Текст ошибки загрузки — настоящий, а не общая фраза: по «нет связи с
-/// сервером» невозможно отличить обрыв сети от неподдерживаемого вызова.
+class _VideoPreview extends StatelessWidget {
+  const _VideoPreview({required this.media});
+
+  final AdMedia media;
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = media.posterBytes ?? media.bytes;
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _FallbackPoster(media: media),
+      );
+    }
+    final url = media.url;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _FallbackPoster(media: media),
+      );
+    }
+    final asset = media.asset;
+    if (asset != null) {
+      return Image.asset(
+        asset,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _FallbackPoster(media: media),
+      );
+    }
+    return _FallbackPoster(media: media);
+  }
+}
+
+class _FallbackPoster extends StatelessWidget {
+  const _FallbackPoster({required this.media});
+
+  final AdMedia media;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xff2c2c2e),
+      alignment: Alignment.bottomCenter,
+      padding: const EdgeInsets.all(4.0),
+      child: Text(
+        media.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 9.0, color: Color(0xccffffff)),
+      ),
+    );
+  }
+}
+
 String _uploadErrorText(Object error) {
   if (error is ApiException) return error.message;
   if (error is NetworkException) return error.message;
