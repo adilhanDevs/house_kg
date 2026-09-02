@@ -487,8 +487,10 @@ class FinikPaymentProvider(PaymentProvider):
             )
         return item
 
-    def verify_finik_transaction(self, transaction_id: str) -> dict[str, Any] | None:
-        """Серверная проверка транзакции в Finik по transactionId."""
+    def verify_finik_item(
+        self, identifier: str, *, key_type: str = "ID"
+    ) -> dict[str, Any] | None:
+        """Серверная проверка счёта/транзакции в Finik по ID или TRANSACTION_ID."""
         if not self.api_key:
             return None
 
@@ -496,8 +498,8 @@ class FinikPaymentProvider(PaymentProvider):
             _GET_ITEM_QUERY,
             {
                 "input": {
-                    "id": str(transaction_id),
-                    "keyType": "TRANSACTION_ID",
+                    "id": str(identifier),
+                    "keyType": key_type,
                 }
             },
         )
@@ -507,10 +509,121 @@ class FinikPaymentProvider(PaymentProvider):
 
         payment_count = int(item.get("paymentCount") or 0)
         if payment_count < 1:
-            logger.warning("Finik item paymentCount is 0 for transaction %s", transaction_id)
+            logger.warning(
+                "Finik item paymentCount is 0 for identifier %s (%s)",
+                identifier,
+                key_type,
+            )
             return None
 
         return item
+
+    def verify_finik_transaction(self, transaction_id: str) -> dict[str, Any] | None:
+        """Серверная проверка транзакции в Finik по transactionId."""
+        return self.verify_finik_item(transaction_id, key_type="TRANSACTION_ID")
+
+    def find_finik_item_by_request_id(self, request_id: str) -> dict[str, Any] | None:
+        """Поиск счёта Finik по requestId (например, если потерян item_id)."""
+        if not self.api_key:
+            return None
+
+        payload = _finik_graphql(
+            _LIST_ITEMS_QUERY,
+            {
+                "input": {
+                    "from": 0,
+                    "size": 50,
+                    "query": str(request_id),
+                    "filter": {"accountId": self.account_id} if self.account_id else {},
+                }
+            },
+        )
+        services = (
+            ((payload.get("data") or {}).get("listItems") or {}).get("services") or []
+        )
+        for item in services:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("requestId") or "") == str(request_id):
+                payment_count = int(item.get("paymentCount") or 0)
+                if payment_count >= 1:
+                    return item
+        return None
+
+    def reconcile_payment(self, payment: Any) -> WebhookResult | None:
+        """Прямая сверка статуса платежа с Finik API (pull reconcile)."""
+        if not self.is_configured:
+            return None
+
+        verified_item = None
+        identifier = str(payment.provider_ref or "").strip()
+
+        if identifier:
+            try:
+                verified_item = self.verify_finik_item(identifier, key_type="ID")
+            except FinikVerificationUnavailable as exc:
+                logger.warning(
+                    "Finik item verification unavailable for %s: %s",
+                    identifier,
+                    exc.code,
+                )
+
+        if verified_item is None:
+            try:
+                verified_item = self.find_finik_item_by_request_id(str(payment.pk))
+            except FinikVerificationUnavailable as exc:
+                logger.warning(
+                    "Finik listItems unavailable for %s: %s",
+                    payment.pk,
+                    exc.code,
+                )
+
+        if verified_item is None:
+            return None
+
+        payment_count = int(verified_item.get("paymentCount") or 0)
+        if payment_count < 1:
+            return None
+
+        verified_account_id = str(
+            (verified_item.get("account") or {}).get("id") or ""
+        ).strip()
+        if self.account_id and verified_account_id and verified_account_id != self.account_id:
+            logger.error(
+                "Finik reconcile: account mismatch (%s != %s)",
+                verified_account_id,
+                self.account_id,
+            )
+            return None
+
+        verified_amount = self._amount(verified_item.get("fixedAmount"))
+        if verified_amount is not None and verified_amount != Decimal(payment.amount_kgs):
+            logger.error(
+                "Finik reconcile: amount mismatch (%s != %s)",
+                verified_amount,
+                payment.amount_kgs,
+            )
+            return None
+
+        fields = _required_field_map(verified_item)
+        verified_payment_id = fields.get("paymentId")
+        if verified_payment_id and str(verified_payment_id) != str(payment.pk):
+            logger.error(
+                "Finik reconcile: paymentId mismatch (%s != %s)",
+                verified_payment_id,
+                payment.pk,
+            )
+            return None
+
+        item_id = str(verified_item.get("id") or payment.provider_ref or "")
+        transaction_id = str(verified_item.get("transactionId") or "")
+
+        return WebhookResult(
+            provider_ref=item_id or transaction_id or str(payment.pk),
+            status="succeeded",
+            amount=verified_amount or Decimal(payment.amount_kgs),
+            raw={"verified_item": verified_item, "source": "reconcile"},
+        )
 
     @staticmethod
     def _amount(value: Any) -> Decimal | None:

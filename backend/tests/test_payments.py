@@ -528,3 +528,83 @@ def test_finik_callback_for_another_account_does_not_credit(
     assert response.status_code == 403
     assert get_wallet(user).balance == 0
     assert Payment.objects.get(pk=payment_id).status == PaymentStatus.PENDING
+
+
+@finik_settings
+def test_finik_status_poll_reconciles_and_credits_payment(auth: APIClient, user):
+    """Поллинг статуса через GET /wallet/topup/{id}/ автоматически сверяет платёж в Finik."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    create_response = {"data": {"createItem": {"id": "finik-item-rec-1"}}}
+    with patch("apps.billing.providers.finik._finik_graphql", return_value=create_response):
+        created = auth.post(
+            TOPUP_URL,
+            {"amount_kgs": 12_000},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY=uuid.uuid4().hex,
+        )
+
+    payment_id = created.data["payment_id"]
+    payment = Payment.objects.get(pk=payment_id)
+    assert payment.status == PaymentStatus.PENDING
+
+    verified_item = {
+        "id": "finik-item-rec-1",
+        "transactionId": "trx-rec-1",
+        "fixedAmount": 12_000,
+        "paymentCount": 1,
+        "account": {"id": FINIK_ACCOUNT},
+        "requiredFields": [{"fieldId": "paymentId", "value": str(payment_id)}],
+    }
+
+    with patch.object(
+        FinikPaymentProvider, "verify_finik_item", return_value=verified_item
+    ):
+        status_resp = auth.get(STATUS_URL.format(payment_id=payment_id))
+
+    assert status_resp.status_code == 200
+    assert status_resp.data["status"] == "succeeded"
+    assert status_resp.data["credited_bricks"] == 13_200
+    assert status_resp.data["balance"] == 13_200
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.SUCCEEDED
+    assert get_wallet(user).balance == 13_200
+
+
+@finik_settings
+def test_finik_callback_amount_mismatch_is_rejected(
+    auth: APIClient, user, api_client: APIClient
+):
+    """Сумма в колбэке/сверке должна строго совпадать с суммой в Payment."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    create_response = {"data": {"createItem": {"id": "finik-item-bad-amount"}}}
+    with patch("apps.billing.providers.finik._finik_graphql", return_value=create_response):
+        created = auth.post(
+            TOPUP_URL,
+            {"amount_kgs": 12_000},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY=uuid.uuid4().hex,
+        )
+
+    payment_id = created.data["payment_id"]
+    # Попытка прислать 1 сом вместо 12 000
+    verified_item = {
+        "id": "finik-item-bad-amount",
+        "fixedAmount": 1,
+        "paymentCount": 1,
+        "account": {"id": FINIK_ACCOUNT},
+        "requiredFields": [{"fieldId": "paymentId", "value": str(payment_id)}],
+    }
+
+    with patch.object(
+        FinikPaymentProvider, "verify_finik_transaction", return_value=verified_item
+    ):
+        response = finik_callback(api_client, "finik-item-bad-amount", str(payment_id), amount="1.00")
+
+    assert response.status_code == 200
+    assert response.data.get("detail") == "Сумма не совпадает"
+    assert get_wallet(user).balance == 0
+    assert Payment.objects.get(pk=payment_id).status == PaymentStatus.PENDING
+

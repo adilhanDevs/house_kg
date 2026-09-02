@@ -252,6 +252,24 @@ class PaymentStatusView(APIView):
     )
     def get(self, request: Request, payment_id: str) -> Response:
         payment = get_object_or_404(Payment, pk=payment_id, user=request.user)
+
+        # Если платёж ожидает оплаты и не истёк — сверяем статус с провайдером
+        if payment.status == PaymentStatus.PENDING and not payment.is_expired:
+            try:
+                provider = get_payment_provider(payment.provider)
+                reconcile_result = (
+                    provider.reconcile_payment(payment)
+                    if hasattr(provider, "reconcile_payment")
+                    else None
+                )
+                if reconcile_result and reconcile_result.status == "succeeded":
+                    process_webhook_result(
+                        payment.provider, reconcile_result, f"reconcile:{payment.provider}"
+                    )
+                    payment.refresh_from_db()
+            except Exception as e:
+                logger.warning("Ошибка авто-сверки статуса платежа %s: %s", payment_id, e)
+
         wallet = get_wallet(request.user)
 
         credited = payment.total_bricks if payment.status == PaymentStatus.SUCCEEDED else 0
