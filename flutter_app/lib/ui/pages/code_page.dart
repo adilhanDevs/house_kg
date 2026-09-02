@@ -10,6 +10,7 @@ import '../../data/code_flow.dart';
 import '../../data/wait_time.dart';
 import '../../fig/fig.dart';
 import '../../l10n/l10n.dart';
+import '../widgets/auth_bottom_illustration.dart';
 
 /// Ключи для тестов: искать поле по порядку в дереве ненадёжно.
 const Key kOtpInputKey = Key('registration_otp_input');
@@ -240,92 +241,93 @@ class _CodePageState extends State<CodePage> {
       backgroundColor: const Color(0xffffffff),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.codeTitle,
-                style: figStyle(
-                  fontSize: 21.0,
-                  family: FigFont.display,
-                  weight: 600,
-                  height: 1.0,
-                  color: const Color(0xff000000),
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              Text(
-                l10n.codeSubtitle(_prettyPhone),
-                style: figStyle(
-                  fontSize: 15.0,
-                  family: FigFont.display,
-                  weight: 500,
-                  height: 1.333,
-                  color: _muted,
-                ),
-              ),
-              const SizedBox(height: 28.0),
-              _CodeInput(
-                key: kOtpInputKey,
-                controller: _codeController,
-                focusNode: _focusNode,
-                code: _code,
-                onChanged: _onCodeChanged,
-                onTap: _focusCode,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12.0),
-                Text(
-                  _error!,
-                  style: figStyle(
-                    fontSize: 13.0,
-                    family: FigFont.display,
-                    weight: 500,
-                    height: 1.3,
-                    color: _danger,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24.0),
-              _ResendButton(
-                key: kOtpResendKey,
-                secondsLeft: _resendIn,
-                busy: _isResending,
-                onTap: _resend,
-              ),
-              const SizedBox(height: 8.0),
-              Center(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _onGoBack,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      l10n.back,
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 0.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.codeTitle,
+                      style: figStyle(
+                        fontSize: 21.0,
+                        family: FigFont.display,
+                        weight: 600,
+                        height: 1.0,
+                        color: const Color(0xff000000),
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text(
+                      l10n.codeSubtitle(_prettyPhone),
                       style: figStyle(
                         fontSize: 15.0,
                         family: FigFont.display,
                         weight: 500,
                         height: 1.333,
-                        color: _accent,
+                        color: _muted,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 28.0),
+                    _CodeInput(
+                      key: kOtpInputKey,
+                      controller: _codeController,
+                      focusNode: _focusNode,
+                      code: _code,
+                      onChanged: _onCodeChanged,
+                      onTap: _focusCode,
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12.0),
+                      Text(
+                        _error!,
+                        style: figStyle(
+                          fontSize: 13.0,
+                          family: FigFont.display,
+                          weight: 500,
+                          height: 1.3,
+                          color: _danger,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24.0),
+                    _ResendButton(
+                      key: kOtpResendKey,
+                      secondsLeft: _resendIn,
+                      busy: _isResending,
+                      onTap: _resend,
+                    ),
+                    const SizedBox(height: 8.0),
+                    Center(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _onGoBack,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            l10n.back,
+                            style: figStyle(
+                              fontSize: 15.0,
+                              family: FigFont.display,
+                              weight: 500,
+                              height: 1.333,
+                              color: _accent,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24.0),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.asset(
-                  'assets/login/Register-screen-photo.png',
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ],
-          ),
+            ),
+            const AuthBottomIllustration(),
+          ],
         ),
       ),
     );

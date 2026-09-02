@@ -8,6 +8,7 @@ import '../../data/wait_time.dart';
 import '../../fig/fig.dart';
 import '../../l10n/l10n.dart';
 import '../fig_controls.dart';
+import '../widgets/auth_bottom_illustration.dart';
 import '../widgets/consent_row.dart';
 
 /// Ключи для тестов и отладки.
@@ -172,88 +173,89 @@ class _RegisterPageState extends State<RegisterPage> {
         backgroundColor: const Color(0xffffffff),
         resizeToAvoidBottomInset: true,
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _StepBar(progress: 0.18),
-                const SizedBox(height: 40.0),
-                Text(
-                  l10n.register,
-                  style: figStyle(
-                    fontSize: 21.0,
-                    family: FigFont.display,
-                    weight: 600,
-                    height: 1.0,
-                    color: const Color(0xff000000),
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(25.0, 16.0, 25.0, 0.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _StepBar(progress: 0.18),
+                      const SizedBox(height: 20.0),
+                      Text(
+                        l10n.register,
+                        style: figStyle(
+                          fontSize: 21.0,
+                          family: FigFont.display,
+                          weight: 600,
+                          height: 1.0,
+                          color: const Color(0xff000000),
+                        ),
+                      ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        l10n.welcomeSubtitle,
+                        style: figStyle(
+                          fontSize: 15.0,
+                          family: FigFont.display,
+                          weight: 500,
+                          height: 1.333,
+                          color: _muted,
+                        ),
+                      ),
+                      const SizedBox(height: 16.0),
+                      _Field(
+                        fieldKey: kRegisterPhoneFieldKey,
+                        controller: _phoneController,
+                        hint: l10n.phone,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 10.0),
+                      _Field(
+                        fieldKey: kRegisterNameFieldKey,
+                        controller: _nameController,
+                        hint: l10n.name,
+                        keyboardType: TextInputType.name,
+                      ),
+                      const SizedBox(height: 10.0),
+                      _Field(
+                        fieldKey: kRegisterPasswordFieldKey,
+                        controller: _passwordController,
+                        hint: l10n.password,
+                        keyboardType: TextInputType.visiblePassword,
+                      ),
+                      const SizedBox(height: 10.0),
+                      ConsentRow(
+                        key: kRegisterConsentKey,
+                        value: _accepted,
+                        loading: _loadingTerms,
+                        error: _termsError,
+                        onChanged: (value) => setState(() => _accepted = value),
+                      ),
+                      const SizedBox(height: 10.0),
+                      _PrimaryButton(
+                        buttonKey: kRegisterSubmitKey,
+                        label: l10n.next,
+                        busy: _isSending,
+                        onTap: _onNext,
+                      ),
+                      const SizedBox(height: 10.0),
+                      Center(
+                        child: _Link(
+                          label: l10n.alreadyHaveAccount,
+                          onTap: _onBack,
+                        ),
+                      ),
+                      const SizedBox(height: 12.0),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6.0),
-                Text(
-                  l10n.welcomeSubtitle,
-                  style: figStyle(
-                    fontSize: 15.0,
-                    family: FigFont.display,
-                    weight: 500,
-                    height: 1.333,
-                    color: _muted,
-                  ),
-                ),
-                const SizedBox(height: 28.0),
-                _Field(
-                  fieldKey: kRegisterPhoneFieldKey,
-                  controller: _phoneController,
-                  hint: l10n.phone,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 12.0),
-                _Field(
-                  fieldKey: kRegisterNameFieldKey,
-                  controller: _nameController,
-                  hint: l10n.name,
-                  keyboardType: TextInputType.name,
-                ),
-                const SizedBox(height: 12.0),
-                _Field(
-                  fieldKey: kRegisterPasswordFieldKey,
-                  controller: _passwordController,
-                  hint: l10n.password,
-                  keyboardType: TextInputType.visiblePassword,
-                ),
-                const SizedBox(height: 12.0),
-                ConsentRow(
-                  key: kRegisterConsentKey,
-                  value: _accepted,
-                  loading: _loadingTerms,
-                  error: _termsError,
-                  onChanged: (value) => setState(() => _accepted = value),
-                ),
-                const SizedBox(height: 12.0),
-                _PrimaryButton(
-                  buttonKey: kRegisterSubmitKey,
-                  label: l10n.next,
-                  busy: _isSending,
-                  onTap: _onNext,
-                ),
-                const SizedBox(height: 16.0),
-                Center(
-                  child: _Link(
-                    label: l10n.alreadyHaveAccount,
-                    onTap: _onBack,
-                  ),
-                ),
-                const SizedBox(height: 24.0),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.asset(
-                    'assets/login/Register-screen-photo.png',
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const AuthBottomIllustration(),
+            ],
           ),
         ),
       ),
