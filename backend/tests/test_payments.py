@@ -745,3 +745,36 @@ def test_finik_test_amount_payment_verification_and_exact_fulfillment(
     assert payment.status == PaymentStatus.SUCCEEDED
 
 
+
+
+@pytest.mark.django_db
+def test_topup_response_exposes_provider_item_id(auth_client, settings) -> None:
+    """Клиенту нужен идентификатор уже созданного счёта, а не разбор URL.
+
+    Без него единственный способ узнать item — выковырять его из checkout-ссылки,
+    и тогда формат ссылки становится негласным контрактом.
+    """
+    response = auth_client.post(
+        TOPUP_URL,
+        {"amount_kgs": "500"},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()),
+    )
+    assert response.status_code == 201, response.data
+
+    payment = Payment.objects.get(pk=response.data["payment_id"])
+    assert response.data["provider_item_id"] == (payment.provider_ref or "")
+
+
+@pytest.mark.django_db
+def test_topup_response_leaks_no_credentials(auth_client) -> None:
+    """В ответ не должен попасть ни один серверный ключ Finik."""
+    response = auth_client.post(
+        TOPUP_URL,
+        {"amount_kgs": "500"},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()),
+    )
+    body = json.dumps(response.data, default=str).lower()
+    for forbidden in ("api_key", "apikey", "secret", "x-api-key", "private"):
+        assert forbidden not in body, forbidden

@@ -382,6 +382,8 @@ def build_topup_response(payment: Payment, request: Request) -> dict[str, Any]:
         "bonus_bricks": payment.bonus_bricks,
         "total_bricks": payment.total_bricks,
         "payment_url": payment_url,
+        # provider_ref у Finik — это и есть item_id созданного счёта.
+        "provider_item_id": payment.provider_ref or "",
         "qr_code_url": intent.get("qr_code_url", ""),
         # Строка для отрисовки QR на клиенте. Если провайдер её не дал —
         # кодируем саму ссылку на оплату.

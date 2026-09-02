@@ -99,6 +99,11 @@ class TopupResponseSerializer(serializers.Serializer):
     bonus_bricks = serializers.IntegerField()
     total_bricks = serializers.IntegerField()
     payment_url = serializers.CharField(allow_blank=True)
+    # Идентификатор счёта у платёжного провайдера. Клиенту он нужен, чтобы
+    # открыть официальный экран оплаты по уже созданному счёту, а не создавать
+    # второй. Имя нейтральное: провайдер может смениться, контракт — нет.
+    # Секретов не содержит: это ссылка на счёт, а не доступ к нему.
+    provider_item_id = serializers.CharField(allow_blank=True)
     qr_code_url = serializers.CharField(allow_blank=True)
     qr_data = serializers.CharField(allow_blank=True)
     expires_at = serializers.DateTimeField(allow_null=True)
