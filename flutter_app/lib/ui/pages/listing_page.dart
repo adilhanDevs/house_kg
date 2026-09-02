@@ -11,9 +11,11 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/kind_fields.dart';
+import '../../data/chat_controller.dart' show describeApiError;
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
 import '../widgets/safe_image.dart';
+import 'chat_page.dart';
 
 /// Фотография объекта во всю ширину.
 const Rect _hero = Rect.fromLTWH(0, 0, 375, 387);
@@ -125,6 +127,8 @@ class _ListingPageState extends State<ListingPage> {
     }
   }
 
+  bool _isOpeningChat = false;
+
   void _onCallPressed() {
     if (_listing?.sellerPhone == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,6 +140,47 @@ class _ListingPageState extends State<ListingPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Звоним: ${_listing!.sellerPhone}')),
     );
+  }
+
+  /// Открывает диалог с продавцом по этому объявлению.
+  ///
+  /// Диалог заводит сервер: повторное открытие возвращает уже существующий,
+  /// поэтому второй переписки по одному объявлению не появится.
+  Future<void> _onWritePressed() async {
+    final listing = _listing;
+    if (listing == null || _isOpeningChat) return;
+
+    final state = AppScope.read(context);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (!state.isAuthenticated) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Войдите, чтобы написать продавцу')),
+      );
+      navigator.pushNamed(Routes.welcome);
+      return;
+    }
+
+    setState(() => _isOpeningChat = true);
+    try {
+      final data = await state.apiClient.openConversation(listing.slug);
+      if (!mounted) return;
+      navigator.pushNamed(
+        Routes.conversation,
+        arguments: ChatArgs(
+          data['id']?.toString() ?? '',
+          listingTitle: listing.address,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        // Себе написать нельзя — сервер вернёт ошибку, показываем её как есть.
+        messenger.showSnackBar(SnackBar(content: Text(describeApiError(e))));
+      }
+    } finally {
+      if (mounted) setState(() => _isOpeningChat = false);
+    }
   }
 
   Widget _buildInfoRow(String label, String value, {bool isPlain = false}) {
@@ -348,6 +393,25 @@ class _ListingPageState extends State<ListingPage> {
 
     return Scaffold(
       backgroundColor: _page,
+      // Вход в переписку с продавцом. Кнопкой, а не зоной на растре: на
+      // карточке объекта своя вёрстка, и зона по координатам тут не к месту.
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('listing_write_seller'),
+        backgroundColor: const Color(0xffea812e),
+        foregroundColor: const Color(0xffffffff),
+        onPressed: _isOpeningChat ? null : _onWritePressed,
+        icon: _isOpeningChat
+            ? const SizedBox(
+                width: 16.0,
+                height: 16.0,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.0,
+                  color: Color(0xffffffff),
+                ),
+              )
+            : const Icon(Icons.forum_outlined, size: 20.0),
+        label: const Text('Написать'),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

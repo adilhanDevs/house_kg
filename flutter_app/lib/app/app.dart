@@ -39,6 +39,8 @@ import '../ui/pages/view_history_page.dart';
 import '../ui/pages/video_page.dart';
 import '../ui/pages/wallet_history_page.dart';
 import '../data/code_flow.dart';
+import '../ui/pages/chat_page.dart';
+import '../ui/pages/conversations_page.dart';
 import '../ui/pages/password_reset_page.dart';
 import '../ui/pages/register_page.dart';
 import '../ui/pages/welcome_page.dart';
@@ -111,6 +113,14 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
           ),
         ),
         initialRoute: widget.initialRoute,
+        onGenerateInitialRoutes: (String initialRouteName) {
+          final uri = Uri.tryParse(initialRouteName);
+          final path = uri != null && uri.path.isNotEmpty ? uri.path : initialRouteName;
+          if (path == Routes.splash || path == '/') {
+            return [_route(const RouteSettings(name: Routes.splash))];
+          }
+          return [_route(RouteSettings(name: path, arguments: uri?.queryParameters))];
+        },
         onGenerateRoute: _route,
         navigatorObservers: [appRouteObserver],
       ),
@@ -154,6 +164,18 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
         Routes.catalog => const CatalogPage(),
         Routes.favourites => const FavouritesPage(),
         Routes.notifications => const NotificationsPage(),
+        Routes.conversations => const ConversationsPage(),
+        Routes.conversation => Builder(
+              builder: (context) {
+                final args = ModalRoute.of(context)?.settings.arguments;
+                if (args is ChatArgs) return ChatPage(args: args);
+                // Из уведомления может прийти только идентификатор строкой.
+                if (args is String && args.isNotEmpty) {
+                  return ChatPage(args: ChatArgs(args));
+                }
+                return const ConversationsPage();
+              },
+            ),
         Routes.viewHistory => const ViewHistoryPage(),
         Routes.profile || Routes.pro => Builder(
               builder: (context) {

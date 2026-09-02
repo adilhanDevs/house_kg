@@ -21,6 +21,11 @@ abstract final class Routes {
   static const catalog = '/catalog';
   static const notifications = '/notifications';
 
+  /// Список диалогов и конкретный диалог. Диалог адресуется только id —
+  /// весь объект через маршрут не передаём.
+  static const conversations = '/conversations';
+  static const conversation = '/conversations/detail';
+
   /// «История просмотров» — третья вкладка меню.
   static const viewHistory = '/history/views';
   static const favourites = '/favourites';

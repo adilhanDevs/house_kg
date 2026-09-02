@@ -1112,4 +1112,143 @@ class ListingApiClient {
       throw NetworkException(e.toString());
     }
   }
+
+  // -- диалоги и уведомления --------------------------------------------------
+  //
+  // Контракт задеплоен и не переизобретается: пути, имена полей и курсоры взяты
+  // из apps/messaging и apps/notifications как есть.
+
+  /// Список диалогов. Курсорная пагинация: results, next, previous, count.
+  Future<Map<String, dynamic>> getConversations({String? cursor}) async {
+    final uri = cursor != null && cursor.isNotEmpty
+        ? Uri.parse(cursor)
+        : Uri.parse('$baseUrl/api/v1/conversations/');
+    return _getJson(uri);
+  }
+
+  /// Открывает диалог по объявлению. Сервер возвращает существующий, если он
+  /// уже есть (201 на новый, 200 на найденный), поэтому дубликатов не будет.
+  Future<Map<String, dynamic>> openConversation(String listingSlug) async {
+    return _postJson(
+      Uri.parse('$baseUrl/api/v1/conversations/'),
+      {'listing_slug': listingSlug},
+    );
+  }
+
+  Future<Map<String, dynamic>> getConversation(String conversationId) async {
+    return _getJson(Uri.parse('$baseUrl/api/v1/conversations/$conversationId/'));
+  }
+
+  /// История сообщений. Без курсора отдаёт самые свежие; `next` ведёт к старым.
+  Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor}) async {
+    final uri = cursor != null && cursor.isNotEmpty
+        ? Uri.parse(cursor)
+        : Uri.parse('$baseUrl/api/v1/conversations/$conversationId/messages/');
+    return _getJson(uri);
+  }
+
+  /// Только то, что появилось после известного сообщения.
+  Future<Map<String, dynamic>> getMessagesAfter(
+    String conversationId,
+    String afterMessageId,
+  ) async {
+    return _getJson(Uri.parse(
+      '$baseUrl/api/v1/conversations/$conversationId/messages/?after=$afterMessageId',
+    ));
+  }
+
+  /// Отправка сообщения. `clientMessageId` обязателен: по нему сервер
+  /// защищается от дублей, а повтор возвращает то же самое сообщение.
+  Future<Map<String, dynamic>> sendMessage(
+    String conversationId,
+    String text,
+    String clientMessageId,
+  ) async {
+    return _postJson(
+      Uri.parse('$baseUrl/api/v1/conversations/$conversationId/messages/'),
+      {'text': text, 'client_message_id': clientMessageId},
+    );
+  }
+
+  /// Отмечает диалог прочитанным до указанного сообщения.
+  Future<Map<String, dynamic>> markConversationRead(
+    String conversationId,
+    String lastMessageId,
+  ) async {
+    return _postJson(
+      Uri.parse('$baseUrl/api/v1/conversations/$conversationId/read/'),
+      {'last_message_id': lastMessageId},
+    );
+  }
+
+  Future<Map<String, dynamic>> getNotifications({String? cursor}) async {
+    final uri = cursor != null && cursor.isNotEmpty
+        ? Uri.parse(cursor)
+        : Uri.parse('$baseUrl/api/v1/notifications/');
+    return _getJson(uri);
+  }
+
+  Future<Map<String, dynamic>> getUnreadNotificationCount() async {
+    return _getJson(Uri.parse('$baseUrl/api/v1/notifications/unread-count/'));
+  }
+
+  /// Отмечает уведомления прочитанными: перечисленные или все сразу.
+  Future<Map<String, dynamic>> markNotificationsRead({
+    List<int>? ids,
+    bool all = false,
+  }) async {
+    return _postJson(
+      Uri.parse('$baseUrl/api/v1/notifications/read/'),
+      all ? {'all': true} : {'ids': ids ?? const <int>[]},
+    );
+  }
+
+  Future<Map<String, dynamic>> getNotificationSettings() async {
+    return _getJson(Uri.parse('$baseUrl/api/v1/notifications/settings/'));
+  }
+
+  Future<Map<String, dynamic>> updateNotificationSettings(Map<String, dynamic> patch) async {
+    final uri = Uri.parse('$baseUrl/api/v1/notifications/settings/');
+    try {
+      final response = await _client.patch(
+        uri,
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode(patch),
+      );
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> _getJson(Uri uri) async {
+    try {
+      final response = await _client.get(uri, headers: {'Accept': 'application/json'});
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> _postJson(Uri uri, Map<String, dynamic> body) async {
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode(body),
+      );
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
 }
