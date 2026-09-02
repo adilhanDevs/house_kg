@@ -39,3 +39,6 @@ backend/sample_videos/
 
 # Isolated feature workspaces
 .worktrees/
+
+# Ключ SDK Finik для локальных сборок — в репозиторий не попадает.
+flutter_app/.finik.local.json

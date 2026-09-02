@@ -45,6 +45,13 @@
 		<string>omoney</string>
 		<string>megapay</string>
 		<string>finik</string>
+		<!-- Остальные банки Кыргызстана: без записи здесь iOS не даёт SDK
+		     проверить, установлено ли приложение, и оно не предлагается. -->
+		<string>odengi</string>
+		<string>balance</string>
+		<string>kompanion</string>
+		<string>https</string>
+		<string>http</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

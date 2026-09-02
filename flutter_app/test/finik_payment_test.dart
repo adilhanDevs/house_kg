@@ -12,7 +12,6 @@ import 'package:house_kgz/app/app_state.dart';
 import 'package:house_kgz/data/api_client.dart';
 import 'package:house_kgz/data/tariff.dart';
 import 'package:house_kgz/data/topup.dart';
-import 'package:house_kgz/ui/widgets/finik_bank_launcher.dart';
 import 'package:house_kgz/ui/widgets/finik_payment_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -152,69 +151,6 @@ Future<void> _closeSheet(WidgetTester tester) async {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  group('FinikBankLauncher URI Construction', () {
-    const paymentUrl = 'https://pay.finik.kg/checkout/863186263_item-123';
-    const qrPayload = 'https://pay.finik.kg/checkout/863186263_item-123';
-
-    test('MBank constructs valid candidate schemes and pay URIs', () {
-      final uris = FinikBankLauncher.buildCandidateUris(
-        bankId: 'mbank',
-        paymentUrl: paymentUrl,
-        qrPayload: qrPayload,
-      );
-
-      expect(uris.length, 4);
-      expect(uris[0].toString(), startsWith('mbank://pay?url='));
-      expect(uris[0].queryParameters['url'], paymentUrl);
-      expect(uris[1].toString(), startsWith('mbank://qr?data='));
-      expect(uris[2].toString(), 'mbank://pay');
-      expect(uris[3].toString(), 'mbank://');
-    });
-
-    test('Bakai Bank constructs valid candidate schemes and pay URIs', () {
-      final uris = FinikBankLauncher.buildCandidateUris(
-        bankId: 'bakai',
-        paymentUrl: paymentUrl,
-        qrPayload: qrPayload,
-      );
-
-      expect(uris.length, 5);
-      expect(uris[0].toString(), startsWith('bakai://pay?url='));
-      expect(uris[0].queryParameters['url'], paymentUrl);
-      expect(uris[1].toString(), startsWith('bakai://qr?data='));
-      expect(uris[2].toString(), startsWith('bakaimobile://pay?url='));
-      expect(uris[3].toString(), startsWith('bakai24://pay?url='));
-      expect(uris[4].toString(), 'bakai://');
-    });
-
-    test('Optima24, O!Money and MegaPay construct valid candidate schemes', () {
-      final optima = FinikBankLauncher.buildCandidateUris(
-        bankId: 'optima',
-        paymentUrl: paymentUrl,
-      );
-      expect(optima[0].toString(), startsWith('optima24://pay?url='));
-
-      final odengi = FinikBankLauncher.buildCandidateUris(
-        bankId: 'odengi',
-        paymentUrl: paymentUrl,
-      );
-      expect(odengi[0].toString(), startsWith('omoney://pay?url='));
-
-      final megapay = FinikBankLauncher.buildCandidateUris(
-        bankId: 'megapay',
-        paymentUrl: paymentUrl,
-      );
-      expect(megapay[0].toString(), startsWith('megapay://pay?url='));
-    });
-
-    test('Card / fallback returns generic payment URL', () {
-      final card = FinikBankLauncher.buildCandidateUris(
-        bankId: 'card',
-        paymentUrl: paymentUrl,
-      );
-      expect(card.single.toString(), paymentUrl);
-    });
-  });
 
   group('Счёт Finik', () {
     test(

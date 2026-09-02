@@ -61,6 +61,7 @@ class TopupIntent {
     required this.bonusBricks,
     required this.totalBricks,
     required this.paymentUrl,
+    this.providerItemId = '',
     this.qrCodeUrl = '',
     this.qrData = '',
     this.expiresAt,
@@ -75,6 +76,13 @@ class TopupIntent {
 
   /// Ссылка на страницу оплаты у провайдера.
   final String paymentUrl;
+
+  /// Идентификатор счёта у провайдера — его создал наш бэкенд.
+  ///
+  /// По нему официальный экран Finik открывает уже существующий счёт, а не
+  /// заводит второй. Разбирать `paymentUrl` ради идентификатора нельзя:
+  /// формат ссылки не контракт.
+  final String providerItemId;
 
   /// Готовая картинка QR, если провайдер её отдал.
   final String qrCodeUrl;
@@ -105,6 +113,7 @@ class TopupIntent {
       bonusBricks: _asInt(json['bonus_bricks']),
       totalBricks: _asInt(json['total_bricks']),
       paymentUrl: (json['payment_url'] ?? '').toString(),
+      providerItemId: (json['provider_item_id'] ?? '').toString(),
       qrCodeUrl: (json['qr_code_url'] ?? '').toString(),
       qrData: (json['qr_data'] ?? '').toString(),
       expiresAt: json['expires_at'] != null

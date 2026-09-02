@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_state.dart';
 import '../../data/api_client.dart';
 import '../../data/topup.dart';
+import '../pages/finik_sdk_payment_page.dart';
 import '../../data/tariff.dart';
 
-import 'finik_bank_launcher.dart';
 
 class FinikBankOption {
   final String id;
@@ -218,16 +217,6 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
     });
   }
 
-  String _explicitDeeplinkFor(String bankId) {
-    final intent = _intent;
-    if (intent == null) return '';
-    for (final provider in intent.providers) {
-      if (provider.code == bankId && provider.deeplink.isNotEmpty) {
-        return provider.deeplink;
-      }
-    }
-    return '';
-  }
 
   /// Уводит платить: в приложение банка (если установлено) или на
   /// страницу оплаты Finik, — и дальше ждёт подтверждения от бэкенда.
@@ -245,21 +234,25 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
       _error = null;
     });
 
-    final explicitDeeplink = _explicitDeeplinkFor(_selectedBankId);
-    final bankId = _tabIndex == 0 ? _selectedBankId : 'card';
-    final opened = await const FinikBankLauncher().launchBank(
-      bankId: bankId,
-      paymentUrl: intent.paymentUrl,
-      qrPayload: intent.qrPayload,
-      explicitDeeplink: explicitDeeplink,
+    // Дальше ведёт официальный экран Finik: он сам показывает список
+    // финансовых приложений и сам передаёт управление выбранному банку.
+    // Своих ссылок вида `mbank://pay?url=…` мы больше не строим — банки
+    // такого контракта не публикуют, и оплата поэтому уходила в браузер.
+    final outcome = await Navigator.of(context).push<FinikSdkOutcome>(
+      MaterialPageRoute(
+        builder: (_) => FinikSdkPaymentPage(
+          housePaymentId: intent.paymentId,
+          providerItemId: intent.providerItemId,
+        ),
+      ),
     );
 
-    if (!opened) {
-      if (!mounted) return;
+    if (!mounted) return;
+
+    if (outcome == FinikSdkOutcome.cancelled) {
       setState(() {
         _isProcessing = false;
-        _error = 'Не удалось открыть страницу оплаты Finik. Отсканируйте '
-            'QR-код другим устройством и нажмите «Я уже оплатил».';
+        _statusText = null;
       });
       return;
     }
@@ -280,18 +273,6 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
     await _waitForConfirmation(intent);
   }
 
-  Future<bool> _openPayTarget(String target) async {
-    if (target.isEmpty) return false;
-    final uri = Uri.tryParse(target);
-    if (uri == null) return false;
-
-    try {
-      return await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      debugPrint('Не удалось открыть $target: $e');
-      return false;
-    }
-  }
 
   /// Ждёт, пока бэкенд не подтвердит оплату вебхуком провайдера.
   ///

@@ -53,48 +53,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- Банковские приложения Кыргызстана для оплаты через Finik Pay -->
-        <package android:name="com.cbk.mbank" />
-        <package android:name="kg.cbk.mbank" />
-        <package android:name="kg.bakai.mobile" />
-        <package android:name="com.bakai.mobile" />
-        <package android:name="kg.optima.optima24" />
-        <package android:name="kg.o.nurtelecom" />
-        <package android:name="kg.megacom.megapay" />
-        <package android:name="kg.finik.app" />
 
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="mbank" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="bakai" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="bakaimobile" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="bakai24" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="optima24" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="omoney" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="megapay" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="finik" />
-        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
