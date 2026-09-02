@@ -222,9 +222,11 @@ class FramePage extends StatelessWidget {
       return const ProSignupPage();
     }
     if (route == Routes.proCode) {
+      final args = ModalRoute.of(context)?.settings.arguments;
       return CodePage(
         nextRoute: Routes.proPhoto1,
-        phone: ModalRoute.of(context)?.settings.arguments as String?,
+        phone: args is String ? args : null,
+        draft: args is RegistrationDraft ? args : null,
       );
     }
     if (route == Routes.proPhoto1 || route == Routes.proPhoto2) {

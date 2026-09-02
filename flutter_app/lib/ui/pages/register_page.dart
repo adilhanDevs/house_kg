@@ -23,12 +23,17 @@ class RegistrationDraft {
     required this.name,
     required this.password,
     required this.termsVersion,
+    this.purpose = 'register',
   });
 
   final String phone;
   final String name;
   final String password;
   final String termsVersion;
+
+  /// Цель кода: сервер ищет код по паре «номер + цель», и код, выписанный на
+  /// регистрацию исполнителя, при проверке с целью «вход» просто не находится.
+  final String purpose;
 }
 
 class RegisterPage extends StatefulWidget {
@@ -201,7 +206,7 @@ class _RegisterPageState extends State<RegisterPage> {
           left: 25.0,
           top: 489.0,
           width: 324.0,
-          child: _ConsentRow(
+          child: ConsentRow(
             value: _accepted,
             loading: _loadingTerms,
             error: _termsError,
@@ -237,8 +242,9 @@ class _RegisterPageState extends State<RegisterPage> {
 }
 
 /// Галка «принимаю соглашение» с ссылкой на текст.
-class _ConsentRow extends StatelessWidget {
-  const _ConsentRow({
+class ConsentRow extends StatelessWidget {
+  const ConsentRow({
+    super.key,
     required this.value,
     required this.loading,
     required this.error,

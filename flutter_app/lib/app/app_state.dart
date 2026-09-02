@@ -444,13 +444,14 @@ class AppState extends ChangeNotifier {
     required String name,
     required String password,
     required String termsVersion,
+    String purpose = 'register',
   }) async {
     final response = await apiClient.verifyOtp(
       phone,
       code,
       name: name,
       password: password,
-      purpose: 'register',
+      purpose: purpose,
       termsVersion: termsVersion,
     );
     await _saveTokens(response);

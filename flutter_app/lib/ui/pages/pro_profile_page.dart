@@ -4,13 +4,10 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../auth_guard.dart';
 import '../../app/stage.dart';
-import '../../fig/fig.dart';
 import '../app_tab_bar.dart';
 import 'profile_page.dart';
 
 import '../../data/listings.dart';
-import 'category_page.dart';
-
 import '../../data/listing_repository.dart';
 import '../object_card.dart';
 import '../widgets/profile_identity.dart';
@@ -26,10 +23,26 @@ class _ProProfilePageState extends State<ProProfilePage> {
   late final ListingRepository _repository;
   List<Listing> _listings = [];
   bool _isLoading = true;
+  PropertyKind _selectedKind = PropertyKind.newBuilding;
   // Nullable: на вебе после hot reload поле, добавленное в живой State,
   // приходит неинициализированным, и `??` ниже это гасит.
   int? _activeCount;
   int? _soldCount;
+
+  static const _categoryTabs = [
+    (PropertyKind.newBuilding, 'Новостройки'),
+    (PropertyKind.apartment, 'Квартиры'),
+    (PropertyKind.commercial, 'Коммерция'),
+  ];
+
+  static String _emptyMessageForKind(PropertyKind kind) => switch (kind) {
+    PropertyKind.newBuilding => 'Нет новостроек',
+    PropertyKind.apartment => 'Нет квартир',
+    PropertyKind.commercial => 'Нет коммерческих объектов',
+    PropertyKind.house => 'Нет домов',
+    PropertyKind.plot => 'Нет участков',
+    PropertyKind.room => 'Нет комнат',
+  };
 
   @override
   void initState() {
@@ -206,43 +219,51 @@ class _ProProfilePageState extends State<ProProfilePage> {
           child: RoleBadge(label: state.roleLabel),
         ),
 
-        // Табы категорий (Y=318): Новостройки, Квартиры, Коммерция
+        // Табы категорий (Y=316): Новостройки, Квартиры, Коммерция
         Positioned(
-          left: 25.0,
-          top: 318.0,
-          width: 110.0,
-          height: 30.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(
-              Routes.category,
-              arguments: const CategoryPageArgs(PropertyKind.newBuilding),
-            ),
-          ),
-        ),
-        Positioned(
-          left: 143.0,
-          top: 318.0,
-          width: 82.0,
-          height: 30.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(
-              Routes.category,
-              arguments: const CategoryPageArgs(PropertyKind.room),
-            ),
-          ),
-        ),
-        Positioned(
-          left: 233.0,
-          top: 318.0,
-          width: 101.0,
-          height: 30.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(
-              Routes.category,
-              arguments: const CategoryPageArgs(PropertyKind.commercial),
+          left: 20.0,
+          top: 314.0,
+          right: 20.0,
+          height: 38.0,
+          child: Container(
+            color: const Color(0xfffefefe),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                for (final (kind, label) in _categoryTabs) ...[
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (_selectedKind != kind) {
+                        setState(() => _selectedKind = kind);
+                      }
+                    },
+                    child: Container(
+                      height: 30.0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+                      decoration: BoxDecoration(
+                        color: _selectedKind == kind
+                            ? const Color(0xfffbeee3)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w500,
+                          color: _selectedKind == kind
+                              ? const Color(0xffea812e)
+                              : const Color(0xff7d7d7d),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6.0),
+                ],
+              ],
             ),
           ),
         ),
@@ -261,7 +282,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
 
-        // Карточки объектов продавца (Y=480)
+        // Карточки объектов продавца (Y=480), отфильтрованные по выбранной категории
         Positioned(
           left: 0,
           top: 480.0,
@@ -271,26 +292,39 @@ class _ProProfilePageState extends State<ProProfilePage> {
             color: const Color(0xfffefefe),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xffea812e)))
-                : (_listings.isEmpty
-                    ? const Center(child: Text('Нет активных объектов', style: TextStyle(color: Color(0xff7d7d7d))))
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                        child: Row(
-                          children: _listings.map((l) => Padding(
-                            padding: const EdgeInsets.only(right: 15.0),
-                            child: ObjectCard(
-                              listing: l,
-                              favourite: state.isFavourite(l.id),
-                              onTap: () => Navigator.of(context).pushNamed(
-                                Routes.adPreview,
-                                arguments: l.slug,
-                              ),
-                              onFavourite: () => state.toggleFavourite(l.id),
-                            ),
-                          )).toList(),
+                : () {
+                    final filtered = _listings.where((l) => l.kind == _selectedKind).toList();
+                    if (filtered.isEmpty) {
+                      return Center(
+                        child: Text(
+                          _emptyMessageForKind(_selectedKind),
+                          style: const TextStyle(
+                            color: Color(0xff7d7d7d),
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      )),
+                      );
+                    }
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                      child: Row(
+                        children: filtered.map((l) => Padding(
+                          padding: const EdgeInsets.only(right: 15.0),
+                          child: ObjectCard(
+                            listing: l,
+                            favourite: state.isFavourite(l.id),
+                            onTap: () => Navigator.of(context).pushNamed(
+                              Routes.adPreview,
+                              arguments: l.slug,
+                            ),
+                            onFavourite: () => state.toggleFavourite(l.id),
+                          ),
+                        )).toList(),
+                      ),
+                    );
+                  }(),
           ),
         ),
 

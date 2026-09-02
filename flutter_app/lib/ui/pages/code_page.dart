@@ -91,7 +91,7 @@ class _CodePageState extends State<CodePage> {
 
     final state = AppScope.read(context);
     try {
-      await state.sendOtp(phone, purpose: widget.draft != null ? 'register' : null);
+      await state.sendOtp(phone, purpose: widget.draft?.purpose);
       if (!mounted) return;
       setState(() => _error = null);
       _startResendCountdown();
@@ -136,6 +136,7 @@ class _CodePageState extends State<CodePage> {
           name: draft.name,
           password: draft.password,
           termsVersion: draft.termsVersion,
+          purpose: draft.purpose,
         );
       } else {
         await state.verifyAndLogin(phone, value);
