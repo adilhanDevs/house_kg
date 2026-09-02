@@ -290,13 +290,15 @@ void main() {
       expect(find.byType(Screen09Home), findsOneWidget);
     });
 
-    // а мимо ячейки — как в прототипе: клик доходит до запасного перехода,
-    // хотя полоса меню его закрывает
-    testWidgets('a tap on the bar itself still walks the flow', (tester) async {
+    // Раньше ячейки стояли по фиксированным координатам, и между ними внутри
+    // полосы оставались щели: клик сквозь них доходил до запасного перехода
+    // прототипа. Теперь ячейки занимают всю ширину поровну, щелей нет —
+    // край полосы принадлежит крайней ячейке, а не тому, что под ней.
+    testWidgets('the edge of the bar belongs to the outermost tab', (tester) async {
       await open(tester, 39);
       await tester.tapAt(const Offset(10, 750));
       await tester.pump();
-      expect(find.byType(Screen37Screen1551429), findsOneWidget);
+      expect(find.byType(Screen09Home), findsOneWidget);
     });
 
     testWidgets('«Садыр Жапаров» on the contractor profile opens the listing',

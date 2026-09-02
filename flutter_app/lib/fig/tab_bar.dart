@@ -42,7 +42,7 @@ class FigTabBar extends StatelessWidget {
     return _isSelected(base) ? _idle : base;
   }
 
-  int? _weight(int cell) => active == cell ? 600 : null;
+  int _weight(int cell) => active == cell ? 600 : 500;
 
   Widget _tab(int index, Widget child) => GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -52,352 +52,236 @@ class FigTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FigBox(
-      width: 377.0,
+    final l10n = context.l10n;
+
+    return Container(
+      width: clipWidth,
       height: 85.5,
-      color: const Color(0xffffffff),
-      radius: 8.0,
-      blur: 32.0,
-      padding: const EdgeInsets.fromLTRB(1.0, 0.5, 1.0, 1.0),
-      border: const Border(top: BorderSide(color: Color(0xffececec), width: 0.5), right: BorderSide(color: Color(0xffffffff), width: 1.0), bottom: BorderSide(color: Color(0xffffffff), width: 1.0), left: BorderSide(color: Color(0xffffffff), width: 1.0)),
+      decoration: const BoxDecoration(
+        color: Color(0xffffffff),
+        border: Border(
+          top: BorderSide(color: Color(0xffececec), width: 0.5),
+        ),
+      ),
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildTabItem(
+              context: context,
+              index: 0,
+              label: l10n.tabHome,
+              icon: _buildHomeIcon(0),
+            ),
+          ),
+          Expanded(
+            child: _buildTabItem(
+              context: context,
+              index: 1,
+              label: l10n.tabCatalog,
+              icon: _buildSearchIcon(1),
+            ),
+          ),
+          Expanded(
+            child: _buildTabItem(
+              context: context,
+              index: 2,
+              label: l10n.tabHistory,
+              icon: _buildHistoryIcon(2),
+            ),
+          ),
+          Expanded(
+            child: _buildTabItem(
+              context: context,
+              index: 3,
+              label: l10n.tabFavourites,
+              icon: _buildFavouritesIcon(3),
+            ),
+          ),
+          Expanded(
+            child: _buildTabItem(
+              context: context,
+              index: 4,
+              label: l10n.tabProfile,
+              icon: _buildProfileIcon(4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabItem({
+    required BuildContext context,
+    required int index,
+    required String label,
+    required Widget icon,
+  }) {
+    final color = _color(index, const Color(0xffacacb0));
+    final weight = _weight(index);
+
+    // GestureDetector, а не InkWell: всплеск и подсветка здесь всё равно
+    // выключены, а InkWell требует предка Material — панель же встаёт и в
+    // кадрах без Scaffold, и там он валит отрисовку.
+    return GestureDetector(
+      key: Key('tab_bar_item_$index'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap == null ? null : () => onTap!(index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            key: Key('tab_bar_icon_$index'),
+            width: 24.0,
+            height: 24.0,
+            child: Center(child: icon),
+          ),
+          const SizedBox(height: 3.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: Text(
+              label,
+              key: Key('tab_bar_label_$index'),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: figStyle(
+                fontSize: 10.0,
+                family: FigFont.display,
+                weight: weight,
+                height: 1.2,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHomeIcon(int index) {
+    final color = _color(index, const Color(0xffacacb0));
+    return FigSvg(
+      width: 22.731,
+      height: 20.0,
+      vbLeft: 0.0,
+      vbTop: 0.0,
+      vbWidth: 22.731,
+      vbHeight: 20.0,
+      shapes: [FigShape(d: _p0, fill: color)],
+    );
+  }
+
+  Widget _buildSearchIcon(int index) {
+    final color = _color(index, const Color(0xffea812e));
+    return FigSvg(
+      width: 20.0,
+      height: 20.0,
+      vbLeft: 0.0,
+      vbTop: 0.0,
+      vbWidth: 20.0,
+      vbHeight: 20.0,
+      shapes: [FigShape(d: _p3, fill: color)],
+    );
+  }
+
+  Widget _buildHistoryIcon(int index) {
+    final color = _color(index, const Color(0xffb1b1b5));
+    return SizedBox(
+      width: 20.0,
+      height: 21.28,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Positioned(
-            left: 28.0, top: 11.0,
-            child: FigBox(
-              width: 320.0,
-              child: FigOverflow(
-                alignment: const Alignment(-1.0, 0.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _tab(0,
-                      FigBox(
-                        width: 37.0,
-                        child: FigOverflow(
-                          alignment: const Alignment(0.0, -1.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            spacing: 3.0,
-                            children: [
-                              FigTint(
-                                color: _color(0, const Color(0xffacacb0)),
-                                child: FigBox(
-                                  width: 24.0,
-                                  height: 24.0,
-                                  clip: true,
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Positioned(
-                                        left: 1.0, top: 2.0,
-                                        child: FigSvg(
-                                          width: 22.731, height: 20.0,
-                                          vbLeft: 0.0, vbTop: 0.0, vbWidth: 22.731, vbHeight: 20.0,
-                                          shapes: const [FigShape(d: _p0, fill: Color(0xffacacb0))],
-                                        )
-                                      ),
-                                    ],
-                                  )
-                                  ,
-                                )
-                                ,
-                              ),
-                              FigTint(
-                                color: _color(0, const Color(0xffacacb0)),
-                                weight: _weight(0),
-                                child: FigText(
-                                  width: 50.0,
-                                  span: 
-                                    TextSpan(text: context.l10n.tabHome, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xffacacb0)))
-                                  ,
-                                )
-                                ,
-                              ),
-                            ],
-                          )
-                          ,
-                        )
-                        ,
-                      )
-                    ),
-                    _tab(1,
-                      FigBox(
-                        width: 45.0,
-                        child: FigOverflow(
-                          alignment: const Alignment(0.0, -1.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            spacing: 3.0,
-                            children: [
-                              FigTint(
-                                color: _color(1, const Color(0xffea812e)),
-                                child: FigBox(
-                                  width: 24.0,
-                                  height: 24.0,
-                                  clip: true,
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Positioned(
-                                        left: 1.0, top: 2.0,
-                                        child: FigSvg(
-                                          width: 20.0, height: 20.0,
-                                          vbLeft: 0.0, vbTop: 0.0, vbWidth: 20.0, vbHeight: 20.0,
-                                          shapes: const [FigShape(d: _p3, fill: Color(0xffea812e))],
-                                        )
-                                      ),
-                                    ],
-                                  )
-                                  ,
-                                )
-                                ,
-                              ),
-                              FigTint(
-                                color: _color(1, const Color(0xffea812e)),
-                                weight: _weight(1),
-                                child: FigText(
-                                  width: 45.0,
-                                  span: 
-                                    TextSpan(text: context.l10n.tabCatalog, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xffea812e)))
-                                  ,
-                                )
-                                ,
-                              ),
-                            ],
-                          )
-                          ,
-                        )
-                        ,
-                      )
-                    ),
-                    _tab(2,
-                      FigBox(
-                        width: 39.0,
-                        child: FigOverflow(
-                          alignment: const Alignment(0.0, -1.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            spacing: 3.0,
-                            children: [
-                              FigTint(
-                                color: _color(2, const Color(0xffb1b1b5)),
-                                child: FigBox(
-                                  width: 24.0,
-                                  height: 24.0,
-                                  clip: true,
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Positioned(
-                                        left: 1.0, top: 2.0,
-                                        child: Opacity(
-                                          opacity: 0.0,
-                                          child: FigSvg(
-                                            width: 21.548, height: 20.0,
-                                            vbLeft: 0.0, vbTop: 0.0, vbWidth: 21.548, vbHeight: 20.0,
-                                            shapes: const [FigShape(d: _p1, fill: Color(0xf2aeaeb2))],
-                                          ),
-                                        )
-                                      ),
-                                      Positioned(
-                                        left: 2.5, top: 1.0,
-                                        child: FigBox(
-                                          width: 20.0,
-                                          height: 21.28,
-                                          clip: true,
-                                          child: Stack(
-                                            clipBehavior: Clip.none,
-                                            children: [
-                                              Positioned(
-                                                left: 0.0, top: 0.0,
-                                                child: Opacity(
-                                                  opacity: 0.0,
-                                                  child: FigSvg(
-                                                    width: 20.0, height: 21.28,
-                                                    vbLeft: 0.0, vbTop: 0.0, vbWidth: 20.0, vbHeight: 21.28,
-                                                    shapes: const [FigShape(d: _p4, fill: Color(0xffb1b1b5))],
-                                                  ),
-                                                )
-                                              ),
-                                              Positioned(
-                                                left: 5.465, top: 1.312,
-                                                child: FigSvg(
-                                                  width: 8.72, height: 1.03,
-                                                  vbLeft: 0.0, vbTop: 0.0, vbWidth: 8.72, vbHeight: 1.03,
-                                                  shapes: const [FigShape(d: _p5, fill: Color(0xffb1b1b5))],
-                                                )
-                                              ),
-                                              Positioned(
-                                                left: 3.53, top: 3.436,
-                                                child: FigSvg(
-                                                  width: 12.591, height: 1.204,
-                                                  vbLeft: 0.0, vbTop: 0.0, vbWidth: 12.591, vbHeight: 1.204,
-                                                  shapes: const [FigShape(d: _p6, fill: Color(0xffb1b1b5))],
-                                                )
-                                              ),
-                                              Positioned(
-                                                left: 1.524, top: 5.874,
-                                                child: FigSvg(
-                                                  width: 16.602, height: 14.112,
-                                                  vbLeft: 0.0, vbTop: 0.0, vbWidth: 16.602, vbHeight: 14.112,
-                                                  shapes: const [FigShape(d: _p7, fill: Color(0xffb1b1b5))],
-                                                )
-                                              ),
-                                              Positioned(
-                                                left: 7.118, top: 9.743,
-                                                child: FigSvg(
-                                                  width: 6.634, height: 6.47,
-                                                  vbLeft: 0.0, vbTop: 0.0, vbWidth: 6.634, vbHeight: 6.47,
-                                                  shapes: const [FigShape(d: _p8, fill: Color(0xffb1b1b5))],
-                                                )
-                                              ),
-                                            ],
-                                          )
-                                          ,
-                                        )
-                                      ),
-                                    ],
-                                  )
-                                  ,
-                                )
-                                ,
-                              ),
-                              FigTint(
-                                color: _color(2, const Color(0xf2aeaeb2)),
-                                weight: _weight(2),
-                                child: FigText(
-                                  width: 45.0,
-                                  span: 
-                                    TextSpan(text: context.l10n.tabHistory, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
-                                  ,
-                                )
-                                ,
-                              ),
-                            ],
-                          )
-                          ,
-                        )
-                        ,
-                      )
-                    ),
-                    _tab(3,
-                      FigBox(
-                        width: 68.0,
-                        child: FigOverflow(
-                          alignment: const Alignment(0.0, -1.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            spacing: 3.0,
-                            children: [
-                              FigTint(
-                                color: _color(3, const Color(0xffacacb0)),
-                                child: FigBox(
-                                  width: 24.0,
-                                  height: 24.0,
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Positioned(
-                                        left: 0.0, top: 0.0,
-                                        child: FigSvg(
-                                          width: 24.0, height: 24.0,
-                                          vbLeft: 0.0, vbTop: 0.0, vbWidth: 24.0, vbHeight: 24.0,
-                                          shapes: const [FigShape(d: _p9, stroke: Color(0xff000000), strokeWidth: 1.7, roundJoin: true)],
-                                        )
-                                      ),
-                                    ],
-                                  )
-                                  ,
-                                )
-                                ,
-                              ),
-                              FigTint(
-                                color: _color(3, const Color(0xf2aeaeb2)),
-                                weight: _weight(3),
-                                child: FigText(
-                                  width: 68.0,
-                                  span: 
-                                    TextSpan(text: context.l10n.tabFavourites, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
-                                  ,
-                                )
-                                ,
-                              ),
-                            ],
-                          )
-                          ,
-                        )
-                        ,
-                      )
-                    ),
-                    _tab(4,
-                      FigBox(
-                        width: 48.0,
-                        child: FigOverflow(
-                          alignment: const Alignment(0.0, -1.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            spacing: 3.0,
-                            children: [
-                              FigTint(
-                                color: _color(4, const Color(0xf2aeaeb2)),
-                                child: FigBox(
-                                  width: 24.0,
-                                  height: 24.0,
-                                  clip: true,
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Positioned(
-                                        left: 2.0, top: 2.0,
-                                        child: FigSvg(
-                                          width: 20.0, height: 20.0,
-                                          vbLeft: 0.0, vbTop: 0.0, vbWidth: 20.0, vbHeight: 20.0,
-                                          shapes: const [FigShape(d: _p10, fill: Color(0xf2aeaeb2))],
-                                        )
-                                      ),
-                                    ],
-                                  )
-                                  ,
-                                )
-                                ,
-                              ),
-                              FigTint(
-                                color: _color(4, const Color(0xf2aeaeb2)),
-                                weight: _weight(4),
-                                child: FigText(
-                                  width: 48.0,
-                                  span: 
-                                    TextSpan(text: context.l10n.tabProfile, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
-                                  ,
-                                )
-                                ,
-                              ),
-                            ],
-                          )
-                          ,
-                        )
-                        ,
-                      )
-                    ),
-                  ],
-                )
-                ,
-              )
-              ,
-            )
+            left: 5.465,
+            top: 1.312,
+            child: FigSvg(
+              width: 8.72,
+              height: 1.03,
+              vbLeft: 0.0,
+              vbTop: 0.0,
+              vbWidth: 8.72,
+              vbHeight: 1.03,
+              shapes: [FigShape(d: _p5, fill: color)],
+            ),
+          ),
+          Positioned(
+            left: 3.53,
+            top: 3.436,
+            child: FigSvg(
+              width: 12.591,
+              height: 1.204,
+              vbLeft: 0.0,
+              vbTop: 0.0,
+              vbWidth: 12.591,
+              vbHeight: 1.204,
+              shapes: [FigShape(d: _p6, fill: color)],
+            ),
+          ),
+          Positioned(
+            left: 1.524,
+            top: 5.874,
+            child: FigSvg(
+              width: 16.602,
+              height: 14.112,
+              vbLeft: 0.0,
+              vbTop: 0.0,
+              vbWidth: 16.602,
+              vbHeight: 14.112,
+              shapes: [FigShape(d: _p7, fill: color)],
+            ),
+          ),
+          Positioned(
+            left: 7.118,
+            top: 9.743,
+            child: FigSvg(
+              width: 6.634,
+              height: 6.47,
+              vbLeft: 0.0,
+              vbTop: 0.0,
+              vbWidth: 6.634,
+              vbHeight: 6.47,
+              shapes: [FigShape(d: _p8, fill: color)],
+            ),
           ),
         ],
-      )
-      ,
+      ),
+    );
+  }
+
+  Widget _buildFavouritesIcon(int index) {
+    final color = _color(index, const Color(0xffacacb0));
+    return FigSvg(
+      width: 24.0,
+      height: 24.0,
+      vbLeft: 0.0,
+      vbTop: 0.0,
+      vbWidth: 24.0,
+      vbHeight: 24.0,
+      shapes: [
+        FigShape(
+          d: _p9,
+          stroke: color,
+          strokeWidth: 1.7,
+          roundJoin: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileIcon(int index) {
+    final color = _color(index, const Color(0xf2aeaeb2));
+    return FigSvg(
+      width: 20.0,
+      height: 20.0,
+      vbLeft: 0.0,
+      vbTop: 0.0,
+      vbWidth: 20.0,
+      vbHeight: 20.0,
+      shapes: [FigShape(d: _p10, fill: color)],
     );
   }
 }
