@@ -369,5 +369,7 @@
   },
   "sellerNoListings": "Сатуучуда бул категорияда азырынча жарыялар жок",
   "sellerThisIsYou": "Бул сиздин профилиңиз",
-  "sellerMustLoginToWrite": "Сатуучуга жазуу үчүн кириңиз"
+  "sellerMustLoginToWrite": "Сатуучуга жазуу үчүн кириңиз",
+  "sellerNotFound": "Сатуучу аныкталган жок",
+  "sellerNoListingToDiscuss": "Жазышуу үчүн жарыя аныкталган жок"
 }

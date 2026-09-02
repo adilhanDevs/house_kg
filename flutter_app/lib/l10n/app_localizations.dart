@@ -2047,6 +2047,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Войдите, чтобы написать продавцу'**
   String get sellerMustLoginToWrite;
+
+  /// No description provided for @sellerNotFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продавец не определён'**
+  String get sellerNotFound;
+
+  /// No description provided for @sellerNoListingToDiscuss.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось определить объявление для переписки'**
+  String get sellerNoListingToDiscuss;
 }
 
 class _AppLocalizationsDelegate

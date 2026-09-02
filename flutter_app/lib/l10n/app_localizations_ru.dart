@@ -1039,4 +1039,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sellerMustLoginToWrite => 'Войдите, чтобы написать продавцу';
+
+  @override
+  String get sellerNotFound => 'Продавец не определён';
+
+  @override
+  String get sellerNoListingToDiscuss =>
+      'Не удалось определить объявление для переписки';
 }

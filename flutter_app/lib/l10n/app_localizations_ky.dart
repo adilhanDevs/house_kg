@@ -1041,4 +1041,10 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get sellerMustLoginToWrite => 'Сатуучуга жазуу үчүн кириңиз';
+
+  @override
+  String get sellerNotFound => 'Сатуучу аныкталган жок';
+
+  @override
+  String get sellerNoListingToDiscuss => 'Жазышуу үчүн жарыя аныкталган жок';
 }

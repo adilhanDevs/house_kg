@@ -130,16 +130,14 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
       });
     }
 
+    // Без продавца показывать демонстрационный каталог нельзя: на экране
+    // появлялись чужие объявления под именем «Продавец», а кнопка связи потом
+    // не находила, о чём писать. Честнее сказать, что продавец не определён.
     if (_sellerId <= 0) {
-      final local = kListings.where((l) {
-        if (_selectedKind == null) return true;
-        return l.kind.name == _selectedKind ||
-            (_selectedKind == 'new_building' &&
-                l.kind == PropertyKind.newBuilding);
-      }).toList();
       setState(() {
-        _listings = local;
+        _listings = [];
         _isLoadingListings = false;
+        _listingsError = AppLocalizations.of(context).sellerNotFound;
       });
       return;
     }
@@ -224,7 +222,9 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
         (_listings.isNotEmpty ? _listings.first.slug : '');
 
     if (slug.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.empty)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.sellerNoListingToDiscuss)),
+      );
       return;
     }
 
@@ -683,7 +683,9 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
           crossAxisCount: 2,
           crossAxisSpacing: 5,
           mainAxisSpacing: 24,
-          childAspectRatio: kCardWidth / kCardHeight,
+          // В профиле продавца карточки крупнее каталожных:
+          // на строку их две, и снимок занимает почти всю ширину колонки.
+          childAspectRatio: 0.66,
         ),
         itemCount: _listings.length,
         itemBuilder: (context, index) {

@@ -470,5 +470,7 @@
   },
   "sellerNoListings": "У продавца пока нет объявлений в этой категории",
   "sellerThisIsYou": "Это ваш профиль",
-  "sellerMustLoginToWrite": "Войдите, чтобы написать продавцу"
+  "sellerMustLoginToWrite": "Войдите, чтобы написать продавцу",
+  "sellerNotFound": "Продавец не определён",
+  "sellerNoListingToDiscuss": "Не удалось определить объявление для переписки"
 }
