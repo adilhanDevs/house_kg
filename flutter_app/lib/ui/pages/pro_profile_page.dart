@@ -252,15 +252,14 @@ class _ProProfilePageState extends State<ProProfilePage> {
               ),
               const SizedBox(height: 24.0),
 
-              // 3. Табы категорий (Reference 1)
+              // 3. Табы категорий на всю доступную ширину (Reference 2)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final (kind, label) in _getCategoryTabs(l10n)) ...[
-                        GestureDetector(
+                child: Row(
+                  children: [
+                    for (final (kind, label) in _getCategoryTabs(l10n))
+                      Expanded(
+                        child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
                             if (_selectedKind != kind) {
@@ -268,7 +267,8 @@ class _ProProfilePageState extends State<ProProfilePage> {
                             }
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 9.0),
+                            height: 38.0,
+                            margin: const EdgeInsets.symmetric(horizontal: 2.0),
                             decoration: BoxDecoration(
                               color: _selectedKind == kind
                                   ? const Color(0xfffbeee3)
@@ -276,25 +276,30 @@ class _ProProfilePageState extends State<ProProfilePage> {
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             alignment: Alignment.center,
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 14.0,
-                                fontWeight: _selectedKind == kind ? FontWeight.w600 : FontWeight.w500,
-                                color: _selectedKind == kind ? _accent : const Color(0xff8e8e93),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                child: Text(
+                                  label,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14.0,
+                                    fontWeight: _selectedKind == kind ? FontWeight.w600 : FontWeight.w500,
+                                    color: _selectedKind == kind ? _accent : const Color(0xff8e8e93),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8.0),
-                      ],
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20.0),
 
-              // 4. Большая карточка «Добавить объявление» (Reference 1)
+              // 4. Большая карточка «Добавить объявление» на всю ширину (Reference 2)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: GestureDetector(
@@ -304,11 +309,13 @@ class _ProProfilePageState extends State<ProProfilePage> {
                     Navigator.of(context).pushNamed(Routes.ad);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
+                    width: double.infinity,
+                    constraints: const BoxConstraints(minHeight: 68.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
                     decoration: BoxDecoration(
                       color: const Color(0xffffffff),
-                      borderRadius: BorderRadius.circular(12.0),
-                      border: Border.all(color: const Color(0xffe5e5ea)),
+                      borderRadius: BorderRadius.circular(14.0),
+                      border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
                       boxShadow: const [
                         BoxShadow(
                           color: Color(0x06000000),
@@ -318,23 +325,13 @@ class _ProProfilePageState extends State<ProProfilePage> {
                       ],
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 44.0,
-                          height: 44.0,
-                          decoration: BoxDecoration(
-                            color: const Color(0xfffbeee3),
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          child: const Icon(
-                            Icons.add_photo_alternate_outlined,
-                            color: _accent,
-                            size: 24.0,
-                          ),
-                        ),
-                        const SizedBox(width: 14.0),
+                        const _AddListingIcon(size: 34.0, color: _accent),
+                        const SizedBox(width: 16.0),
                         Expanded(
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -342,6 +339,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
                                 style: const TextStyle(
                                   fontSize: 16.0,
                                   fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.2,
                                   color: Color(0xff000000),
                                 ),
                               ),
@@ -350,6 +348,7 @@ class _ProProfilePageState extends State<ProProfilePage> {
                                 'Добавьте первый объект',
                                 style: TextStyle(
                                   fontSize: 13.0,
+                                  fontWeight: FontWeight.w400,
                                   color: Color(0xff7d7d7d),
                                 ),
                               ),
@@ -590,4 +589,86 @@ class _ProSettingRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AddListingIcon extends StatelessWidget {
+  const _AddListingIcon({
+    this.size = 34.0,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _AddListingIconPainter(color: color),
+      ),
+    );
+  }
+}
+
+class _AddListingIconPainter extends CustomPainter {
+  const _AddListingIconPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final w = size.width;
+    final h = size.height;
+    const cornerLen = 8.0;
+    const radius = 3.0;
+
+    // Top-left corner
+    final tl = Path()
+      ..moveTo(0, cornerLen)
+      ..lineTo(0, radius)
+      ..arcToPoint(const Offset(radius, 0), radius: const Radius.circular(radius))
+      ..lineTo(cornerLen, 0);
+    canvas.drawPath(tl, paint);
+
+    // Top-right corner
+    final tr = Path()
+      ..moveTo(w - cornerLen, 0)
+      ..lineTo(w - radius, 0)
+      ..arcToPoint(Offset(w, radius), radius: const Radius.circular(radius))
+      ..lineTo(w, cornerLen);
+    canvas.drawPath(tr, paint);
+
+    // Bottom-left corner
+    final bl = Path()
+      ..moveTo(0, h - cornerLen)
+      ..lineTo(0, h - radius)
+      ..arcToPoint(Offset(radius, h), radius: const Radius.circular(radius))
+      ..lineTo(cornerLen, h);
+    canvas.drawPath(bl, paint);
+
+    // Bottom-right corner
+    final br = Path()
+      ..moveTo(w - cornerLen, h)
+      ..lineTo(w - radius, h)
+      ..arcToPoint(Offset(w, h - radius), radius: const Radius.circular(radius))
+      ..lineTo(w, h - cornerLen);
+    canvas.drawPath(br, paint);
+
+    // Center Plus
+    final cx = w / 2;
+    final cy = h / 2;
+    const halfLen = 4.8;
+    canvas.drawLine(Offset(cx - halfLen, cy), Offset(cx + halfLen, cy), paint);
+    canvas.drawLine(Offset(cx, cy - halfLen), Offset(cx, cy + halfLen), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AddListingIconPainter oldDelegate) => oldDelegate.color != color;
 }

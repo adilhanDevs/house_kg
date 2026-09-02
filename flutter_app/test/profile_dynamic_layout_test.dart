@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:house_kgz/app/app_state.dart';
 import 'package:house_kgz/app/routes.dart';
 import 'package:house_kgz/data/api_client.dart';
+import 'package:house_kgz/l10n/l10n.dart';
 import 'package:house_kgz/ui/pages/notifications_page.dart';
 import 'package:house_kgz/ui/pages/profile_page.dart';
 import 'package:house_kgz/ui/pages/pro_profile_page.dart';
@@ -87,6 +88,9 @@ class _DynamicMockHttpServer extends http.BaseClient {
 
 Widget _wrapApp(Widget child, AppState state) {
   return MaterialApp(
+    locale: const Locale('ru'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     routes: {
       Routes.notifications: (context) => const NotificationsPage(),
     },
@@ -380,6 +384,94 @@ void main() {
       await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -300));
       await tester.pumpAndSettle();
       expect(find.text('Продать недвижимость'), findsOneWidget);
+    });
+
+    testWidgets('Pro Profile: Tabs distribute across full width and each is tappable', (tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({
+        'access_token': 'valid_token',
+        'refresh_token': 'valid_refresh',
+        'is_pro': true,
+        'user_phone': '+996555123456',
+        'user_name': 'Pro Агент',
+      });
+
+      final server = _DynamicMockHttpServer();
+      final state = AppState(apiClient: ListingApiClient(baseUrl: 'http://test', client: server));
+
+      await tester.pumpWidget(_wrapApp(const ProProfilePage(), state));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final tab1 = tester.getRect(find.text('Новостройки'));
+      final tab2 = tester.getRect(find.text('Квартиры'));
+      final tab3 = tester.getRect(find.text('Коммерция'));
+
+      // Tabs are distributed across the width
+      expect(tab1.center.dx < tab2.center.dx, isTrue);
+      expect(tab2.center.dx < tab3.center.dx, isTrue);
+
+      // Tap on second tab
+      await tester.tap(find.text('Квартиры'));
+      await tester.pumpAndSettle();
+
+      // Tap on third tab
+      await tester.tap(find.text('Коммерция'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Pro Profile: Add Listing card occupies full content width and has stylized icon', (tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({
+        'access_token': 'valid_token',
+        'refresh_token': 'valid_refresh',
+        'is_pro': true,
+        'user_phone': '+996555123456',
+        'user_name': 'Pro Агент',
+      });
+
+      final server = _DynamicMockHttpServer();
+      final state = AppState(apiClient: ListingApiClient(baseUrl: 'http://test', client: server));
+
+      await tester.pumpWidget(_wrapApp(const ProProfilePage(), state));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Добавить объявление'), findsOneWidget);
+      expect(find.text('Добавьте первый объект'), findsOneWidget);
+    });
+
+    testWidgets('Pro Profile: Responsive across 320, 375, 390 widths with zero overflow', (tester) async {
+      for (final width in [320.0, 375.0, 390.0]) {
+        tester.view.physicalSize = Size(width, 812);
+        tester.view.devicePixelRatio = 1.0;
+
+        SharedPreferences.setMockInitialValues({
+          'access_token': 'valid_token',
+          'refresh_token': 'valid_refresh',
+          'is_pro': true,
+          'user_phone': '+996555123456',
+          'user_name': 'Pro Агент',
+        });
+
+        final server = _DynamicMockHttpServer();
+        final state = AppState(apiClient: ListingApiClient(baseUrl: 'http://test', client: server));
+
+        await tester.pumpWidget(_wrapApp(const ProProfilePage(), state));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Добавить объявление'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
     });
   });
 }

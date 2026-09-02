@@ -8,6 +8,9 @@
 import base64
 import json
 import logging
+from pathlib import Path
+from typing import Any
+
 try:
     from itertools import batched
 except ImportError:
@@ -19,8 +22,6 @@ except ImportError:
         it = iter(iterable)
         while batch := tuple(islice(it, n)):
             yield batch
-from pathlib import Path
-from typing import Any
 
 from django.conf import settings
 

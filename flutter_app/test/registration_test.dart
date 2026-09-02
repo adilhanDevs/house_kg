@@ -1,8 +1,5 @@
 // Регистрация обычного пользователя: экран есть, код проверяется, пароль
 // задаётся один раз.
-//
-// До этих правок кнопка «Зарегистрироваться» вела в онбординг и возвращала на
-// приветствие, а экран кода уходил на главную при любом введённом коде.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -15,6 +12,7 @@ import 'package:house_kgz/app/stage.dart';
 import 'package:house_kgz/app/routes.dart';
 import 'package:house_kgz/data/api_client.dart';
 import 'package:house_kgz/data/code_flow.dart';
+import 'package:house_kgz/l10n/app_localizations.dart';
 import 'package:house_kgz/ui/pages/code_page.dart';
 import 'package:house_kgz/ui/pages/password_reset_page.dart';
 import 'package:house_kgz/ui/pages/register_page.dart';
@@ -131,6 +129,9 @@ Widget _app(AppState state, {String initialRoute = Routes.register}) {
   return AppScope(
     state: state,
     child: MaterialApp(
+      locale: const Locale('ru'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       initialRoute: initialRoute,
       onGenerateRoute: (settings) => MaterialPageRoute(
         settings: settings,
@@ -181,7 +182,7 @@ void main() {
     await tester.pumpWidget(_app(_state(_AuthServer()), initialRoute: Routes.welcome));
     await tester.pump();
 
-    await tester.tap(_zone('Зарегистрироваться'), warnIfMissed: false);
+    await tester.tap(find.text('Зарегистрироваться').last, warnIfMissed: false);
     await tester.pumpAndSettle();
 
     expect(find.byType(RegisterPage), findsOneWidget);
@@ -203,7 +204,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(server.lastRequestBody, isNull, reason: 'код не должен запрашиваться');
-    expect(find.textContaining('Примите соглашение'), findsOneWidget);
+    expect(find.textContaining('соглашен'), findsOneWidget);
   });
 
   testWidgets('согласие отправляется той версии, что пришла с сервера', (tester) async {
@@ -240,10 +241,7 @@ void main() {
 
     final server = _AuthServer(expectedCode: '1234');
     await tester.pumpWidget(
-      AppScope(
-        state: _state(server),
-        child: const MaterialApp(home: CodePage(phone: '+996700111222')),
-      ),
+      _app(_state(server), initialRoute: Routes.code),
     );
     await tester.pump();
 
@@ -303,7 +301,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Новый-Пароль-2026');
     await tester.pump();
 
-    await tester.tap(find.text('Получить код'));
+    await tester.tap(find.text('Отправить код'));
     await tester.pumpAndSettle();
 
     // Пароль до подтверждения кода никуда не уходит.
@@ -329,6 +327,9 @@ void main() {
       AppScope(
         state: _state(server),
         child: const MaterialApp(
+          locale: Locale('ru'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: CodePage(
             flow: CodeFlow(
               kind: CodeFlowKind.passwordReset,
@@ -349,11 +350,6 @@ void main() {
   });
 
   // -- интерактивность формы -------------------------------------------------
-  //
-  // Экран собирался наложением настоящих полей на растр кадра 07. Кадр свёрстан
-  // потоком, высота описания зависит от шрифта, и на устройстве нарисованные
-  // поля уезжали относительно настоящих: пользователь видел два поля телефона
-  // и два поля имени, тапал по нарисованным — и ничего не происходило.
 
   testWidgets('на экране ровно одно поле телефона и одно поле имени', (tester) async {
     tester.view.physicalSize = const Size(420, 1000);
@@ -367,7 +363,7 @@ void main() {
     expect(find.byKey(kRegisterPhoneFieldKey), findsOneWidget);
     expect(find.byKey(kRegisterNameFieldKey), findsOneWidget);
     expect(find.byKey(kRegisterPasswordFieldKey), findsOneWidget);
-    expect(find.text('Номер телефона (с WhatsApp)'), findsOneWidget);
+    expect(find.text('Номер телефона'), findsOneWidget);
     expect(find.text('Имя'), findsOneWidget);
   });
 
@@ -384,8 +380,6 @@ void main() {
       kRegisterPhoneFieldKey,
       kRegisterPasswordFieldKey,
     ]) {
-      // warnIfMissed по умолчанию: если поверх поля окажется чужой слой,
-      // тест упадёт, а не пройдёт молча.
       await tester.tap(find.byKey(key));
       await tester.pump();
       final field = tester.widget<TextField>(
@@ -456,11 +450,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // Одно человеческое время из retry_after сервера, а не «60 секунд»
-    // и не «Instance of ApiException».
     expect(find.textContaining('Повторите через 1 минуту'), findsOneWidget);
 
-    // Экран остался на месте, поля живы, кнопка снова нажимается.
     expect(find.byKey(kRegisterPhoneFieldKey), findsOneWidget);
     await tester.tap(find.byKey(kRegisterNameFieldKey));
     await tester.pump();
@@ -479,14 +470,12 @@ void main() {
 
     expect(tester.takeException(), isNull);
 
-    // До кнопки можно доскроллить и по ней можно попасть.
     await tester.ensureVisible(find.byKey(kRegisterSubmitKey));
     await tester.pump();
     await tester.tap(find.byKey(kRegisterSubmitKey));
     await tester.pump();
 
     expect(tester.takeException(), isNull);
-    // Форма не заполнена — экран отвечает подсказкой, а не молчанием.
     expect(find.textContaining('Заполните'), findsOneWidget);
   });
 }

@@ -15,6 +15,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 @pytest.fixture(autouse=True)
 def disable_ssl_redirect_for_tests(settings):
     settings.SECURE_SSL_REDIRECT = False
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = True
 
 
 @pytest.fixture(autouse=True)

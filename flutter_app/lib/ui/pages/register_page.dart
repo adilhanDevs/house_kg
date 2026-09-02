@@ -1,21 +1,3 @@
-// Регистрация обычного пользователя — по кадру 07 «Добро пожаловать · 2».
-//
-// Экран собран настоящими виджетами, а не наложением на растр кадра, и вот
-// почему. Кадр 07 свёрстан потоком: заголовок, описание и колонка полей идут
-// друг за другом с отступами. Высота описания зависит от шрифта, поэтому
-// поля кадра стоят на разной высоте в тестовом окружении и на устройстве —
-// разница доходила до сотни точек. Наложения были прибиты к координатам,
-// снятым в тестах, и на реальном экране разъезжались с рисунком: пользователь
-// видел два поля телефона и два поля имени, нарисованные поля не реагировали
-// на нажатие, а оранжевую кнопку «Далее» закрывала белая подложка соседнего
-// поля — нажимать было буквально не на что.
-//
-// Оформление повторяет кадр: заголовок 21/600, описание 15/500 серым, поля
-// высотой 36 с радиусом 10, оранжевая кнопка 324×36.
-//
-// Порядок такой: здесь собираются телефон, имя и пароль, сервер высылает код,
-// экран кода подтверждает номер — и только тогда заводится аккаунт с паролем.
-// Дальше человек входит по паролю, без SMS.
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -28,7 +10,7 @@ import '../../l10n/l10n.dart';
 import '../fig_controls.dart';
 import '../widgets/consent_row.dart';
 
-/// Ключи для тестов и отладки: искать поля по порядку в дереве ненадёжно.
+/// Ключи для тестов и отладки.
 const Key kRegisterPhoneFieldKey = Key('registration_phone_field');
 const Key kRegisterNameFieldKey = Key('registration_name_field');
 const Key kRegisterPasswordFieldKey = Key('registration_password_field');
@@ -70,8 +52,6 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  /// Версия соглашения приходит с сервера. Принять документ, которого нет,
-  /// нельзя — поэтому без него регистрация не начинается.
   Future<void> _loadTerms() async {
     final state = AppScope.read(context);
     try {
@@ -95,10 +75,14 @@ class _RegisterPageState extends State<RegisterPage> {
   String _errorText(Object error) {
     if (error is ApiException) {
       final wait = error.retryAfter;
-      if (error.isThrottled && wait != null) return waitMessage(wait);
+      if (error.isThrottled && wait != null) {
+        return waitMessage(wait);
+      }
       return error.message;
     }
-    if (error is NetworkException) return error.message;
+    if (error is NetworkException) {
+      return error.message;
+    }
     return error.toString();
   }
 
@@ -106,15 +90,14 @@ class _RegisterPageState extends State<RegisterPage> {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: _danger,
-        duration: const Duration(seconds: 5),
-      ),
-    );
+        SnackBar(
+          content: Text(message),
+          backgroundColor: _danger,
+          duration: const Duration(seconds: 5),
+        ),
+      );
   }
 
-  /// Сколько секунд до следующего кода — по ответу сервера.
   int _resendSeconds(Map<String, dynamic> response) {
     final value = response['resend_after'];
     return value is num ? value.toInt() : 60;
@@ -135,6 +118,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final phone = _phoneController.text.trim();
     final name = _nameController.text.trim();
     final password = _passwordController.text;
+
     final state = AppScope.read(context);
     final version = state.termsVersion;
 
@@ -142,10 +126,12 @@ class _RegisterPageState extends State<RegisterPage> {
       _complain(l10n.fillAllFields);
       return;
     }
+
     if (version == null) {
       _complain(_termsError ?? 'Соглашение недоступно. Попробуйте позже.');
       return;
     }
+
     if (!_accepted) {
       _complain(l10n.consentRequired);
       return;
@@ -250,11 +236,20 @@ class _RegisterPageState extends State<RegisterPage> {
                   busy: _isSending,
                   onTap: _onNext,
                 ),
-                const SizedBox(height: 20.0),
+                const SizedBox(height: 16.0),
                 Center(
                   child: _Link(
                     label: l10n.alreadyHaveAccount,
                     onTap: _onBack,
+                  ),
+                ),
+                const SizedBox(height: 24.0),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: Image.asset(
+                    'assets/login/Register-screen-photo.png',
+                    width: double.infinity,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ],
@@ -266,11 +261,10 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-/// Полоса прогресса шага из макета: 7 в высоту, скруглённая, оранжевый отрезок.
+/// Полоса прогресса.
 class _StepBar extends StatelessWidget {
   const _StepBar({required this.progress});
 
-  /// Доля заполнения от 0 до 1.
   final double progress;
 
   @override
@@ -289,7 +283,7 @@ class _StepBar extends StatelessWidget {
   }
 }
 
-/// Поле формы: та же плитка, что в кадре, — высота 36, радиус 10.
+/// Поле ввода.
 class _Field extends StatelessWidget {
   const _Field({
     required this.fieldKey,
@@ -305,8 +299,6 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ширину берём у фактических ограничений, а не у размера экрана и не из
-    // 375-точечного макета: иначе поле вылезает за край на узких устройствах.
     return LayoutBuilder(
       builder: (context, constraints) => FigInputBox(
         key: fieldKey,
@@ -319,7 +311,7 @@ class _Field extends StatelessWidget {
   }
 }
 
-/// Кнопка кадра: 36 в высоту, радиус 10, текст 17/600 белым.
+/// Основная оранжевая кнопка.
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({
     required this.buttonKey,
@@ -338,8 +330,6 @@ class _PrimaryButton extends StatelessWidget {
     return GestureDetector(
       key: buttonKey,
       behavior: HitTestBehavior.opaque,
-      // Пока запрос в пути, повторное нажатие не проходит — второй SMS-код
-      // сбросил бы первый и упёрся бы в лимит на стороне сервера.
       onTap: busy ? null : onTap,
       child: Container(
         width: double.infinity,
@@ -373,9 +363,12 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-/// Текстовая ссылка тем же оранжевым, что и на остальных экранах входа.
+/// Ссылка назад на авторизацию.
 class _Link extends StatelessWidget {
-  const _Link({required this.label, required this.onTap});
+  const _Link({
+    required this.label,
+    required this.onTap,
+  });
 
   final String label;
   final VoidCallback onTap;

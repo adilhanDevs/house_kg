@@ -1,18 +1,3 @@
-// «Код подтверждения» — по кадру 08/57 макета, 4-значный код из SMS.
-//
-// Экран обслуживает три случая: регистрацию (аккаунт заводится здесь, после
-// проверки кода), регистрацию исполнителя и смену пароля.
-//
-// Собран настоящими виджетами, а не наложением на растр кадра, и вот почему.
-// В кадре нарисованы и сами четыре цифры, и номер телефона — причём номер
-// зашит в картинку («+996 997 919 170») одинаковым для всех, подставить туда
-// телефон пользователя невозможно в принципе. Наложения при этом стояли по
-// фиксированным координатам и на устройстве расходились с рисунком: человек
-// видел цифры кадра, тапал по ним и не попадал в настоящее поле.
-//
-// Отдельная беда была с возвратом фокуса: системная кнопка «Назад» на Android
-// закрывает клавиатуру, но фокус с узла не снимает, поэтому повторный
-// requestFocus() ничего не делал и клавиатура больше не появлялась.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -90,14 +75,7 @@ class _CodePageState extends State<CodePage> {
   }
 
   /// Запускает отсчёт до следующей попытки.
-  ///
-  /// Сколько ждать, решает сервер: у запроса кода несколько ограничений
-  /// (минутное на номер, часовое на номер, часовое на IP), и DRF отдаёт
-  /// максимум из сработавших одним числом. Раньше здесь стояло жёсткое 60,
-  /// и рядом с серверным «через 52 минуты» шёл собственный отсчёт на минуту —
-  /// получалось два разных времени на один и тот же запрет.
   void _startResendCountdown(int seconds) {
-    // Таймер всегда один: старый гасим перед запуском нового.
     _resendTimer?.cancel();
     if (!mounted) return;
     setState(() => _resendIn = seconds);
@@ -114,10 +92,6 @@ class _CodePageState extends State<CodePage> {
   }
 
   /// Возвращает фокус полю кода и открывает клавиатуру.
-  ///
-  /// Если узел уже в фокусе, requestFocus() не делает ничего — а клавиатуру
-  /// система при этом закрыла. Тогда просим её показаться явно, иначе вводить
-  /// код становится нечем.
   void _focusCode() {
     if (_focusNode.hasFocus) {
       SystemChannels.textInput.invokeMethod<void>('TextInput.show');
@@ -128,7 +102,6 @@ class _CodePageState extends State<CodePage> {
 
   String _errorText(Object error) {
     if (error is ApiException) {
-      // Ограничение по частоте: показываем ОДНО время — то, что назвал сервер.
       final wait = error.retryAfter;
       if (error.isThrottled && wait != null) {
         return waitMessage(wait);
@@ -283,8 +256,6 @@ class _CodePageState extends State<CodePage> {
                 ),
               ),
               const SizedBox(height: 8.0),
-              // Номер подставляется, а не рисуется: в кадре он был зашит
-              // в картинку одним и тем же значением для всех пользователей.
               Text(
                 l10n.codeSubtitle(_prettyPhone),
                 style: figStyle(
@@ -344,6 +315,15 @@ class _CodePageState extends State<CodePage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 24.0),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: Image.asset(
+                  'assets/login/Register-screen-photo.png',
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ],
           ),
         ),
@@ -378,9 +358,6 @@ class _CodeInput extends StatelessWidget {
         height: 60.0,
         child: Stack(
           children: [
-            // Настоящее поле размером в точку: ввод идёт в него, а рисуем мы
-            // сами. Раньше оно занимало всю полосу, лежало под GestureDetector
-            // и спорило с ним за нажатия.
             const SizedBox.shrink(),
             Positioned(
               left: 0.0,
