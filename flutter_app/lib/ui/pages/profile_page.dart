@@ -23,7 +23,9 @@ const double _rowHeight = 26;
 /// «Посмотреть все» под последними уведомлениями.
 // Полоса нарисованных карточек уведомлений и ссылка «Посмотреть все» —
 // координаты сняты измерением кадра, а не подобраны.
-const Rect _latestNotifications = Rect.fromLTWH(24, 215, 326, 143);
+// Ширина 338, а не 326: нарисованный текст «Цена снизилась» уходит
+// вправо до 362, и более узкая панель оставляла бы его край видимым.
+const Rect _latestNotifications = Rect.fromLTWH(24, 215, 338, 143);
 const Rect _seeAll = Rect.fromLTWH(24, 360, 326, 20);
 
 /// «Продать недвижимость».
@@ -193,7 +195,7 @@ class _ProfilePageState extends State<ProfilePage> {
           top: _latestNotifications.top,
           width: _latestNotifications.width,
           height: _latestNotifications.height,
-          child: const LatestNotifications(
+          child: LatestNotifications(
             width: _latestNotifications.width,
             height: _latestNotifications.height,
           ),
