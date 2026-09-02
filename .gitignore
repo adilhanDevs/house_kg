@@ -33,3 +33,6 @@ Thumbs.db
 *.mp4
 Safa-app-backend/
 backend/sample_videos/
+
+# Isolated feature workspaces
+.worktrees/
