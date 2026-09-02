@@ -311,6 +311,8 @@ FINIK_CHECKOUT_URL_TEMPLATE = env.str(
     "FINIK_CHECKOUT_URL_TEMPLATE", default="https://pay.finik.kg/checkout/{item_id}"
 )
 FINIK_REQUIRE_VERIFICATION = env.bool("FINIK_REQUIRE_VERIFICATION", default=True)
+FINIK_TEST_AMOUNT_KGS = env.str("FINIK_TEST_AMOUNT_KGS", default="").strip()
+FINIK_TEST_USER_IDS = env.list("FINIK_TEST_USER_IDS", default=[])
 
 # ----------------------------------------------------------------------------
 # Push-уведомления (FCM)

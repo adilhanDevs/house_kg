@@ -112,11 +112,18 @@ def create_topup(
         logger.info("Пополнение по ключу %s уже создано", idempotency_key)
         return existing
 
-    bricks, bonus = calculate_bricks(amount_kgs)
+    from apps.billing.amounts import get_finik_test_amount_override
+
+    effective_amount, is_test_override = (
+        get_finik_test_amount_override(user, amount_kgs)
+        if provider_code == "finik"
+        else (amount_kgs, False)
+    )
+    bricks, bonus = calculate_bricks(effective_amount)
 
     payment = Payment.objects.create(
         user=user,
-        amount_kgs=amount_kgs,
+        amount_kgs=effective_amount,
         bricks=bricks,
         bonus_bricks=bonus,
         provider=provider_code,
@@ -140,7 +147,12 @@ def create_topup(
             "qr_data": intent.qr_data,
             "provider_ref": intent.provider_ref,
             "extra": intent.extra,
-        }
+        },
+        "test_override": {
+            "is_test": is_test_override,
+            "nominal_amount_kgs": str(amount_kgs),
+            "effective_amount_kgs": str(effective_amount),
+        },
     }
     payment.save(update_fields=["provider_ref", "raw_response", "updated_at"])
 
