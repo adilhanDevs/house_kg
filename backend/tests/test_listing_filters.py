@@ -508,3 +508,40 @@ def test_sorting_is_global_across_pages(api_client: APIClient, technopark) -> No
 
     assert prices == sorted(prices)
     assert len(prices) == 15
+
+
+@pytest.mark.django_db
+def test_filtered_catalog_does_not_scale_queries_with_page_size(
+    api_client: APIClient, technopark, django_assert_num_queries
+) -> None:
+    """Карточек больше — запросов столько же.
+
+    Район, серия, застройщик и обложка тянутся одним заходом каждый; если
+    какой-то из них сорвётся в ленивую загрузку, число запросов поедет за
+    размером страницы.
+    """
+    for index in range(30):
+        listing = ListingFactory(
+            district=technopark,
+            kind=PropertyKind.APARTMENT,
+            slug=f"n{index:02d}",
+        )
+        ListingMediaFactory(listing=listing, is_cover=True)
+
+    small = api_client.get(LIST_URL, {"kind": "apartment", "page_size": "5"})
+    assert small.status_code == 200
+    assert len(small.data["results"]) == 5
+
+    with django_assert_num_queries(_count_queries(api_client, {"page_size": "5"})):
+        api_client.get(LIST_URL, {"kind": "apartment", "page_size": "25"})
+
+
+def _count_queries(api_client: APIClient, extra: dict) -> int:
+    """Сколько запросов уходит на страницу — измеряем на маленькой."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    params = {"kind": "apartment", **extra}
+    with CaptureQueriesContext(connection) as captured:
+        api_client.get(LIST_URL, params)
+    return len(captured)
