@@ -363,7 +363,16 @@ class _NewTab extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              const Positioned.fill(child: ColoredBox(color: _page)),
+              // Подложка шире самой вкладки: нарисованная в кадре подпись
+              // начинается чуть левее координаты из макета, и её первая буква
+              // выглядывала из-под нашей — получалось «ДДома».
+              const Positioned(
+                left: -6,
+                right: -6,
+                top: 0,
+                bottom: 0,
+                child: ColoredBox(color: _page),
+              ),
               Positioned(
                 left: 0,
                 top: 0,
