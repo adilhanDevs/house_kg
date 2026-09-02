@@ -2059,6 +2059,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Не удалось определить объявление для переписки'**
   String get sellerNoListingToDiscuss;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль должен быть не короче 8 символов'**
+  String get passwordTooShort;
 }
 
 class _AppLocalizationsDelegate

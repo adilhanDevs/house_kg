@@ -472,5 +472,6 @@
   "sellerThisIsYou": "Это ваш профиль",
   "sellerMustLoginToWrite": "Войдите, чтобы написать продавцу",
   "sellerNotFound": "Продавец не определён",
-  "sellerNoListingToDiscuss": "Не удалось определить объявление для переписки"
+  "sellerNoListingToDiscuss": "Не удалось определить объявление для переписки",
+  "passwordTooShort": "Пароль должен быть не короче 8 символов"
 }

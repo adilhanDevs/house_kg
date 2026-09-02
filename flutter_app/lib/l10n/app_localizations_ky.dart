@@ -1047,4 +1047,7 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get sellerNoListingToDiscuss => 'Жазышуу үчүн жарыя аныкталган жок';
+
+  @override
+  String get passwordTooShort => 'Сырсөз 8 белгиден кем болбошу керек';
 }

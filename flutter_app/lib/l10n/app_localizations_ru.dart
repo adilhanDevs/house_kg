@@ -1046,4 +1046,7 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get sellerNoListingToDiscuss =>
       'Не удалось определить объявление для переписки';
+
+  @override
+  String get passwordTooShort => 'Пароль должен быть не короче 8 символов';
 }

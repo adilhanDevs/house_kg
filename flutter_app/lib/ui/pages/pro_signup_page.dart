@@ -1,6 +1,9 @@
 // Страница регистрации исполнителя / собственника (Frame 56).
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+import 'register_page.dart' show kMinPasswordLength;
+
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
@@ -86,6 +89,13 @@ class _ProSignupPageState extends State<ProSignupPage> {
 
     if (phone.isEmpty || name.isEmpty || password.isEmpty || iin.isEmpty) {
       _complain('Пожалуйста, заполните все поля');
+      return;
+    }
+
+    // До отправки кода: иначе человек тратит СМС, а отказ по паролю приходит
+    // уже на экране подтверждения.
+    if (password.length < kMinPasswordLength) {
+      _complain(AppLocalizations.of(context).passwordTooShort);
       return;
     }
 

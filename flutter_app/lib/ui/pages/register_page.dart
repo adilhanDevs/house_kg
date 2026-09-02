@@ -14,6 +14,9 @@ import '../widgets/consent_row.dart';
 /// Ключи для тестов и отладки.
 const Key kRegisterPhoneFieldKey = Key('registration_phone_field');
 const Key kRegisterNameFieldKey = Key('registration_name_field');
+/// Столько же требует бэкенд (MinimumLengthValidator).
+const int kMinPasswordLength = 8;
+
 const Key kRegisterPasswordFieldKey = Key('registration_password_field');
 const Key kRegisterSubmitKey = Key('registration_submit_button');
 const Key kRegisterConsentKey = Key('registration_consent');
@@ -125,6 +128,14 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (phone.isEmpty || name.isEmpty || password.isEmpty) {
       _complain(l10n.fillAllFields);
+      return;
+    }
+
+    // Длину проверяем здесь, а не после ввода кода из СМС: раньше короткий
+    // пароль проходил дальше, человек тратил код, и отказ приходил только на
+    // экране подтверждения — а возвращаться было уже некуда.
+    if (password.length < kMinPasswordLength) {
+      _complain(l10n.passwordTooShort);
       return;
     }
 

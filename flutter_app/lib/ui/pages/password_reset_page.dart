@@ -1,6 +1,8 @@
 // «Забыли пароль» — новый пароль по коду из SMS.
 import 'package:flutter/material.dart';
 
+import 'register_page.dart' show kMinPasswordLength;
+
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../data/api_exceptions.dart';
@@ -72,6 +74,12 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
 
     if (phone.isEmpty || password.isEmpty) {
       _complain(l10n.fillAllFields);
+      return;
+    }
+
+    // До отправки кода: иначе отказ по паролю придёт только после ввода СМС.
+    if (password.length < kMinPasswordLength) {
+      _complain(l10n.passwordTooShort);
       return;
     }
 

@@ -371,5 +371,6 @@
   "sellerThisIsYou": "Бул сиздин профилиңиз",
   "sellerMustLoginToWrite": "Сатуучуга жазуу үчүн кириңиз",
   "sellerNotFound": "Сатуучу аныкталган жок",
-  "sellerNoListingToDiscuss": "Жазышуу үчүн жарыя аныкталган жок"
+  "sellerNoListingToDiscuss": "Жазышуу үчүн жарыя аныкталган жок",
+  "passwordTooShort": "Сырсөз 8 белгиден кем болбошу керек"
 }
