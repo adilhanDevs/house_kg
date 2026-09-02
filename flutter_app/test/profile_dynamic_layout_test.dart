@@ -86,13 +86,14 @@ class _DynamicMockHttpServer extends http.BaseClient {
   }
 }
 
-Widget _wrapApp(Widget child, AppState state) {
+Widget _wrapApp(Widget child, AppState state, {Locale locale = const Locale('ru')}) {
   return MaterialApp(
-    locale: const Locale('ru'),
+    locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     routes: {
       Routes.notifications: (context) => const NotificationsPage(),
+      Routes.tariffs: (context) => const Scaffold(body: Text('Tariffs Screen')),
     },
     home: AppScope(
       state: state,
@@ -472,6 +473,82 @@ void main() {
         expect(find.text('Добавить объявление'), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
+    });
+
+    testWidgets('Regular Profile: Tariffs row is NOT visible for client', (tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final server = _DynamicMockHttpServer();
+      final state = AppState(apiClient: ListingApiClient(baseUrl: 'http://test', client: server));
+
+      await tester.pumpWidget(_wrapApp(const ProfilePage(), state));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Тарифы'), findsNothing);
+    });
+
+    testWidgets('Pro Profile: Tariffs row is visible and navigates to TariffsPage', (tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({
+        'access_token': 'valid_token',
+        'refresh_token': 'valid_refresh',
+        'is_pro': true,
+        'user_phone': '+996555123456',
+        'user_name': 'Pro Агент',
+      });
+
+      final server = _DynamicMockHttpServer();
+      final state = AppState(apiClient: ListingApiClient(baseUrl: 'http://test', client: server));
+
+      await tester.pumpWidget(_wrapApp(const ProProfilePage(), state));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.scrollUntilVisible(find.text('Тарифы'), 100);
+      await tester.pumpAndSettle();
+      expect(find.text('Тарифы'), findsOneWidget);
+      await tester.tap(find.text('Тарифы'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tariffs Screen'), findsOneWidget);
+    });
+
+    testWidgets('KY Locale: Pro Profile shows Тарифтер and navigates to TariffsPage', (tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({
+        'access_token': 'valid_token',
+        'refresh_token': 'valid_refresh',
+        'is_pro': true,
+        'user_phone': '+996555123456',
+        'user_name': 'Pro Агент',
+      });
+
+      final server = _DynamicMockHttpServer();
+      final state = AppState(apiClient: ListingApiClient(baseUrl: 'http://test', client: server));
+
+      await tester.pumpWidget(_wrapApp(const ProProfilePage(), state, locale: const Locale('ky')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.scrollUntilVisible(find.text('Тарифтер'), 100);
+      await tester.pumpAndSettle();
+      expect(find.text('Тарифтер'), findsOneWidget);
+      await tester.tap(find.text('Тарифтер'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tariffs Screen'), findsOneWidget);
     });
   });
 }

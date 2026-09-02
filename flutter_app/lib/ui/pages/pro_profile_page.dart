@@ -9,6 +9,7 @@ import '../../l10n/l10n.dart';
 import '../app_tab_bar.dart';
 import '../auth_guard.dart';
 import '../object_card.dart';
+import '../widgets/profile_balance_section.dart';
 import '../widgets/profile_identity.dart';
 import '../widgets/profile_latest_notifications.dart';
 import 'profile_page.dart' show LanguageToggleWidget;
@@ -324,38 +325,41 @@ class _ProProfilePageState extends State<ProProfilePage> {
                         ),
                       ],
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const _AddListingIcon(size: 34.0, color: _accent),
-                        const SizedBox(width: 16.0),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.proAddListing,
-                                style: const TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.2,
-                                  color: Color(0xff000000),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const _AddListingIcon(size: 34.0, color: _accent),
+                          const SizedBox(width: 14.0),
+                          Flexible(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.proAddListing,
+                                  style: const TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.2,
+                                    color: Color(0xff000000),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 3.0),
-                              const Text(
-                                'Добавьте первый объект',
-                                style: TextStyle(
-                                  fontSize: 13.0,
-                                  fontWeight: FontWeight.w400,
-                                  color: Color(0xff7d7d7d),
+                                const SizedBox(height: 3.0),
+                                const Text(
+                                  'Добавьте первый объект',
+                                  style: TextStyle(
+                                    fontSize: 13.0,
+                                    fontWeight: FontWeight.w400,
+                                    color: Color(0xff7d7d7d),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -415,9 +419,16 @@ class _ProProfilePageState extends State<ProProfilePage> {
                         );
                       }(),
               ),
+              const SizedBox(height: 20.0),
+
+              // 6. Секция «Баланс и пополнение»
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                child: ProfileBalanceSection(),
+              ),
               const SizedBox(height: 24.0),
 
-              // 6. Секция «Последние уведомления» (Reference 1)
+              // 7. Секция «Последние уведомления» (Reference 1)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.0),
                 child: ProfileLatestNotifications(showTitle: true, maxItems: 1),
@@ -443,6 +454,11 @@ class _ProProfilePageState extends State<ProProfilePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Column(
                   children: [
+                    _ProSettingRow(
+                      icon: Icons.star_border,
+                      label: l10n.profileTariffsRow,
+                      onTap: () => Navigator.of(context).pushNamed(Routes.tariffs),
+                    ),
                     _ProSettingRow(
                       icon: Icons.notifications_none,
                       label: l10n.profileNotificationsRow,

@@ -217,11 +217,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: () => Navigator.of(context).pushNamed(Routes.favourites),
                   ),
                   _ProfileSettingRow(
-                    icon: Icons.star_border,
-                    label: l10n.profileTariffsRow,
-                    onTap: () => Navigator.of(context).pushNamed(Routes.tariffs),
-                  ),
-                  _ProfileSettingRow(
                     icon: Icons.notifications_none,
                     label: l10n.profileNotificationsRow,
                     onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
