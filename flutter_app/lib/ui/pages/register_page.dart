@@ -254,7 +254,11 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
               ),
-              const AuthBottomIllustration(),
+              // Пока поднята клавиатура, иллюстрацию убираем: она держит свою
+              // высоту, форма сжимается до полутора полей, и картинка налезает
+              // на поля ввода. Ввод важнее украшения.
+              if (MediaQuery.viewInsetsOf(context).bottom == 0)
+                const AuthBottomIllustration(),
             ],
           ),
         ),

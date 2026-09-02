@@ -326,7 +326,10 @@ class _CodePageState extends State<CodePage> {
                 ),
               ),
             ),
-            const AuthBottomIllustration(),
+            // На этом экране клавиатура открывается сразу — иллюстрация
+            // иначе занимает место, нужное полю кода.
+            if (MediaQuery.viewInsetsOf(context).bottom == 0)
+              const AuthBottomIllustration(),
           ],
         ),
       ),
