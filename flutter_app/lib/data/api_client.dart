@@ -682,6 +682,26 @@ class ListingApiClient {
     }
   }
 
+  /// Делает фото обложкой объявления.
+  ///
+  /// Решение принимает сервер и он же держит инвариант «обложка ровно одна»,
+  /// поэтому локально её назначать нельзя — только этим запросом.
+  Future<Map<String, dynamic>> setCoverMedia(String listingSlug, int mediaId) async {
+    final uri = Uri.parse('$baseUrl/api/v1/listings/$listingSlug/media/$mediaId/set-cover/');
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {'Accept': 'application/json'},
+      );
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<void> deleteMedia(String listingSlug, int mediaId) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$listingSlug/media/$mediaId/');
     try {

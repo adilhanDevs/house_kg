@@ -201,6 +201,7 @@ class _ListingPageState extends State<ListingPage> {
 
     String thumbUrl = video?.thumbnailUrl ?? '';
     if (thumbUrl.isEmpty && listing.photos.isNotEmpty) {
+      // Обложка объявления — первый элемент галереи (см. Listing.photos).
       final firstPhoto = listing.photos.first;
       if (firstPhoto.startsWith('http://') || firstPhoto.startsWith('https://')) {
         thumbUrl = firstPhoto;
@@ -364,9 +365,12 @@ class _ListingPageState extends State<ListingPage> {
                   child: SizedBox(
                     width: double.infinity,
                     height: 387.0,
-                    child: (listing.photo.startsWith('http://') || listing.photo.startsWith('https://'))
+                    // Герой берёт крупный вариант той же обложки: `photo` —
+                    // это превью на 400 px для сетки каталога.
+                    child: (listing.heroPhoto.startsWith('http://') ||
+                            listing.heroPhoto.startsWith('https://'))
                         ? buildSafeNetworkImage(
-                            url: listing.photo,
+                            url: listing.heroPhoto,
                             fit: BoxFit.cover,
                             fallback: Container(
                               color: const Color(0xff2c2b2a),

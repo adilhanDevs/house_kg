@@ -139,6 +139,8 @@ class Listing {
     this.agent = '',
     this.description = '',
     this.more = const [],
+    this.coverMediaId,
+    this.coverDetailUrl,
     this.videos = const [],
     this.viewsCount = 0,
     this.sellerPhone,
@@ -208,61 +210,73 @@ class Listing {
         : (json['district'] is String ? json['district'] as String : '');
     final slug = json['slug'] as String? ?? json['id']?.toString() ?? '';
 
+    // Адрес файла: сервер отдаёт абсолютный, но относительный тоже переживаем.
+    String absolute(String value) =>
+        value.startsWith('/') ? '$kApiBaseUrl$value' : value;
+
+    String? mediaUrl(Map<dynamic, dynamic> m) {
+      final u = m['url_original'] ??
+          m['url_medium'] ??
+          m['url'] ??
+          m['file'] ??
+          m['url_thumb'] ??
+          m['image'];
+      if (u == null || u.toString().isEmpty) return null;
+      return absolute(u.toString());
+    }
+
+    // Галерея — это media[] в том порядке, в котором их прислал сервер.
+    // Обложку она НЕ определяет: раньше именно отсюда бралось photoUrls.first,
+    // и карточка с детальной страницей показывали разные снимки.
     final mediaList = (json['media'] as List<dynamic>?) ?? [];
-    final photoUrls = <String>[];
+    final galleryUrls = <String>[];
+    final galleryIds = <int?>[];
     for (final m in mediaList) {
-      if (m is Map) {
-        final kind = m['kind']?.toString();
-        final isVideo = kind == 'video' || m['is_video'] == true;
-        if (!isVideo) {
-          final u = m['url_original'] ?? m['url_medium'] ?? m['url'] ?? m['file'] ?? m['url_thumb'] ?? m['image'];
-          if (u != null && u.toString().isNotEmpty) {
-            var str = u.toString();
-            if (str.startsWith('/')) {
-              str = '$kApiBaseUrl$str';
-            }
-            if (!photoUrls.contains(str)) {
-              photoUrls.add(str);
-            }
-          }
-        }
-      }
+      if (m is! Map) continue;
+      final kind = m['kind']?.toString();
+      if (kind == 'video' || m['is_video'] == true) continue;
+      final url = mediaUrl(m);
+      if (url == null || galleryUrls.contains(url)) continue;
+      galleryUrls.add(url);
+      galleryIds.add(parseIntOrNull(m['id']));
     }
 
     if (json['photos'] is List) {
       for (final p in json['photos']) {
-        if (p is String && p.isNotEmpty) {
-          var str = p;
-          if (str.startsWith('/')) str = '$kApiBaseUrl$str';
-          if (!photoUrls.contains(str)) photoUrls.add(str);
-        } else if (p is Map) {
-          final u = p['url_original'] ?? p['url_medium'] ?? p['url'] ?? p['file'] ?? p['url_thumb'] ?? p['image'];
-          if (u != null && u.toString().isNotEmpty) {
-            var str = u.toString();
-            if (str.startsWith('/')) str = '$kApiBaseUrl$str';
-            if (!photoUrls.contains(str)) photoUrls.add(str);
-          }
-        }
+        final url = p is String && p.isNotEmpty
+            ? absolute(p)
+            : (p is Map ? mediaUrl(p) : null);
+        if (url == null || galleryUrls.contains(url)) continue;
+        galleryUrls.add(url);
+        galleryIds.add(p is Map ? parseIntOrNull(p['id']) : null);
       }
     }
 
+    // Обложка приходит с сервера и ничем на клиенте не переопределяется.
+    // `json['photo']` оставлен для прототипных данных из этого же файла.
     final coverVal = json['cover_url'] ?? json['photo'];
-    if (coverVal != null && coverVal.toString().isNotEmpty) {
-      var str = coverVal.toString();
-      if (str.startsWith('/')) str = '$kApiBaseUrl$str';
-      if (!photoUrls.contains(str)) {
-        photoUrls.insert(0, str);
-      }
-    }
+    final photo = (coverVal != null && coverVal.toString().isNotEmpty)
+        ? absolute(coverVal.toString())
+        : '';
 
-    final String photo;
-    final List<String> morePhotos;
-    if (photoUrls.isNotEmpty) {
-      photo = photoUrls.first;
-      morePhotos = photoUrls.skip(1).toList();
-    } else {
-      photo = '';
-      morePhotos = const <String>[];
+    final coverDetail = json['cover_detail_url'];
+    final coverDetailUrl = (coverDetail != null && coverDetail.toString().isNotEmpty)
+        ? absolute(coverDetail.toString())
+        : null;
+
+    final coverMediaId = parseIntOrNull(json['cover_media_id']);
+
+    // Галерея начинается с обложки — её ищем по id медиа, а не по адресу.
+    // Так один снимок не показывается дважды: в герое крупным вариантом,
+    // а в ленте — тем же файлом под другим URL.
+    final morePhotos = <String>[];
+    final coverIndex = coverMediaId == null ? -1 : galleryIds.indexOf(coverMediaId);
+    if (coverIndex >= 0) {
+      morePhotos.add(galleryUrls[coverIndex]);
+    }
+    for (var i = 0; i < galleryUrls.length; i++) {
+      if (i == coverIndex) continue;
+      morePhotos.add(galleryUrls[i]);
     }
 
     final sellerMap = json['seller'] as Map?;
@@ -289,6 +303,8 @@ class Listing {
       floors: parseInt(json['floors']),
       photo: photo,
       more: morePhotos,
+      coverMediaId: coverMediaId,
+      coverDetailUrl: coverDetailUrl,
       agent: sellerName,
       kind: PropertyKind.values.firstWhere(
         (e) => e.name == json['kind'] || (e == PropertyKind.newBuilding && json['kind'] == 'new_building'),
@@ -371,6 +387,18 @@ class Listing {
   /// Остальные фотографии «Фотообзора» — первой идёт [photo].
   final List<String> more;
 
+  /// id медиа, которое сервер выбрал обложкой (`cover_media_id`).
+  ///
+  /// Нужен, чтобы не искать обложку среди галереи сравнением адресов: один и
+  /// тот же снимок приходит в ответе разными вариантами размера и, значит,
+  /// разными URL. Раньше именно это сравнение и решало, какая картинка станет
+  /// обложкой, — отсюда расхождение карточки и детальной страницы.
+  final int? coverMediaId;
+
+  /// Крупный вариант той же обложки (`cover_detail_url`) — для героя карточки
+  /// объекта. В сетке каталога хватает `photo` на 400 px.
+  final String? coverDetailUrl;
+
   /// Видео и их метаданные (Reels)
   final List<ListingMedia> videos;
 
@@ -394,14 +422,28 @@ class Listing {
 
   List<ListingRoom> get roomsBreakdown => _roomsBreakdown ?? const [];
 
+  /// Крупный вариант обложки — для героя карточки объекта.
+  ///
+  /// `photo` рассчитан на сетку каталога (400 px) и на весь экран расплывается.
+  /// Снимок при этом один и тот же, просто другой вариант размера.
+  String get heroPhoto => coverDetailUrl ?? photo;
+
+  /// Галерея: обложка первой, дальше остальные фото в порядке сервера.
+  ///
+  /// Раньше при пустой галерее сюда подставлялся кадр из макета
+  /// (`assets/figma/...`), и объявление без единой фотографии показывало чужую
+  /// квартиру как свою. Теперь пустой список — это честно пустой список.
   List<String> get photos {
     final list = <String>[];
-    if (photo.isNotEmpty) list.add(photo);
-    for (final m in more) {
-      if (!list.contains(m)) list.add(m);
-    }
-    if (list.isEmpty) {
-      list.add(ListingPhotos.technopark);
+    if (more.isNotEmpty) {
+      list.addAll(more);
+      // У объявлений с сервера обложка уже стоит первой в `more` крупным
+      // вариантом (см. Listing.fromJson) — второй раз её добавлять не нужно.
+      // У прототипных данных из этого файла `cover_media_id` нет, там обложка
+      // хранится отдельным полем.
+      if (coverMediaId == null && photo.isNotEmpty) list.insert(0, photo);
+    } else if (photo.isNotEmpty) {
+      list.add(photo);
     }
     return list;
   }

@@ -12,6 +12,7 @@ import '../../data/kind_fields.dart';
 import '../../data/listing_payload.dart';
 import '../../data/listings.dart';
 import '../../data/video_poster.dart';
+import '../widgets/safe_image.dart';
 
 class AdEditPage extends StatefulWidget {
   const AdEditPage({
@@ -68,6 +69,13 @@ class _AdEditPageState extends State<AdEditPage> {
 
   // Media
   List<Map<String, dynamic>> _photos = [];
+
+  /// Какое медиа сервер считает обложкой. Раньше «главным» здесь молча
+  /// назначалось первое фото в списке — своё правило поверх серверного.
+  int? _coverMediaId;
+
+  /// Пока запрос на смену обложки в пути — повторные нажатия игнорируем.
+  bool _settingCover = false;
   List<Map<String, dynamic>> _videos = [];
   final List<dynamic> _newPhotoFiles = [];
   final List<dynamic> _newVideoFiles = [];
@@ -206,6 +214,7 @@ class _AdEditPageState extends State<AdEditPage> {
     _exchangePossible = data['exchange_possible'] == true;
 
     // Photos & Video
+    _coverMediaId = data['cover_media_id'] is int ? data['cover_media_id'] as int : null;
     final mediaList = data['media'];
     if (mediaList is List) {
       _photos = mediaList
@@ -247,19 +256,84 @@ class _AdEditPageState extends State<AdEditPage> {
     }
   }
 
+  /// Делает фото обложкой. Решение всегда за сервером: локально флаг не ставим,
+  /// иначе экран покажет одну обложку, а каталог — другую.
+  Future<void> _setCover(Map<String, dynamic> photo) async {
+    final photoId = photo['id'];
+    if (_settingCover || photoId is! int || photoId == _coverMediaId) return;
+
+    setState(() => _settingCover = true);
+    try {
+      await AppScope.read(context).apiClient.setCoverMedia(_slug, photoId);
+      if (!mounted) return;
+      setState(() {
+        _coverMediaId = photoId;
+        for (final item in _photos) {
+          item['is_cover'] = item['id'] == photoId;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Обложка обновлена'), duration: Duration(seconds: 2)),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Не удалось сменить обложку: ${_uploadErrorText(e)}'),
+            backgroundColor: const Color(0xffd93025),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _settingCover = false);
+    }
+  }
+
   Future<void> _deleteExistingPhoto(Map<String, dynamic> photo) async {
     final photoId = photo['id'];
-    setState(() {
-      _photos.remove(photo);
-    });
+    if (photoId is! int) {
+      setState(() => _photos.remove(photo));
+      return;
+    }
 
-    if (photoId != null && photoId is int) {
-      try {
-        final state = AppScope.read(context);
-        await state.apiClient.deleteMedia(_slug, photoId);
-      } catch (e) {
-        debugPrint('Delete media error: $e');
-      }
+    final wasCover = photoId == _coverMediaId;
+    setState(() => _photos.remove(photo));
+
+    try {
+      await AppScope.read(context).apiClient.deleteMedia(_slug, photoId);
+    } catch (e) {
+      if (!mounted) return;
+      // Сервер файл не удалил — возвращаем его в список, иначе экран врёт.
+      setState(() => _photos.add(photo));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Не удалось удалить фото: ${_uploadErrorText(e)}'),
+          backgroundColor: const Color(0xffd93025),
+        ),
+      );
+      return;
+    }
+
+    // Удалили обложку — сервер назначил следующую сам. Перечитываем объявление,
+    // чтобы не показывать несуществующую обложку до выхода с экрана.
+    if (wasCover && mounted) {
+      await _reloadCover();
+    }
+  }
+
+  /// Перечитывает объявление ради актуальной обложки после удаления.
+  Future<void> _reloadCover() async {
+    try {
+      final data = await AppScope.read(context).apiClient.getListingDetails(_slug);
+      if (!mounted) return;
+      setState(() {
+        _coverMediaId = data['cover_media_id'] is int ? data['cover_media_id'] as int : null;
+        for (final item in _photos) {
+          item['is_cover'] = item['id'] == _coverMediaId;
+        }
+      });
+    } catch (e) {
+      debugPrint('Cover reload failed: $e');
     }
   }
 
@@ -1009,42 +1083,60 @@ class _AdEditPageState extends State<AdEditPage> {
           const SizedBox(width: 10),
 
           // Existing server photos
-          ..._photos.asMap().entries.map((entry) {
-            final index = entry.key;
-            final photo = entry.value;
+          ..._photos.map((photo) {
             final url = photo['url']?.toString() ?? '';
+            // Обложку показываем ту, что выбрал сервер, а не первую в списке.
+            final isCover = photo['id'] != null && photo['id'] == _coverMediaId;
             return Container(
               width: 100,
               height: 100,
               margin: const EdgeInsets.only(right: 10),
               child: Stack(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      url,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xffe5e5ea),
-                        child: const Icon(Icons.image, color: Colors.grey),
+                  GestureDetector(
+                    onTap: isCover ? null : () => _setCover(photo),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: isCover
+                              ? Border.all(color: const Color(0xffea812e), width: 2)
+                              : null,
+                        ),
+                        child: buildSafeNetworkImage(
+                          url: url,
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(12),
+                          fallback: Container(
+                            color: const Color(0xffe5e5ea),
+                            child: const Icon(Icons.image, color: Colors.grey),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  if (index == 0)
-                    Positioned(
-                      top: 4,
-                      left: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xcc000000),
-                          borderRadius: BorderRadius.circular(6),
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isCover ? const Color(0xccea812e) : const Color(0x99000000),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        isCover ? 'Обложка' : 'Сделать обложкой',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
                         ),
-                        child: const Text('Главное', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                       ),
                     ),
+                  ),
                   Positioned(
                     top: 4,
                     right: 4,
