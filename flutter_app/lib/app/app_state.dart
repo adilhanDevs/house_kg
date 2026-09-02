@@ -715,11 +715,13 @@ class AppState extends ChangeNotifier {
   AreaRange? _customArea;
   final Set<SellerKind> _sellers = {};
   bool _secondaryOnly = false;
-  bool _series103 = false;
   final Set<String> _plotPurposes = {};
   final Set<String> _commercialPurposes = {};
   final Set<String> _buildingLines = {};
   final Set<String> _series = {};
+
+  /// Код серии за чипом «103 серия» — он же уходит в параметр `series`.
+  static const String _series103Code = '103';
   int? _priceFrom;
   int? _priceTo;
 
@@ -733,7 +735,10 @@ class AppState extends ChangeNotifier {
   AreaRange? get customArea => _customArea;
   Set<SellerKind> get sellers => Set.unmodifiable(_sellers);
   bool get secondaryOnly => _secondaryOnly;
-  bool get series103 => _series103;
+  /// Чип «103 серия» — это тот же набор серий, а не отдельный флаг.
+  /// Раньше он жил своим полем, которое не попадало в запрос, и фильтр
+  /// молча не работал.
+  bool get series103 => _series.contains(_series103Code);
   Set<String> get series => Set.unmodifiable(_series);
   Set<String> get plotPurposes => Set.unmodifiable(_plotPurposes);
   Set<String> get commercialPurposes => Set.unmodifiable(_commercialPurposes);
@@ -760,8 +765,8 @@ class AppState extends ChangeNotifier {
   bool get ownerOnly => _sellers.contains(SellerKind.owner);
 
   void setSeries103(bool value) {
-    if (_series103 == value) return;
-    _series103 = value;
+    if (series103 == value) return;
+    value ? _series.add(_series103Code) : _series.remove(_series103Code);
     notifyListeners();
   }
 
@@ -817,6 +822,17 @@ class AppState extends ChangeNotifier {
     if (_priceFrom != null) params['price_min'] = _priceFrom.toString();
     if (_priceTo != null) params['price_max'] = _priceTo.toString();
     return params;
+  }
+
+  /// Отпечаток запроса: те же параметры в устойчивом порядке.
+  ///
+  /// AppState шлёт `notifyListeners` на всё подряд — профиль, кошелёк,
+  /// избранное. Каталог сравнивает отпечаток и перезагружается только когда
+  /// действительно изменился запрос, а не на каждое чужое уведомление.
+  String get filterSignature {
+    final entries = filterParams.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((e) => '${e.key}=${e.value}').join('&');
   }
 
   void toggleKind(PropertyKind kind) {
@@ -882,32 +898,9 @@ class AppState extends ChangeNotifier {
     _sellers.clear();
     _customArea = null;
     _secondaryOnly = false;
-    _series103 = false;
     _priceFrom = null;
     _priceTo = null;
     notifyListeners();
-  }
-
-  /// Каталог с учётом поиска и фильтра.
-  List<Listing> get results {
-    final q = _query.trim().toLowerCase();
-    return kListings.where((l) {
-      if (q.isNotEmpty &&
-          !l.district.toLowerCase().contains(q) &&
-          !l.kind.label.toLowerCase().contains(q)) {
-        return false;
-      }
-      if (_kinds.isNotEmpty && !_kinds.contains(l.kind)) return false;
-      if (_rooms.isNotEmpty && !_rooms.contains(l.rooms)) return false;
-      final areas = areaFilter;
-      if (areas.isNotEmpty && !areas.any((r) => r.has(l.area))) return false;
-      if (_secondaryOnly && !l.secondary) return false;
-      if (_series103 && l.series != '103') return false;
-      if (_sellers.isNotEmpty && !_sellers.contains(l.seller)) return false;
-      if (_priceFrom != null && l.priceUsd < _priceFrom!) return false;
-      if (_priceTo != null && l.priceUsd > _priceTo!) return false;
-      return true;
-    }).toList();
   }
 
   // ---------------------------------------------------------------- кошелёк

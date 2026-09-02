@@ -143,13 +143,19 @@ void main() {
       expect(shown(tester).single.district, 'Асанбай');
     });
 
-    testWidgets('поиск без совпадений объясняет пустой список', (tester) async {
+    testWidgets('недоступный сервер не выдаётся за пустую выдачу',
+        (tester) async {
+      // Каталог целиком приходит с сервера, а в этом наборе сервера нет.
+      // Раньше сорванный запрос показывался как «ничего не нашлось» —
+      // пользователь думал, что объявлений нет, хотя их просто не спросили.
+      // Пустую выдачу проверяет catalog_filters_test.dart на заглушке.
       await open(tester);
       await tester.enterText(find.byType(TextField).first, 'Марс');
       await tester.pumpAndSettle();
 
       expect(find.byType(ObjectCard), findsNothing);
-      expect(find.textContaining('Ничего не нашлось'), findsOneWidget);
+      expect(find.textContaining('Ничего не нашлось'), findsNothing);
+      expect(find.text('Повторить'), findsOneWidget);
     });
   });
 

@@ -389,3 +389,122 @@ def test_fetch_exchange_rates_survives_outage(caplog) -> None:
     assert ExchangeRate.objects.count() == 1
     invalidate_rate_cache()
     assert get_rate() == Decimal("90.000000")
+
+
+# -- валидация параметров ----------------------------------------------------
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"rooms": "banana"},
+        {"price_min": "abc"},
+        {"area_min": "not-a-number"},
+        {"floor_min": "x"},
+        {"currency": "XXX"},
+        {"kind": "not_a_kind"},
+        {"seller_kind": "landlord"},
+        {"price_min": "-1"},
+        {"area_max": "-5"},
+        {"price_min": "500000", "price_max": "1000"},
+        {"area_min": "90", "area_max": "40"},
+        {"floor_min": "9", "floor_max": "2"},
+    ],
+)
+def test_invalid_filters_give_400_not_500(api_client: APIClient, params) -> None:
+    """Мусор и бессмыслица — контролируемая ошибка, а не 500 и не пустой список."""
+    response = api_client.get(LIST_URL, params)
+    assert response.status_code == 400, (params, response.status_code)
+
+
+@pytest.mark.django_db
+def test_reversed_price_range_names_the_field(api_client: APIClient) -> None:
+    response = api_client.get(LIST_URL, {"price_min": "500000", "price_max": "1000"})
+    assert response.status_code == 400
+    assert "price_min" in response.data["error"]["details"]
+
+
+@pytest.mark.django_db
+def test_unknown_kind_lists_allowed_values(api_client: APIClient) -> None:
+    response = api_client.get(LIST_URL, {"kind": "villa"})
+    assert response.status_code == 400
+    message = " ".join(response.data["error"]["details"]["kind"])
+    assert "villa" in message
+    assert "apartment" in message
+
+
+@pytest.mark.django_db
+def test_equal_bounds_are_allowed(api_client: APIClient, technopark) -> None:
+    """price_min == price_max — законный запрос «ровно столько»."""
+    ListingFactory(district=technopark, price=Decimal("100000"), slug="exact")
+    response = api_client.get(LIST_URL, {"price_min": "100000", "price_max": "100000"})
+    assert response.status_code == 200
+    assert [item["slug"] for item in response.data["results"]] == ["exact"]
+
+
+@pytest.mark.django_db
+def test_price_boundaries_are_inclusive(api_client: APIClient, technopark) -> None:
+    ListingFactory(district=technopark, price=Decimal("100000"), slug="low")
+    ListingFactory(district=technopark, price=Decimal("200000"), slug="high")
+    response = api_client.get(LIST_URL, {"price_min": "100000", "price_max": "200000"})
+    slugs = {item["slug"] for item in response.data["results"]}
+    assert slugs == {"low", "high"}
+
+
+# -- фильтр + пагинация ------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_filter_survives_pagination_without_duplicates(
+    api_client: APIClient, technopark, asanbay
+) -> None:
+    """Вторая страница остаётся внутри фильтра и не повторяет первую."""
+    for index in range(25):
+        ListingFactory(
+            district=technopark,
+            kind=PropertyKind.APARTMENT,
+            slug=f"wanted-{index:02d}",
+        )
+    for index in range(5):
+        ListingFactory(district=asanbay, kind=PropertyKind.HOUSE, slug=f"other-{index}")
+
+    first = api_client.get(LIST_URL, {"kind": "apartment", "page_size": "10"})
+    assert first.status_code == 200
+    assert first.data["count"] == 25
+
+    seen = [item["slug"] for item in first.data["results"]]
+    next_link = first.data["next"]
+    assert next_link is not None
+
+    while next_link:
+        page = api_client.get(next_link)
+        assert page.status_code == 200
+        seen.extend(item["slug"] for item in page.data["results"])
+        next_link = page.data["next"]
+
+    assert len(seen) == len(set(seen)), "объявление попало в две страницы"
+    assert len(seen) == 25
+    assert all(slug.startswith("wanted-") for slug in seen)
+
+
+@pytest.mark.django_db
+def test_sorting_is_global_across_pages(api_client: APIClient, technopark) -> None:
+    """Сортировка по цене сквозная, а не внутри страницы."""
+    for index in range(15):
+        ListingFactory(
+            district=technopark,
+            price=Decimal(str(50000 + index * 1000)),
+            slug=f"p{index:02d}",
+        )
+
+    prices: list[float] = []
+    link = f"{LIST_URL}?ordering=price&page_size=5"
+    while link:
+        page = api_client.get(link)
+        assert page.status_code == 200
+        prices.extend(float(item["price"]) for item in page.data["results"])
+        link = page.data["next"]
+
+    assert prices == sorted(prices)
+    assert len(prices) == 15

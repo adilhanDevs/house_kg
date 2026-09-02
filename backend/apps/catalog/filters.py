@@ -12,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import django_filters as filters
+from django import forms
 from django.db.models import Exists, F, OuterRef, Q, QuerySet
 
 from apps.catalog.enums import Currency, MediaKind, PropertyKind, SellerKind
@@ -50,6 +51,62 @@ def parse_area_ranges(raw: str) -> list[tuple[Decimal, Decimal]]:
         ranges.append((low, high))
 
     return ranges
+
+
+class ListingFilterForm(forms.Form):
+    """Перекрёстные проверки, которые не выражаются отдельным полем.
+
+    Одиночные значения django-filter проверяет сам (`rooms=banana` — 400).
+    Здесь остаётся то, что видно только при взгляде на пару полей сразу:
+    перевёрнутая вилка и отрицательные границы. Молча возвращать пустой
+    список на `price_min=500000&price_max=1000` нельзя — это не пустой
+    результат, а бессмысленный запрос, и клиент должен узнать об этом.
+    """
+
+    #: Поля, где значение ниже нуля не имеет смысла.
+    NON_NEGATIVE = ("price_min", "price_max", "area_min", "area_max")
+
+    #: Пары «от/до», которые нельзя задавать в обратном порядке.
+    BOUNDS = (
+        ("price_min", "price_max", "Цена «от» не может быть больше цены «до»"),
+        ("area_min", "area_max", "Площадь «от» не может быть больше площади «до»"),
+        ("floor_min", "floor_max", "Этаж «от» не может быть больше этажа «до»"),
+    )
+
+    #: Мультивыборы, значения которых обязаны совпадать с enum'ом каталога.
+    CHOICES = (
+        ("kind", PropertyKind, "Неизвестный тип недвижимости"),
+        ("seller_kind", SellerKind, "Неизвестный тип продавца"),
+    )
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean()
+        errors: dict[str, list[str]] = {}
+
+        for name in self.NON_NEGATIVE:
+            value = cleaned.get(name)
+            if value is not None and value < 0:
+                errors.setdefault(name, []).append("Значение не может быть отрицательным")
+
+        for low_name, high_name, message in self.BOUNDS:
+            low, high = cleaned.get(low_name), cleaned.get(high_name)
+            # Проверяем только когда обе границы заданы и обе прошли своё поле.
+            if low is not None and high is not None and low > high:
+                errors.setdefault(low_name, []).append(message)
+
+        for name, enum, message in self.CHOICES:
+            values = cleaned.get(name) or []
+            unknown = [item for item in values if item not in enum.values]
+            if unknown:
+                allowed = ", ".join(enum.values)
+                errors.setdefault(name, []).append(
+                    f"{message}: {', '.join(unknown)}. Допустимые значения: {allowed}"
+                )
+
+        if errors:
+            raise forms.ValidationError(errors)
+
+        return cleaned
 
 
 class ListingFilterSet(filters.FilterSet):
@@ -107,6 +164,7 @@ class ListingFilterSet(filters.FilterSet):
 
     class Meta:
         model = Listing
+        form = ListingFilterForm
         fields: list[str] = []
 
     # -- служебное -----------------------------------------------------------

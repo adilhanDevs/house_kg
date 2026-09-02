@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -22,26 +24,73 @@ class FilterPage extends StatefulWidget {
   State<FilterPage> createState() => _FilterPageState();
 }
 
+/// Пауза перед запросом количества: пока пользователь щёлкает чипами,
+/// на сервер уходит один запрос, а не по одному на каждое нажатие.
+const Duration _countDebounce = Duration(milliseconds: 350);
+
 class _FilterPageState extends State<FilterPage> {
   late final TextEditingController _from;
   late final TextEditingController _to;
   late final TextEditingController _area;
+  late final AppState _appState;
+
+  /// Сколько объявлений подходит под текущий фильтр. Считает сервер: у
+  /// клиента нет каталога, по которому можно было бы это узнать.
+  int? _count;
+  String _signature = '';
+  Timer? _debounce;
+
+  /// Номер последнего запроса — ответ на устаревший игнорируется.
+  int _requestId = 0;
 
   @override
   void initState() {
     super.initState();
-    final state = AppScope.read(context);
-    _from = TextEditingController(text: state.priceFrom?.toString() ?? '');
-    _to = TextEditingController(text: state.priceTo?.toString() ?? '');
-    _area = TextEditingController(text: state.customArea?.label ?? '');
+    _appState = AppScope.read(context);
+    _from = TextEditingController(text: _appState.priceFrom?.toString() ?? '');
+    _to = TextEditingController(text: _appState.priceTo?.toString() ?? '');
+    _area = TextEditingController(text: _appState.customArea?.label ?? '');
+    _signature = _appState.filterSignature;
+    _appState.addListener(_onFilterChanged);
+    _fetchCount();
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _appState.removeListener(_onFilterChanged);
     _from.dispose();
     _to.dispose();
     _area.dispose();
     super.dispose();
+  }
+
+  void _onFilterChanged() {
+    final signature = _appState.filterSignature;
+    if (signature == _signature) return;
+    _signature = signature;
+
+    _debounce?.cancel();
+    _debounce = Timer(_countDebounce, () {
+      if (mounted) _fetchCount();
+    });
+  }
+
+  Future<void> _fetchCount() async {
+    final requestId = ++_requestId;
+    try {
+      final count = await _appState.apiClient.getListingsCount(
+        filters: _appState.filterParams,
+      );
+      if (!mounted || requestId != _requestId) return;
+      setState(() => _count = count);
+    } catch (e) {
+      // Счётчик — подсказка на кнопке: из-за него экран фильтра падать или
+      // блокироваться не должен. Кнопка просто остаётся без числа.
+      if (!mounted || requestId != _requestId) return;
+      setState(() => _count = null);
+      debugPrint('Не удалось получить количество: $e');
+    }
   }
 
   void _applyPrice() {
@@ -330,7 +379,9 @@ class _FilterPageState extends State<FilterPage> {
             child: FigText(
               noWrap: true,
               span: TextSpan(
-                text: l10n.filterShowVariants(state.results.length),
+                text: _count == null
+                    ? l10n.catalogShowListings
+                    : l10n.filterShowVariants(_count!),
                 style: figStyle(
                   fontSize: 16.0,
                   family: FigFont.display,

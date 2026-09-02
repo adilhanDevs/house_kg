@@ -122,6 +122,37 @@ class ListingApiClient {
     }
   }
 
+  /// Сколько объявлений подходит под фильтр — без выборки самих карточек.
+  ///
+  /// Отдельный лёгкий эндпоинт: экрану фильтра нужно число для кнопки
+  /// «Показать N вариантов», а не страница результатов. Сервер кэширует
+  /// ответ на минуту по нормализованным параметрам.
+  Future<int> getListingsCount({Map<String, dynamic>? filters}) async {
+    final queryParameters = <String, String>{};
+    filters?.forEach((key, value) {
+      if (value != null && value.toString().isNotEmpty) {
+        queryParameters[key] = value.toString();
+      }
+    });
+
+    final uri = Uri.parse('$baseUrl/api/v1/listings/count/').replace(
+      queryParameters: queryParameters.isNotEmpty ? queryParameters : null,
+    );
+
+    try {
+      final response = await _client.get(uri, headers: {
+        'Accept': 'application/json',
+      });
+      final data = _processResponse(response);
+      return (data['count'] as num?)?.toInt() ?? 0;
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> getFavourites({String? cursor}) async {
     var uri = Uri.parse('$baseUrl/api/v1/favourites/');
     if (cursor != null) uri = uri.replace(queryParameters: {'cursor': cursor});
