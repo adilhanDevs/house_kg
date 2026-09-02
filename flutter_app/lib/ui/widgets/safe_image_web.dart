@@ -11,19 +11,26 @@ Widget safeNetworkImage({
   BorderRadius? borderRadius,
   Widget? fallback,
 }) {
-  final viewType = 'img-${url.hashCode.abs()}';
+  final cleanUrl = url.trim();
+  if (cleanUrl.isEmpty ||
+      (!cleanUrl.startsWith('http://') &&
+          !cleanUrl.startsWith('https://') &&
+          !cleanUrl.startsWith('blob:'))) {
+    return fallback ?? const SizedBox();
+  }
+
+  final viewType = 'img-${cleanUrl.hashCode.abs()}-${fit.name}';
   if (!_registeredViews.contains(viewType)) {
     _registeredViews.add(viewType);
     ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
       final img = html.ImageElement()
-        ..src = url
+        ..src = cleanUrl
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.objectFit = fit == BoxFit.contain ? 'contain' : 'cover'
         ..style.border = 'none'
         ..style.pointerEvents = 'none'
-        ..style.userSelect = 'none'
-        ..style.borderRadius = borderRadius != null ? '10px' : '0px';
+        ..style.userSelect = 'none';
       return img;
     });
   }

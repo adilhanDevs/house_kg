@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app/stage.dart';
 import '../data/ad_media.dart';
+import 'widgets/safe_image.dart';
 
 /// Ключ крестика — им до него добираются тесты.
 Key removeKey(AdMedia media) => ValueKey('remove:${media.name}');
@@ -101,10 +102,10 @@ class _Preview extends StatelessWidget {
     }
     final url = media.url;
     if (url != null && url.isNotEmpty) {
-      return Image.network(
-        url,
+      return buildSafeNetworkImage(
+        url: url,
         fit: BoxFit.cover,
-        errorBuilder: (context, _, __) => _Name(media: media),
+        fallback: _Name(media: media),
       );
     }
     final asset = media.asset;

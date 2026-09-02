@@ -108,18 +108,32 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
     }
   }
 
+  void _onBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(context).pushReplacementNamed(Routes.welcome);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffffffff),
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(25.0, 40.0, 25.0, 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _BackLink(onTap: () => Navigator.of(context).pop()),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _onBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xffffffff),
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(25.0, 40.0, 25.0, 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BackLink(onTap: _onBack),
               const SizedBox(height: 24.0),
               Text(
                 'Забыли пароль?',
@@ -167,6 +181,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
           ),
         ),
       ),
+    ),
     );
   }
 }

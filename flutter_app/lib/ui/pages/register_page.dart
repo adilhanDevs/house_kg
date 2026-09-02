@@ -124,6 +124,14 @@ class _RegisterPageState extends State<RegisterPage> {
     return value is num ? value.toInt() : 60;
   }
 
+  void _onBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(context).pushReplacementNamed(Routes.welcome);
+    }
+  }
+
   Future<void> _onNext() async {
     if (_isSending) return;
 
@@ -170,86 +178,93 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffffffff),
-      // Форма прокручивается, поэтому клавиатуре можно подвинуть содержимое:
-      // кнопка «Далее» не должна оставаться под ней на невысоких экранах.
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Полоса шага — как в макете: оранжевый отрезок на светлом фоне.
-              const _StepBar(progress: 0.18),
-              const SizedBox(height: 40.0),
-              Text(
-                'Добро пожаловать!',
-                style: figStyle(
-                  fontSize: 21.0,
-                  family: FigFont.display,
-                  weight: 600,
-                  height: 1.0,
-                  color: const Color(0xff000000),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _onBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xffffffff),
+        // Форма прокручивается, поэтому клавиатуре можно подвинуть содержимое:
+        // кнопка «Далее» не должна оставаться под ней на невысоких экранах.
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Полоса шага — как в макете: оранжевый отрезок на светлом фоне.
+                const _StepBar(progress: 0.18),
+                const SizedBox(height: 40.0),
+                Text(
+                  'Добро пожаловать!',
+                  style: figStyle(
+                    fontSize: 21.0,
+                    family: FigFont.display,
+                    weight: 600,
+                    height: 1.0,
+                    color: const Color(0xff000000),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6.0),
-              Text(
-                'Зарегистрируйтесь по номеру телефона. Мы пришлём код '
-                'подтверждения, а войти потом можно будет по паролю.',
-                style: figStyle(
-                  fontSize: 15.0,
-                  family: FigFont.display,
-                  weight: 500,
-                  height: 1.333,
-                  color: _muted,
+                const SizedBox(height: 6.0),
+                Text(
+                  'Зарегистрируйтесь по номеру телефона. Мы пришлём код '
+                  'подтверждения, а войти потом можно будет по паролю.',
+                  style: figStyle(
+                    fontSize: 15.0,
+                    family: FigFont.display,
+                    weight: 500,
+                    height: 1.333,
+                    color: _muted,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 28.0),
-              _Field(
-                fieldKey: kRegisterPhoneFieldKey,
-                controller: _phoneController,
-                hint: 'Номер телефона (с WhatsApp)',
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12.0),
-              _Field(
-                fieldKey: kRegisterNameFieldKey,
-                controller: _nameController,
-                hint: 'Имя',
-                keyboardType: TextInputType.name,
-              ),
-              const SizedBox(height: 12.0),
-              _Field(
-                fieldKey: kRegisterPasswordFieldKey,
-                controller: _passwordController,
-                hint: 'Пароль',
-                keyboardType: TextInputType.visiblePassword,
-              ),
-              const SizedBox(height: 12.0),
-              ConsentRow(
-                key: kRegisterConsentKey,
-                value: _accepted,
-                loading: _loadingTerms,
-                error: _termsError,
-                onChanged: (value) => setState(() => _accepted = value),
-              ),
-              const SizedBox(height: 12.0),
-              _PrimaryButton(
-                buttonKey: kRegisterSubmitKey,
-                label: 'Далее',
-                busy: _isSending,
-                onTap: _onNext,
-              ),
-              const SizedBox(height: 20.0),
-              Center(
-                child: _Link(
-                  label: 'У меня уже есть аккаунт',
-                  onTap: () => Navigator.of(context).pop(),
+                const SizedBox(height: 28.0),
+                _Field(
+                  fieldKey: kRegisterPhoneFieldKey,
+                  controller: _phoneController,
+                  hint: 'Номер телефона (с WhatsApp)',
+                  keyboardType: TextInputType.phone,
                 ),
-              ),
-            ],
+                const SizedBox(height: 12.0),
+                _Field(
+                  fieldKey: kRegisterNameFieldKey,
+                  controller: _nameController,
+                  hint: 'Имя',
+                  keyboardType: TextInputType.name,
+                ),
+                const SizedBox(height: 12.0),
+                _Field(
+                  fieldKey: kRegisterPasswordFieldKey,
+                  controller: _passwordController,
+                  hint: 'Пароль',
+                  keyboardType: TextInputType.visiblePassword,
+                ),
+                const SizedBox(height: 12.0),
+                ConsentRow(
+                  key: kRegisterConsentKey,
+                  value: _accepted,
+                  loading: _loadingTerms,
+                  error: _termsError,
+                  onChanged: (value) => setState(() => _accepted = value),
+                ),
+                const SizedBox(height: 12.0),
+                _PrimaryButton(
+                  buttonKey: kRegisterSubmitKey,
+                  label: 'Далее',
+                  busy: _isSending,
+                  onTap: _onNext,
+                ),
+                const SizedBox(height: 20.0),
+                Center(
+                  child: _Link(
+                    label: 'У меня уже есть аккаунт',
+                    onTap: _onBack,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

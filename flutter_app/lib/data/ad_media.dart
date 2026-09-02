@@ -41,6 +41,8 @@ class AdMedia {
     String? title,
     String? description,
     String? name,
+    int? durationSeconds,
+    Uint8List? posterBytes,
   }) : this(
           name: name ?? url,
           url: url,
@@ -48,6 +50,8 @@ class AdMedia {
           id: id,
           title: title,
           description: description,
+          durationSeconds: durationSeconds,
+          posterBytes: posterBytes,
         );
 
   /// Имя файла — им подписаны ролики в «Было добавлено».
@@ -107,6 +111,8 @@ class AdMedia {
     String? title,
     String? description,
     String? url,
+    int? durationSeconds,
+    Uint8List? posterBytes,
   }) {
     return AdMedia(
       name: name,
@@ -114,8 +120,8 @@ class AdMedia {
       url: url ?? this.url,
       bytes: bytes,
       path: path,
-      posterBytes: posterBytes,
-      durationSeconds: durationSeconds,
+      posterBytes: posterBytes ?? this.posterBytes,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
       width: width,
       height: height,
       video: video,
@@ -160,11 +166,15 @@ class DeviceMedia implements MediaSource {
     );
     if (file == null) return null;
 
-    // В браузере файла на диске нет: `path` — это blob-ссылка, потоковая
-    // отправка по ней невозможна, поэтому читаем байты. На устройстве всё
-    // наоборот: держим путь, чтобы стомегабайтный ролик не лежал в памяти.
+    // В браузере держим и path (blob-ссылку) для чтения длительности/обложки,
+    // и байты для отправки. На устройстве — путь.
     if (kIsWeb) {
-      return AdMedia(name: file.name, bytes: await file.readAsBytes(), video: true);
+      return AdMedia(
+        name: file.name,
+        path: file.path,
+        bytes: await file.readAsBytes(),
+        video: true,
+      );
     }
 
     // Кадр-обложку снимает AppState уже после добавления в список — иначе

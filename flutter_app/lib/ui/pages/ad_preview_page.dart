@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../../data/api_exceptions.dart';
 import '../../data/kind_fields.dart';
 import '../../data/listings.dart';
 import '../fig_controls.dart';
+import '../widgets/safe_image.dart';
 
 /// Экран «Ваше объявление» (Figma кадры 46, 27, 30).
 /// Свёрстан с нуля: карточка объекта, статус публикации, продвижение, статистика и управление.
@@ -22,6 +24,8 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
   bool _isLoading = true;
   String? _error;
   bool _isArchiving = false;
+  bool _isRestoring = false;
+  bool _isPublishing = false;
 
   @override
   void initState() {
@@ -40,8 +44,6 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
     }
     return buffer.toString();
   }
-
-  bool _isRestoring = false;
 
   Future<void> _loadData() async {
     final state = AppScope.read(context);
@@ -136,6 +138,79 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
     } finally {
       if (mounted) {
         setState(() => _isRestoring = false);
+      }
+    }
+  }
+
+  Future<void> _publishListing() async {
+    final item = _listing;
+    if (item == null || _isPublishing) return;
+
+    setState(() => _isPublishing = true);
+    final state = AppScope.read(context);
+
+    try {
+      final response = await state.apiClient.publishListing(item.slug);
+      if (!mounted) return;
+
+      final newStatus = response['status'] as String? ?? 'active';
+      final isPending = newStatus == 'pending';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isPending
+                      ? 'Объявление отправлено на модерацию!'
+                      : 'Объявление успешно опубликовано!',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xff4dba17),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      if (state.draftSlug == item.slug) {
+        state.resetDraft();
+      }
+
+      await _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e is ApiException ? e.message : e.toString();
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Публикация объявления'),
+          content: Text(errorMsg),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pushNamed(Routes.tariffs);
+              },
+              child: const Text(
+                'Сменить тариф',
+                style: TextStyle(color: Color(0xffea812e), fontWeight: FontWeight.bold),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Понятно', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isPublishing = false);
       }
     }
   }
@@ -317,6 +392,27 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
               ),
             ),
             const SizedBox(height: 12.0),
+          ] else if (item.isDraft) ...[
+            SizedBox(
+              width: double.infinity,
+              height: 48.0,
+              child: ElevatedButton.icon(
+                onPressed: _isPublishing ? null : _publishListing,
+                icon: _isPublishing
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.send_rounded, color: Colors.white),
+                label: Text(
+                  _isPublishing ? 'Публикуем...' : 'Опубликовать',
+                  style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: orangeColor,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12.0),
           ] else ...[
             SizedBox(
               width: double.infinity,
@@ -408,10 +504,12 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                   height: 190.0,
                   child: photo.isNotEmpty
                       ? (photo.startsWith('http')
-                          ? Image.network(
-                              photo,
+                          ? buildSafeNetworkImage(
+                              url: photo,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                              borderRadius:
+                                  const BorderRadius.vertical(top: Radius.circular(16.0)),
+                              fallback: _buildPlaceholder(),
                             )
                           : Image.asset(photo, fit: BoxFit.cover))
                       : _buildPlaceholder(),
@@ -530,20 +628,57 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                 ),
                 const SizedBox(height: 16.0),
 
+                // Кнопка «Опубликовать» (только для черновика)
+                if (item.isDraft) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 42.0,
+                    child: ElevatedButton.icon(
+                      onPressed: _isPublishing ? null : _publishListing,
+                      icon: _isPublishing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.send_rounded, size: 18, color: Colors.white),
+                      label: Text(
+                        _isPublishing ? 'Публикуем...' : 'Опубликовать',
+                        style: const TextStyle(
+                          fontSize: 15.0,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: orangeColor,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                ],
+
                 // Кнопка «Изменить объявление»
                 SizedBox(
                   width: double.infinity,
                   height: 38.0,
                   child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final result = await Navigator.of(context).pushNamed(
-                        Routes.adEdit,
-                        arguments: item.slug,
-                      );
-                      if (result == true && mounted) {
-                        _loadData();
-                      }
-                    },
+                    onPressed: _isPublishing
+                        ? null
+                        : () async {
+                            final result = await Navigator.of(context).pushNamed(
+                              Routes.adEdit,
+                              arguments: item.slug,
+                            );
+                            if (result == true && mounted) {
+                              _loadData();
+                            }
+                          },
                     icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xff7d7d7d)),
                     label: const Text(
                       'Изменить объявление',

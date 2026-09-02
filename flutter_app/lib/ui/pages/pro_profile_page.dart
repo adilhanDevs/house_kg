@@ -6,7 +6,7 @@ import '../auth_guard.dart';
 import '../../app/stage.dart';
 import '../app_tab_bar.dart';
 import 'profile_page.dart';
-
+import '../../prototype.dart';
 import '../../data/listings.dart';
 import '../../data/listing_repository.dart';
 import '../object_card.dart';
@@ -49,8 +49,12 @@ class _ProProfilePageState extends State<ProProfilePage> {
     super.initState();
     final state = AppScope.read(context);
     _repository = ListingRepository(state.apiClient);
-    _loadListings();
-    state.fetchProfile();
+    if (state.isAuthenticated) {
+      _loadListings();
+      state.fetchProfile();
+    } else {
+      _isLoading = false;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         AppScope.read(context).pro = true;
@@ -98,16 +102,17 @@ class _ProProfilePageState extends State<ProProfilePage> {
     return '$count объектов недвижимости';
   }
 
+  bool _isLoggingOut = false;
+
   Future<void> _confirmLogOut(BuildContext context) async {
-    final state = AppScope.read(context);
-    final navigator = Navigator.of(context);
+    if (_isLoggingOut) return;
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xffffffff),
         surfaceTintColor: Colors.transparent,
         title: const Text('Выйти из аккаунта?'),
-        content: const Text('Вы перейдёте в режим клиента.'),
+        content: const Text('Избранное и фильтры этого сеанса будут забыты.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -120,15 +125,43 @@ class _ProProfilePageState extends State<ProProfilePage> {
         ],
       ),
     );
-    if (leave != true) return;
-    state.logOut();
-    navigator.pushNamedAndRemoveUntil(Routes.welcome, (r) => false);
+    if (leave != true || !mounted) return;
+
+    setState(() => _isLoggingOut = true);
+    final state = AppScope.read(context);
+    final navigator = Navigator.of(context);
+
+    try {
+      await state.logout();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoggingOut = false);
+      }
+    }
+
+    if (mounted) {
+      navigator.pushNamedAndRemoveUntil(Routes.welcome, (r) => false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     const dangerColor = Color(0xffd93025);
     final state = AppScope.of(context);
+
+    final baseFrame = frame('38');
+    final proFrame = FigScreen(
+      number: baseFrame.number,
+      title: baseFrame.title,
+      node: baseFrame.node,
+      width: baseFrame.width,
+      height: 1258.0,
+      builder: baseFrame.builder,
+      tabBarAt: null,
+      mockupTab: baseFrame.mockupTab,
+      activeTab: baseFrame.activeTab,
+      hotspots: baseFrame.hotspots,
+    );
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -137,11 +170,25 @@ class _ProProfilePageState extends State<ProProfilePage> {
       },
       color: const Color(0xffea812e),
       child: FigStage(
-      frame: frame('38'),
+      frame: proFrame,
+      cutBelow: 1258.0,
       bottomBar: const AppTabBar(active: 4),
       background: const Color(0xfffefefe),
       overlays: [
         // ——— Настоящая шапка профиля вместо статичной из макета ———
+        if (state.userProfileCoverUrl != null && state.userProfileCoverUrl!.isNotEmpty)
+          Positioned(
+            left: 0.0,
+            top: -17.0,
+            child: ProfileCover(
+              url: state.userProfileCoverUrl,
+              width: 375.0,
+              height: 221.0,
+              radius: 23.0,
+              darken: true,
+            ),
+          ),
+
         // Аватар пользователя (в кадре — картинка, Y=166).
         Positioned(
           left: 25.0,
@@ -397,129 +444,139 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
         ),
 
-        // Клик по настройке «Тарифы»
+        // Клик по настройке «Тарифы» (Y=976)
         Positioned(
           left: 25.0,
-          top: 960.0,
+          top: 976.0,
           width: 325.0,
-          height: 40.0,
+          height: 44.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).pushNamed(Routes.tariffs),
           ),
         ),
 
-        // Клик по настройке «Уведомление»
+        // Клик по настройке «Уведомление» (Y=1020)
         Positioned(
           left: 25.0,
-          top: 1004.0,
+          top: 1020.0,
           width: 325.0,
-          height: 40.0,
+          height: 44.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
           ),
         ),
 
-        // Клик по настройке «Аккаунт»
+        // Клик по настройке «Аккаунт» (Y=1064)
         Positioned(
           left: 25.0,
-          top: 1048.0,
+          top: 1064.0,
           width: 325.0,
-          height: 40.0,
+          height: 44.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).pushNamed(Routes.account),
           ),
         ),
 
-        // Клик по настройке «Служба поддержки»
+        // Клик по настройке «Служба поддержки» (Y=1108)
         Positioned(
           left: 25.0,
-          top: 1092.0,
+          top: 1108.0,
           width: 325.0,
-          height: 40.0,
+          height: 44.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).pushNamed(Routes.support),
           ),
         ),
 
-        // Клик по настройке «История пополнения и трат»
+        // Клик по настройке «История пополнения и трат» (Y=1152)
         Positioned(
           left: 25.0,
-          top: 1136.0,
+          top: 1152.0,
           width: 325.0,
-          height: 40.0,
+          height: 44.0,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).pushNamed(Routes.history),
           ),
         ),
 
-        // Маска для закрашивания статичной плашки макета и линии (Y=1174)
+        // Маска под статичной плашкой языка из макета Figma (Y=1164..1214)
         const Positioned(
           left: 150.0,
-          top: 1174.0,
+          top: 1164.0,
           width: 225.0,
-          height: 48.0,
-          child: ColoredBox(color: Color(0xffffffff)),
+          height: 50.0,
+          child: ColoredBox(color: Color(0xfffefefe)),
         ),
 
-        // Полноценная пересверстанная кнопка-переключатель языка (Y=1184)
+        // Полноценный переключатель языка (Y=1172, точно на одной высоте с текстом «Язык»)
         const Positioned(
           left: 175.0,
-          top: 1184.0,
+          top: 1172.0,
           child: LanguageToggleWidget(),
         ),
 
-        // Строка «Выйти из аккаунта» у собственника (Y=1224)
-        Positioned(
-          left: 25.0,
-          top: 1224.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _confirmLogOut(context),
-            child: Container(
-              width: 325.0,
-              height: 44.0,
-              color: const Color(0xffffffff),
-              child: Row(
-                children: [
-                  Container(
-                    width: 24.0,
-                    height: 24.0,
-                    decoration: BoxDecoration(
-                      color: const Color(0xfffde8e8),
-                      borderRadius: BorderRadius.circular(6.0),
+        // Строка «Выйти из аккаунта» сразу под блоком настроек (Y=1210)
+        if (state.isAuthenticated)
+          Positioned(
+            left: 25.0,
+            top: 1210.0,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _isLoggingOut ? null : () => _confirmLogOut(context),
+              child: Container(
+                width: 325.0,
+                height: 40.0,
+                color: const Color(0xfffefefe),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24.0,
+                      height: 24.0,
+                      decoration: BoxDecoration(
+                        color: const Color(0xfffde8e8),
+                        borderRadius: BorderRadius.circular(6.0),
+                      ),
+                      alignment: Alignment.center,
+                      child: _isLoggingOut
+                          ? const SizedBox(
+                              width: 14.0,
+                              height: 14.0,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.0,
+                                color: dangerColor,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.logout,
+                              size: 16.0,
+                              color: dangerColor,
+                            ),
                     ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.logout,
-                      size: 16.0,
-                      color: dangerColor,
+                    const SizedBox(width: 12.0),
+                    Text(
+                      _isLoggingOut ? 'Выход...' : 'Выйти из аккаунта',
+                      style: const TextStyle(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.w500,
+                        color: dangerColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12.0),
-                  const Text(
-                    'Выйти из аккаунта',
-                    style: TextStyle(
-                      fontSize: 15.0,
-                      fontWeight: FontWeight.w500,
-                      color: dangerColor,
+                    const Spacer(),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14.0,
+                      color: Color(0xffc7c7cc),
                     ),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 14.0,
-                    color: Color(0xffc7c7cc),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
       ],
     ),
     );

@@ -1037,18 +1037,15 @@ class _AdEditPageState extends State<AdEditPage> {
   }
 
   Widget _buildCardWrapper(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xffe5e5ea)),
+        side: const BorderSide(color: Color(0xffe5e5ea)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        clipBehavior: Clip.antiAlias,
-        child: Column(children: children),
-      ),
+      child: Column(children: children),
     );
   }
 

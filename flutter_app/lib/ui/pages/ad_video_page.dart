@@ -6,6 +6,7 @@ import '../../data/ad_media.dart';
 import '../../data/api_client.dart';
 import '../add_media.dart';
 import '../fig_controls.dart';
+import '../widgets/safe_image.dart';
 
 class AdVideoPage extends StatefulWidget {
   const AdVideoPage({super.key});
@@ -483,7 +484,7 @@ class _VideoCardItem extends StatelessWidget {
   });
 
   String _formatDuration(int? seconds) {
-    if (seconds == null || seconds <= 0) return '01:04';
+    if (seconds == null || seconds <= 0) return '';
     final m = seconds ~/ 60;
     final s = seconds % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
@@ -492,6 +493,7 @@ class _VideoCardItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final durationStr = _formatDuration(media.durationSeconds);
+    final label = durationStr.isNotEmpty ? 'REELS | $durationStr' : 'REELS';
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -546,7 +548,7 @@ class _VideoCardItem extends StatelessWidget {
           ),
           const SizedBox(height: 6.0),
           Text(
-            'REELS | $durationStr',
+            label,
             style: const TextStyle(
               fontSize: 13.0,
               fontWeight: FontWeight.w500,
@@ -576,10 +578,10 @@ class _VideoPreview extends StatelessWidget {
     }
     final url = media.url;
     if (url != null && url.isNotEmpty) {
-      return Image.network(
-        url,
+      return buildSafeNetworkImage(
+        url: url,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _FallbackPoster(media: media),
+        fallback: _FallbackPoster(media: media),
       );
     }
     final asset = media.asset;

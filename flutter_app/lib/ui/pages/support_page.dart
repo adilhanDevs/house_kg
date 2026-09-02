@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../fig/fig.dart';
 
@@ -45,6 +46,21 @@ class _SupportPageState extends State<SupportPage> {
         ),
       );
     });
+  }
+
+  Future<void> _openUrl(Uri uri) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (error) {
+      debugPrint('Не удалось открыть $uri: $error');
+    }
+
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть ссылку')),
+      );
+    }
   }
 
   @override
@@ -158,14 +174,8 @@ class _SupportPageState extends State<SupportPage> {
                       iconColor: const Color(0xff29a9ea),
                       title: 'Telegram',
                       subtitle: '@house_kg_bot',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Открываем бот поддержки Telegram...'),
-                            backgroundColor: Color(0xff29a9ea),
-                          ),
-                        );
-                      },
+                      onTap: () =>
+                          _openUrl(Uri.parse('https://t.me/house_kg_bot')),
                     ),
                   ),
                   const SizedBox(width: 12.0),
@@ -175,14 +185,7 @@ class _SupportPageState extends State<SupportPage> {
                       iconColor: const Color(0xff34c759),
                       title: 'Позвонить',
                       subtitle: '+996 (312) 998-877',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Набор номера поддержки +996 (312) 998-877'),
-                            backgroundColor: Color(0xff34c759),
-                          ),
-                        );
-                      },
+                      onTap: () => _openUrl(Uri.parse('tel:+996312998877')),
                     ),
                   ),
                 ],

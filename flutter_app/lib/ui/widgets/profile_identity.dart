@@ -88,3 +88,69 @@ class RoleBadge extends StatelessWidget {
     );
   }
 }
+
+/// Обложка профиля; если фото нет — градиент-заглушка или переданный fallback.
+class ProfileCover extends StatelessWidget {
+  const ProfileCover({
+    super.key,
+    this.url,
+    this.width = double.infinity,
+    this.height = 140.0,
+    this.radius = 16.0,
+    this.fallback,
+    this.darken = false,
+  });
+
+  final String? url;
+  final double width;
+  final double height;
+  final double radius;
+  final Widget? fallback;
+  final bool darken;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(radius);
+    final placeholder = fallback ??
+        Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xfff7931e), Color(0xffea812e), Color(0xffcb6015)],
+            ),
+          ),
+          child: const Center(
+            child: Icon(Icons.photo_outlined, color: Colors.white70, size: 36),
+          ),
+        );
+
+    if (url == null || url!.isEmpty) return placeholder;
+
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            buildSafeNetworkImage(
+              url: url!,
+              fit: BoxFit.cover,
+              fallback: placeholder,
+            ),
+            if (darken)
+              Container(
+                color: const Color(0x5e000000),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

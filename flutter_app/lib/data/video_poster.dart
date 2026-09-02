@@ -107,12 +107,17 @@ class _VideoMeta {
 Future<_VideoMeta> _metadata(String path) async {
   VideoPlayerController? controller;
   try {
-    controller = VideoPlayerController.file(File(path));
+    if (kIsWeb || path.startsWith('blob:') || path.startsWith('http')) {
+      controller = VideoPlayerController.networkUrl(Uri.parse(path));
+    } else {
+      controller = VideoPlayerController.file(File(path));
+    }
     await controller.initialize();
     final value = controller.value;
     final size = value.size;
+    final durSec = value.duration.inSeconds;
     return _VideoMeta(
-      durationSeconds: value.duration.inSeconds > 0 ? value.duration.inSeconds : null,
+      durationSeconds: durSec > 0 ? durSec : (value.duration.inMilliseconds > 0 ? 1 : null),
       width: size.width > 0 ? size.width.round() : null,
       height: size.height > 0 ? size.height.round() : null,
     );

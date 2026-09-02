@@ -46,6 +46,7 @@ class _MockEditClient extends http.BaseClient {
         'leads_count': 2,
         'sent_to_clients_count': 5,
         'status': 'active',
+        'cover_media_id': 101,
       };
       return http.StreamedResponse(
         Stream.value(utf8.encode(jsonEncode(data))),
@@ -118,7 +119,7 @@ void main() {
     expect(find.text('Просторный пентхаус с ремонтом'), findsOneWidget);
 
     // Verify photos section
-    expect(find.text('Главное'), findsOneWidget);
+    expect(find.text('Обложка'), findsOneWidget);
 
     // Edit price field
     final priceFinder = find.widgetWithText(TextField, '2222').last;

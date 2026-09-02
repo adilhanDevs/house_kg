@@ -88,6 +88,40 @@ class ObjectCard extends StatelessWidget {
               onTap: onTap,
             ),
           ),
+          if (listing.status.isNotEmpty && listing.status != 'active')
+            Positioned(
+              left: 8,
+              top: 8,
+              child: IgnorePointer(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
+                  decoration: BoxDecoration(
+                    color: listing.isDraft
+                        ? const Color(0xffea812e)
+                        : (listing.isArchived
+                            ? const Color(0xff8e8e93)
+                            : (listing.status == 'rejected'
+                                ? const Color(0xffd32f2f)
+                                : const Color(0xff1976d2))),
+                    borderRadius: BorderRadius.circular(6.0),
+                  ),
+                  child: Text(
+                    listing.isDraft
+                        ? 'Черновик'
+                        : (listing.isArchived
+                            ? 'В архиве'
+                            : (listing.status == 'rejected'
+                                ? 'Отклонено'
+                                : 'Модерация')),
+                    style: const TextStyle(
+                      fontSize: 10.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Positioned(
               left: 12,
               top: 131,

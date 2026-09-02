@@ -43,13 +43,17 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     // Имя, телефон и аватар в шапке — всегда свежие с сервера.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) AppScope.read(context).fetchProfile();
+      if (mounted) {
+        final state = AppScope.read(context);
+        if (state.isAuthenticated) state.fetchProfile();
+      }
     });
   }
 
+  bool _isLoggingOut = false;
+
   Future<void> _confirmLogOut(BuildContext context) async {
-    final state = AppScope.read(context);
-    final navigator = Navigator.of(context);
+    if (_isLoggingOut) return;
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -69,8 +73,20 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
-    if (leave != true) return;
-    await state.logout();
+    if (leave != true || !mounted) return;
+
+    setState(() => _isLoggingOut = true);
+    final state = AppScope.read(context);
+    final navigator = Navigator.of(context);
+
+    try {
+      await state.logout();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoggingOut = false);
+      }
+    }
+
     if (mounted) {
       navigator.pushNamedAndRemoveUntil(Routes.welcome, (r) => false);
     }
@@ -219,52 +235,62 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
 
         // На месте «Служба безопасности» (Y=645) размещаем «Выйти из аккаунта»
-        Positioned(
-          left: _rowLeft,
-          top: 645.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _confirmLogOut(context),
-            child: Container(
-              width: _rowWidth,
-              height: 40.0,
-              color: const Color(0xffffffff),
-              child: Row(
-                children: [
-                  Container(
-                    width: 24.0,
-                    height: 24.0,
-                    decoration: BoxDecoration(
-                      color: const Color(0xfffde8e8),
-                      borderRadius: BorderRadius.circular(6.0),
+        if (state.isAuthenticated)
+          Positioned(
+            left: _rowLeft,
+            top: 645.0,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _isLoggingOut ? null : () => _confirmLogOut(context),
+              child: Container(
+                width: _rowWidth,
+                height: 40.0,
+                color: const Color(0xffffffff),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24.0,
+                      height: 24.0,
+                      decoration: BoxDecoration(
+                        color: const Color(0xfffde8e8),
+                        borderRadius: BorderRadius.circular(6.0),
+                      ),
+                      alignment: Alignment.center,
+                      child: _isLoggingOut
+                          ? const SizedBox(
+                              width: 14.0,
+                              height: 14.0,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.0,
+                                color: _danger,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.logout,
+                              size: 16.0,
+                              color: _danger,
+                            ),
                     ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.logout,
-                      size: 16.0,
-                      color: _danger,
+                    const SizedBox(width: 12.0),
+                    Text(
+                      _isLoggingOut ? 'Выход...' : 'Выйти из аккаунта',
+                      style: const TextStyle(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.w500,
+                        color: _danger,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12.0),
-                  const Text(
-                    'Выйти из аккаунта',
-                    style: TextStyle(
-                      fontSize: 15.0,
-                      fontWeight: FontWeight.w500,
-                      color: _danger,
+                    const Spacer(),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14.0,
+                      color: Color(0xffc7c7cc),
                     ),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 14.0,
-                    color: Color(0xffc7c7cc),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
       ],
     ),
     );
