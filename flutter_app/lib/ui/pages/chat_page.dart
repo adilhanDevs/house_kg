@@ -10,6 +10,7 @@ import '../../app/routes.dart';
 import '../../data/chat_controller.dart';
 import '../../data/chat_models.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 
 const Key kChatInputKey = Key('chat_input');
 const Key kChatSendKey = Key('chat_send');
@@ -141,6 +142,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     final chat = _chat;
     final subtitle = _subtitle;
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
@@ -196,11 +198,12 @@ class _ChatPageState extends State<ChatPage> {
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(child: _body(chat)),
+            Expanded(child: _body(chat, l10n)),
             _Composer(
               controller: _input,
               sending: chat?.isSending ?? false,
               onSend: _send,
+              hint: l10n.chatInputHint,
             ),
           ],
         ),
@@ -208,11 +211,11 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Widget _body(ChatController? chat) {
+  Widget _body(ChatController? chat, dynamic l10n) {
     if (_fatalError != null && (chat == null || chat.isEmpty)) {
       return _Centered(
         text: _fatalError!,
-        actionLabel: 'Повторить',
+        actionLabel: l10n.retry,
         onAction: _bootstrap,
       );
     }
@@ -222,12 +225,12 @@ class _ChatPageState extends State<ChatPage> {
     if (chat.error != null && chat.isEmpty) {
       return _Centered(
         text: chat.error!,
-        actionLabel: 'Повторить',
+        actionLabel: l10n.retry,
         onAction: chat.loadInitial,
       );
     }
     if (chat.isEmpty) {
-      return const _Centered(text: 'Начните диалог');
+      return _Centered(text: l10n.chatStart);
     }
 
     // reverse: true — первый элемент внизу экрана.
@@ -356,11 +359,17 @@ class _Bubble extends StatelessWidget {
 
 /// Поле ввода и кнопка отправки.
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.sending, required this.onSend});
+  const _Composer({
+    required this.controller,
+    required this.sending,
+    required this.onSend,
+    required this.hint,
+  });
 
   final TextEditingController controller;
   final bool sending;
   final VoidCallback onSend;
+  final String hint;
 
   @override
   Widget build(BuildContext context) {
@@ -380,7 +389,7 @@ class _Composer extends StatelessWidget {
               maxLines: 4,
               textInputAction: TextInputAction.newline,
               decoration: InputDecoration(
-                hintText: 'Сообщение',
+                hintText: hint,
                 hintStyle: figStyle(fontSize: 15.0, family: FigFont.display, color: _muted),
                 filled: true,
                 fillColor: _peerBubble,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../../l10n/l10n.dart';
 
 class WalletHistoryPage extends StatefulWidget {
   const WalletHistoryPage({super.key});
@@ -118,6 +119,14 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
   @override
   Widget build(BuildContext context) {
     const orangeColor = Color(0xffea812e);
+    final l10n = context.l10n;
+
+    final filters = [
+      l10n.walletFilterAll,
+      l10n.walletFilterTopup,
+      l10n.walletFilterSpend,
+      l10n.walletFilterBonus,
+    ];
 
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
@@ -148,9 +157,9 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     ),
 
                     // Заголовок
-                    const Text(
-                      'История пополнения',
-                      style: TextStyle(
+                    Text(
+                      l10n.profileHistoryRow,
+                      style: const TextStyle(
                         fontSize: 22.0,
                         fontWeight: FontWeight.bold,
                         color: Color(0xff000000),
@@ -158,9 +167,9 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                       ),
                     ),
                     const SizedBox(height: 6.0),
-                    const Text(
-                      'Сатүрн — шестая планета по удалённости от Солнца и вторая по размерам планета',
-                      style: TextStyle(
+                    Text(
+                      l10n.walletHistorySubtitle,
+                      style: const TextStyle(
                         fontSize: 13.0,
                         color: Color(0x993c3c43),
                         height: 1.35,
@@ -172,7 +181,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: List.generate(_filters.length, (index) {
+                        children: List.generate(filters.length, (index) {
                           final isSelected = _selectedFilter == index;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
@@ -189,7 +198,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                                   ),
                                 ),
                                 child: Text(
-                                  _filters[index],
+                                  filters[index],
                                   style: TextStyle(
                                     fontSize: 13.0,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -211,9 +220,9 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                             child: Center(child: CircularProgressIndicator(color: orangeColor)),
                           )
                         : _transactions.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.only(top: 40.0),
-                                child: Center(child: Text('Нет операций')),
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 40.0),
+                                child: Center(child: Text(l10n.walletEmpty)),
                               )
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,12 +259,12 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Далее',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.next,
+                    style: const TextStyle(
                       fontSize: 16.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Color(0xffffffff),
                     ),
                   ),
                 ),

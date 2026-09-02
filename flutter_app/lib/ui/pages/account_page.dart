@@ -7,6 +7,7 @@ import '../../data/api_client.dart';
 import '../../data/chat_controller.dart' show describeApiError;
 import '../../data/chat_models.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import '../widgets/profile_identity.dart';
 
 class AccountPage extends StatefulWidget {
@@ -616,8 +617,9 @@ class _AccountPageState extends State<AccountPage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final name = (state.userName ?? '').isNotEmpty ? state.userName! : 'Без имени';
-    final phone = (state.userPhone ?? '').isNotEmpty ? state.userPhone! : 'Не указан';
+    final l10n = context.l10n;
+    final name = (state.userName ?? '').isNotEmpty ? state.userName! : l10n.profileNoName;
+    final phone = (state.userPhone ?? '').isNotEmpty ? state.userPhone! : '—';
 
     return Scaffold(
       backgroundColor: const Color(0xfffefefe),
@@ -629,7 +631,7 @@ class _AccountPageState extends State<AccountPage> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          'Аккаунт',
+          l10n.profileAccountRow,
           style: figStyle(
             fontSize: 20.0,
             family: FigFont.display,

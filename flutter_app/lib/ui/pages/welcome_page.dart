@@ -5,6 +5,7 @@ import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/api_exceptions.dart';
+import '../../l10n/l10n.dart';
 import '../fig_controls.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -27,18 +28,14 @@ class _WelcomePageState extends State<WelcomePage> {
 
   bool _isLoading = false;
 
-  /// Вход только по паролю: пароль задаётся один раз при регистрации.
-  ///
-  /// Раньше пустой пароль означал вход по коду `0000` — вместе с серверной
-  /// затычкой, выдававшей этот код на любой номер, это был вход в любой
-  /// аккаунт по одному телефону.
   void _onLogin() async {
     if (_isLoading) return;
+    final l10n = context.l10n;
     final phone = _phoneController.text.trim();
     final password = _passwordController.text;
 
     if (phone.isEmpty || password.isEmpty) {
-      _complain('Введите номер телефона и пароль');
+      _complain(l10n.fillAllFields);
       return;
     }
 
@@ -90,12 +87,9 @@ class _WelcomePageState extends State<WelcomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold нужен не ради оформления: SnackBar показывается через
-    // ближайший зарегистрированный Scaffold, а FigStage — это Material.
-    // Без него сообщения об ошибках просто не появлялись на экране.
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
-      // Отступ под клавиатуру считает сама сцена.
       resizeToAvoidBottomInset: false,
       body: FigStage(
       frame: frame('05'),
@@ -108,7 +102,7 @@ class _WelcomePageState extends State<WelcomePage> {
           child: FigInputBox(
             width: 324.0,
             controller: _phoneController,
-            hint: 'Номер телефона',
+            hint: l10n.phone,
             keyboardType: TextInputType.phone,
           ),
         ),
@@ -119,30 +113,66 @@ class _WelcomePageState extends State<WelcomePage> {
           child: FigInputBox(
             width: 324.0,
             controller: _passwordController,
-            hint: 'Пароль',
+            hint: l10n.password,
             keyboardType: TextInputType.visiblePassword,
           ),
         ),
-        // Кнопка Войти (FigZone сама создаёт Positioned)
-        FigZone(
-          25.0,
-          656.0,
-          324.0,
-          48.0,
-          label: 'Войти',
-          onTap: _onLogin,
+        // Кнопка Войти
+        Positioned(
+          left: 25.0,
+          top: 656.0,
+          width: 324.0,
+          height: 48.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _onLogin,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xffea812e),
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              alignment: Alignment.center,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20.0,
+                      height: 20.0,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.0),
+                    )
+                  : Text(
+                      l10n.login,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
         ),
         // Кнопка Зарегистрироваться
-        FigZone(
-          116.0,
-          717.0,
-          143.0,
-          20.0,
-          label: 'Зарегистрироваться',
-          onTap: _onRegister,
+        Positioned(
+          left: 25.0,
+          top: 715.0,
+          width: 324.0,
+          height: 24.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _onRegister,
+            child: Container(
+              color: const Color(0xffffffff),
+              alignment: Alignment.center,
+              child: Text(
+                l10n.register,
+                style: const TextStyle(
+                  color: Color(0xffea812e),
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
         ),
-        // «Забыли пароль?» — в макете этой строки нет: пароль там негде было
-        // и задать. Ставим под кнопками входа, тем же оранжевым.
+        // «Забыли пароль?»
         Positioned(
           left: 0.0,
           top: 780.0,
@@ -154,9 +184,9 @@ class _WelcomePageState extends State<WelcomePage> {
             child: Container(
               color: const Color(0xffffffff),
               alignment: Alignment.center,
-              child: const Text(
-                'Забыли пароль?',
-                style: TextStyle(
+              child: Text(
+                l10n.forgotPassword,
+                style: const TextStyle(
                   fontSize: 15.0,
                   fontWeight: FontWeight.w500,
                   color: Color(0xffea812e),
@@ -166,13 +196,27 @@ class _WelcomePageState extends State<WelcomePage> {
           ),
         ),
         // Кнопка Режим исполнителя
-        FigZone(
-          118.0,
-          753.0,
-          140.0,
-          20.0,
-          label: 'Режим исполнителя',
-          onTap: _onProMode,
+        Positioned(
+          left: 25.0,
+          top: 748.0,
+          width: 324.0,
+          height: 24.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _onProMode,
+            child: Container(
+              color: const Color(0xffffffff),
+              alignment: Alignment.center,
+              child: Text(
+                l10n.rolePro,
+                style: const TextStyle(
+                  color: Color(0xff7d7d7d),
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
       ),

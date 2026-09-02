@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -65,6 +66,7 @@ class _SupportPageState extends State<SupportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xfffefefe),
       appBar: AppBar(
@@ -75,7 +77,7 @@ class _SupportPageState extends State<SupportPage> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          'Служба поддержки',
+          l10n.supportTitle,
           style: figStyle(
             fontSize: 20.0,
             family: FigFont.display,

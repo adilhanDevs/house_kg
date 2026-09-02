@@ -1,7 +1,3 @@
-// «Вам понравилось» — кадр 16 макета со списком из избранного.
-//
-// Заголовок и хром остаются от макета, четыре статичные карточки закрываются
-// списком, который ведёт сердце на карточке.
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -10,6 +6,7 @@ import '../../app/stage.dart';
 import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import '../app_tab_bar.dart';
 import '../listing_grid.dart';
 
@@ -105,11 +102,31 @@ class _FavouritesPageState extends State<FavouritesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return FigStage(
       frame: frame('16'),
       background: const Color(0xfffefefe),
       bottomBar: const AppTabBar(active: 3),
       overlays: [
+        // Маска поверх статичного заголовка «Вам понравилось»
+        Positioned(
+          left: 20.0,
+          top: 40.0,
+          width: 335.0,
+          height: 40.0,
+          child: Container(
+            color: const Color(0xfffefefe),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              l10n.tabFavourites,
+              style: const TextStyle(
+                fontSize: 24.0,
+                fontWeight: FontWeight.w600,
+                color: Color(0xff000000),
+              ),
+            ),
+          ),
+        ),
         Positioned(
           left: 0,
           top: _gridTop,
@@ -118,18 +135,18 @@ class _FavouritesPageState extends State<FavouritesPage> {
           child: ColoredBox(
             color: const Color(0xfffefefe),
             child: _isLoading 
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(
+                        const CircularProgressIndicator(
                           color: Color(0xffea812e),
                           strokeWidth: 3,
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         Text(
-                          'Загрузка избранного...',
-                          style: TextStyle(
+                          l10n.loading,
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xff8e8e93),
                             fontWeight: FontWeight.w500,
@@ -145,7 +162,7 @@ class _FavouritesPageState extends State<FavouritesPage> {
                       top: _gridFirstCard - _gridTop,
                       bottom: 16,
                     ),
-                    empty: const _NoFavourites(),
+                    empty: _NoFavourites(message: l10n.favouritesEmpty),
                     onOpen: (listing) => Navigator.of(context)
                         .pushNamed(Routes.listingVideo, arguments: ListingArgs(listing.id)),
                   ),
@@ -157,23 +174,22 @@ class _FavouritesPageState extends State<FavouritesPage> {
 }
 
 class _NoFavourites extends StatelessWidget {
-  const _NoFavourites();
+  const _NoFavourites({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: kGridLeft, right: kGridLeft, top: 24),
-      child: FigText(
-        width: 325,
-        span: TextSpan(
-          text: 'Пока пусто. Нажмите сердце на карточке, чтобы сохранить объект.',
-          style: figStyle(
-            fontSize: 15.0,
-            family: FigFont.display,
-            weight: 500,
-            height: 1.333,
-            color: const Color(0xff7d7d7d),
-          ),
+      child: Text(
+        message,
+        style: figStyle(
+          fontSize: 15.0,
+          family: FigFont.display,
+          weight: 500,
+          height: 1.333,
+          color: const Color(0xff7d7d7d),
         ),
       ),
     );

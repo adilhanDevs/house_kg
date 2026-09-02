@@ -47,6 +47,7 @@ import '../ui/pages/welcome_page.dart';
 import '../data/ad_media.dart';
 import '../data/api_client.dart';
 import '../data/listings.dart';
+import '../l10n/l10n.dart';
 import 'app_state.dart';
 import 'routes.dart';
 import 'stage.dart';
@@ -87,42 +88,48 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
   Widget build(BuildContext context) {
     return AppScope(
       state: _state,
-      child: MaterialApp(
-        title: 'House KGZ',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          scaffoldBackgroundColor: FigColors.page,
-          dialogBackgroundColor: const Color(0xffffffff),
-          dialogTheme: const DialogThemeData(
-            backgroundColor: Color(0xffffffff),
-            surfaceTintColor: Colors.transparent,
+      child: ListenableBuilder(
+        listenable: _state,
+        builder: (context, _) => MaterialApp(
+          title: 'House KGZ',
+          debugShowCheckedModeBanner: false,
+          locale: _state.locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(
+            useMaterial3: true,
+            scaffoldBackgroundColor: FigColors.page,
+            dialogBackgroundColor: const Color(0xffffffff),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xffffffff),
+              surfaceTintColor: Colors.transparent,
+            ),
+            bottomSheetTheme: const BottomSheetThemeData(
+              backgroundColor: Color(0xffffffff),
+              surfaceTintColor: Colors.transparent,
+            ),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: FigColors.accent,
+              surface: const Color(0xffffffff),
+              surfaceContainer: const Color(0xffffffff),
+              surfaceContainerHigh: const Color(0xffffffff),
+              surfaceContainerHighest: const Color(0xffffffff),
+              surfaceContainerLow: const Color(0xffffffff),
+              surfaceContainerLowest: const Color(0xffffffff),
+            ),
           ),
-          bottomSheetTheme: const BottomSheetThemeData(
-            backgroundColor: Color(0xffffffff),
-            surfaceTintColor: Colors.transparent,
-          ),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: FigColors.accent,
-            surface: const Color(0xffffffff),
-            surfaceContainer: const Color(0xffffffff),
-            surfaceContainerHigh: const Color(0xffffffff),
-            surfaceContainerHighest: const Color(0xffffffff),
-            surfaceContainerLow: const Color(0xffffffff),
-            surfaceContainerLowest: const Color(0xffffffff),
-          ),
+          initialRoute: widget.initialRoute,
+          onGenerateInitialRoutes: (String initialRouteName) {
+            final uri = Uri.tryParse(initialRouteName);
+            final path = uri != null && uri.path.isNotEmpty ? uri.path : initialRouteName;
+            if (path == Routes.splash || path == '/') {
+              return [_route(const RouteSettings(name: Routes.splash))];
+            }
+            return [_route(RouteSettings(name: path, arguments: uri?.queryParameters))];
+          },
+          onGenerateRoute: _route,
+          navigatorObservers: [appRouteObserver],
         ),
-        initialRoute: widget.initialRoute,
-        onGenerateInitialRoutes: (String initialRouteName) {
-          final uri = Uri.tryParse(initialRouteName);
-          final path = uri != null && uri.path.isNotEmpty ? uri.path : initialRouteName;
-          if (path == Routes.splash || path == '/') {
-            return [_route(const RouteSettings(name: Routes.splash))];
-          }
-          return [_route(RouteSettings(name: path, arguments: uri?.queryParameters))];
-        },
-        onGenerateRoute: _route,
-        navigatorObservers: [appRouteObserver],
       ),
     );
   }

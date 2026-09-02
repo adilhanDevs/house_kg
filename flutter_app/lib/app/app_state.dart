@@ -99,6 +99,23 @@ class AppState extends ChangeNotifier {
   bool isPro = false;
   bool isInitializing = true;
   
+  Locale _locale = const Locale('ru');
+  Locale get locale => _locale;
+  String get languageCode => _locale.languageCode;
+
+  Future<void> setLanguageCode(String code) async {
+    final validCode = (code == 'ky') ? 'ky' : 'ru';
+    if (_locale.languageCode == validCode) return;
+    _locale = Locale(validCode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_locale', validCode);
+    notifyListeners();
+  }
+
+  Future<void> setLocale(Locale newLocale) async {
+    await setLanguageCode(newLocale.languageCode);
+  }
+  
   final ListingApiClient apiClient;
 
   bool get isAuthenticated => _accessToken != null;
@@ -154,6 +171,12 @@ class AppState extends ChangeNotifier {
     isInitializing = true;
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey('app_locale')) {
+        final savedLocale = prefs.getString('app_locale');
+        if (savedLocale == 'ky' || savedLocale == 'ru') {
+          _locale = Locale(savedLocale!);
+        }
+      }
       if (prefs.containsKey('cached_is_pro')) {
         _pro = prefs.getBool('cached_is_pro') ?? false;
       }
@@ -353,6 +376,8 @@ class AppState extends ChangeNotifier {
         return 'Исполнитель';
     }
   }
+
+  String localizedRoleLabel([dynamic l10n]) => roleLabel;
 
   /// Инициалы для заглушки аватара, когда фото не загружено.
   String get userInitials {
@@ -699,7 +724,9 @@ class AppState extends ChangeNotifier {
   int? _priceTo;
 
   String get query => _query;
+  /// Выбранные типы недвижимости (множественный выбор).
   Set<PropertyKind> get kinds => Set.unmodifiable(_kinds);
+  Set<PropertyKind> get selectedKinds => kinds;
   Set<int> get rooms => Set.unmodifiable(_rooms);
   int? get customRooms => _customRooms;
   Set<AreaRange> get areas => Set.unmodifiable(_areas);

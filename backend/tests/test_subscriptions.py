@@ -84,14 +84,14 @@ def test_tariffs_endpoint_is_public_and_marks_current(api_client, rich_user):
     anonymous = api_client.get(reverse("billing:tariffs"))
 
     assert anonymous.status_code == 200
-    assert [item["code"] for item in anonymous.data] == ["free", "realtor", "agency"]
-    # Без подписки текущим считается бесплатный тариф.
-    assert [item["code"] for item in anonymous.data if item["is_current"]] == ["free"]
+    assert [item["code"] for item in anonymous.data] == ["owner", "top", "vip", "premium"]
+    # Без подписки текущим считается базовый тариф из витрины.
+    assert [item["code"] for item in anonymous.data if item["is_current"]] == ["owner"]
 
     buy(client_for(rich_user), "tariff-current")
     subscribed = client_for(rich_user).get(reverse("billing:tariffs"))
 
-    assert [item["code"] for item in subscribed.data if item["is_current"]] == ["realtor"]
+    assert [item["code"] for item in subscribed.data if item["is_current"]] == ["top"]
 
 
 # -- покупка -----------------------------------------------------------------
@@ -113,6 +113,21 @@ def test_purchase_charges_price_and_lifts_publication_limit(rich_user):
     assert operation.amount == -REALTOR_PRICE
     assert operation.kind == WalletEntryKind.SPEND
     assert operation.label == f"-{REALTOR_PRICE} кирпичей (подписка «Риелтор», 1 мес.)"
+
+
+@pytest.mark.parametrize(
+    ("public_code", "stored_code"),
+    [("top", "realtor"), ("vip", "realtor"), ("premium", "agency")],
+)
+def test_public_tariff_codes_from_showcase_can_be_purchased(public_code, stored_code):
+    """Коды из 4-карточной витрины мапятся на реальные тарифы в БД."""
+    user = UserFactory()
+    fund(user, 20_000)
+
+    response = buy(client_for(user), f"sub-{public_code}", tariff_code=public_code)
+
+    assert response.status_code == 201, response.data
+    assert response.data["tariff"]["code"] == stored_code
 
 
 def test_subscription_allows_publishing_beyond_free_limit(

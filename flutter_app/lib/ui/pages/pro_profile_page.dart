@@ -1,17 +1,20 @@
+// «Профиль продавца (Pro)» — точное визуальное соответствие эталону Reference 1 с динамической архитектурой Flutter.
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
-import '../auth_guard.dart';
-import '../../app/stage.dart';
-import '../app_tab_bar.dart';
-import 'profile_page.dart';
-import '../../prototype.dart';
-import '../../data/listings.dart';
 import '../../data/listing_repository.dart';
+import '../../data/listings.dart';
+import '../../l10n/l10n.dart';
+import '../app_tab_bar.dart';
+import '../auth_guard.dart';
 import '../object_card.dart';
 import '../widgets/profile_identity.dart';
-import '../widgets/latest_notifications.dart';
+import '../widgets/profile_latest_notifications.dart';
+import 'profile_page.dart' show LanguageToggleWidget;
+
+const Color _danger = Color(0xffd93025);
+const Color _accent = Color(0xffea812e);
 
 class ProProfilePage extends StatefulWidget {
   const ProProfilePage({super.key});
@@ -21,29 +24,12 @@ class ProProfilePage extends StatefulWidget {
 }
 
 class _ProProfilePageState extends State<ProProfilePage> {
+  PropertyKind _selectedKind = PropertyKind.newBuilding;
   late final ListingRepository _repository;
   List<Listing> _listings = [];
-  bool _isLoading = true;
-  PropertyKind _selectedKind = PropertyKind.newBuilding;
-  // Nullable: на вебе после hot reload поле, добавленное в живой State,
-  // приходит неинициализированным, и `??` ниже это гасит.
   int? _activeCount;
   int? _soldCount;
-
-  static const _categoryTabs = [
-    (PropertyKind.newBuilding, 'Новостройки'),
-    (PropertyKind.apartment, 'Квартиры'),
-    (PropertyKind.commercial, 'Коммерция'),
-  ];
-
-  static String _emptyMessageForKind(PropertyKind kind) => switch (kind) {
-    PropertyKind.newBuilding => 'Нет новостроек',
-    PropertyKind.apartment => 'Нет квартир',
-    PropertyKind.commercial => 'Нет коммерческих объектов',
-    PropertyKind.house => 'Нет домов',
-    PropertyKind.plot => 'Нет участков',
-    PropertyKind.room => 'Нет комнат',
-  };
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -65,8 +51,6 @@ class _ProProfilePageState extends State<ProProfilePage> {
 
   Future<void> _loadListings() async {
     try {
-      // Профиль продавца показывает только его собственные объекты —
-      // все статусы, включая черновики и объявления на модерации.
       final mine = await _repository.getMyListings();
       if (mounted) {
         setState(() {
@@ -84,44 +68,43 @@ class _ProProfilePageState extends State<ProProfilePage> {
     }
   }
 
-  /// Имя на первой строке, фамилия — на второй.
-  static String _nameLines(String? name) {
-    final value = (name ?? '').trim();
-    if (value.isEmpty) return 'Без имени';
-    final space = value.indexOf(' ');
-    if (space < 0) return value;
-    return '${value.substring(0, space)}\n${value.substring(space + 1).trim()}';
-  }
+  List<(PropertyKind, String)> _getCategoryTabs(AppLocalizations l10n) => [
+        (PropertyKind.newBuilding, l10n.kindNewBuilding),
+        (PropertyKind.apartment, l10n.kindApartment),
+        (PropertyKind.commercial, l10n.kindCommercial),
+      ];
 
-  /// «8 объектов недвижимости» — с правильной формой слова.
-  static String _objectsLabel(int count) {
-    final mod100 = count % 100;
-    final mod10 = count % 10;
-    if (mod100 >= 11 && mod100 <= 14) return '$count объектов недвижимости';
-    if (mod10 == 1) return '$count объект недвижимости';
-    if (mod10 >= 2 && mod10 <= 4) return '$count объекта недвижимости';
-    return '$count объектов недвижимости';
+  String _emptyMessageForKind(PropertyKind kind, AppLocalizations l10n) {
+    return switch (kind) {
+      PropertyKind.newBuilding => l10n.proEmptyNewBuildings,
+      PropertyKind.apartment => l10n.proEmptyApartments,
+      PropertyKind.commercial => l10n.proEmptyCommercial,
+      PropertyKind.house => l10n.proEmptyHouses,
+      PropertyKind.plot => l10n.proEmptyPlots,
+      PropertyKind.room => l10n.proEmptyRooms,
+    };
   }
 
   bool _isLoggingOut = false;
 
   Future<void> _confirmLogOut(BuildContext context) async {
     if (_isLoggingOut) return;
+    final l10n = context.l10n;
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xffffffff),
         surfaceTintColor: Colors.transparent,
-        title: const Text('Выйти из аккаунта?'),
-        content: const Text('Избранное и фильтры этого сеанса будут забыты.'),
+        title: Text(l10n.profileLogoutConfirmTitle),
+        content: Text(l10n.profileLogoutConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Отмена'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Выйти', style: TextStyle(color: Color(0xffd93025))),
+            child: const Text('Выйти', style: TextStyle(color: _danger)),
           ),
         ],
       ),
@@ -147,450 +130,464 @@ class _ProProfilePageState extends State<ProProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    const dangerColor = Color(0xffd93025);
     final state = AppScope.of(context);
+    final l10n = context.l10n;
 
-    final baseFrame = frame('38');
-    final proFrame = FigScreen(
-      number: baseFrame.number,
-      title: baseFrame.title,
-      node: baseFrame.node,
-      width: baseFrame.width,
-      height: 1258.0,
-      builder: baseFrame.builder,
-      tabBarAt: null,
-      mockupTab: baseFrame.mockupTab,
-      activeTab: baseFrame.activeTab,
-      hotspots: baseFrame.hotspots,
-    );
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await _loadListings();
-        await AppScope.read(context).fetchProfile();
-      },
-      color: const Color(0xffea812e),
-      child: FigStage(
-      frame: proFrame,
-      cutBelow: 1258.0,
-      bottomBar: const AppTabBar(active: 4),
-      background: const Color(0xfffefefe),
-      overlays: [
-        // ——— Настоящая шапка профиля вместо статичной из макета ———
-        if (state.userProfileCoverUrl != null && state.userProfileCoverUrl!.isNotEmpty)
-          Positioned(
-            left: 0.0,
-            top: -17.0,
-            child: ProfileCover(
-              url: state.userProfileCoverUrl,
-              width: 375.0,
-              height: 221.0,
-              radius: 23.0,
-              darken: true,
-            ),
-          ),
-
-        // Аватар пользователя (в кадре — картинка, Y=166).
-        Positioned(
-          left: 25.0,
-          top: 166.0,
-          child: ProfileAvatar(
-            url: state.userAvatarUrl,
-            initials: state.userInitials,
-            size: 64.0,
-            radius: 12.0,
-          ),
-        ),
-
-        // Маска поверх имени, счётчиков и плашки роли из макета (Y=238).
-        const Positioned(
-          left: 25.0,
-          top: 232.0,
-          width: 325.0,
-          height: 84.0,
-          child: ColoredBox(color: Color(0xffffffff)),
-        ),
-
-        // Имя и статистика по объектам продавца.
-        Positioned(
-          left: 25.0,
-          top: 234.0,
-          width: 210.0,
+    return Scaffold(
+      backgroundColor: const Color(0xfffefefe),
+      bottomNavigationBar: const AppTabBar(active: 4),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _loadListings();
+          await AppScope.read(context).fetchProfile();
+        },
+        color: _accent,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Имя и фамилия — каждая на своей строке.
-              Text(
-                _nameLines(state.userName),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 21.0,
-                  fontWeight: FontWeight.w600,
-                  height: 1.1,
-                  letterSpacing: -0.21,
-                  color: Color(0xff000000),
-                ),
-              ),
-              const SizedBox(height: 4.0),
-              Text(
-                _objectsLabel(_activeCount ?? 0),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w500,
-                  height: 1.15,
-                  color: Color(0xff7d7d7d),
-                ),
-              ),
-              const SizedBox(height: 2.0),
-              Text(
-                'Продано: ${_soldCount ?? 0}',
-                maxLines: 1,
-                style: const TextStyle(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w500,
-                  height: 1.15,
-                  color: Color(0xff7d7d7d),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Плашка роли — реальный тип продавца из профиля.
-        Positioned(
-          left: 240.0,
-          top: 236.0,
-          child: RoleBadge(label: state.roleLabel),
-        ),
-
-        // Табы категорий (Y=316): Новостройки, Квартиры, Коммерция
-        Positioned(
-          left: 20.0,
-          top: 314.0,
-          right: 20.0,
-          height: 38.0,
-          child: Container(
-            color: const Color(0xfffefefe),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                for (final (kind, label) in _categoryTabs) ...[
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      if (_selectedKind != kind) {
-                        setState(() => _selectedKind = kind);
-                      }
-                    },
+              // 1. Верхний Cover Header со скруглённым низом и перекрывающим аватаром (Reference 1)
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ProfileCover(
+                    url: state.userProfileCoverUrl,
+                    width: double.infinity,
+                    height: 245.0,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(24.0),
+                      bottomRight: Radius.circular(24.0),
+                    ),
+                    darken: true,
+                  ),
+                  Positioned(
+                    left: 20.0,
+                    bottom: -36.0,
                     child: Container(
-                      height: 30.0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
                       decoration: BoxDecoration(
-                        color: _selectedKind == kind
-                            ? const Color(0xfffbeee3)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8.0),
+                        shape: BoxShape.rectangle,
+                        borderRadius: BorderRadius.circular(18.0),
+                        border: Border.all(color: Colors.white, width: 3.0),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x1a000000),
+                            offset: Offset(0, 4),
+                            blurRadius: 10.0,
+                          ),
+                        ],
                       ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 13.0,
-                          fontWeight: FontWeight.w500,
-                          color: _selectedKind == kind
-                              ? const Color(0xffea812e)
-                              : const Color(0xff7d7d7d),
-                        ),
+                      child: ProfileAvatar(
+                        url: state.userAvatarUrl,
+                        initials: state.userInitials,
+                        size: 72.0,
+                        radius: 15.0,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6.0),
                 ],
-              ],
-            ),
-          ),
-        ),
-        // Клик по баннеру «Добавить объявление» (Y=371)
-        Positioned(
-          left: 25.0,
-          top: 371.0,
-          width: 325.0,
-          height: 64.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-            if (!requireAuth(context, reason: 'Войдите, чтобы разместить объявление')) return;
-            Navigator.of(context).pushNamed(Routes.ad);
-          },
-          ),
-        ),
+              ),
+              const SizedBox(height: 48.0),
 
-        // Карточки объектов продавца (Y=480), отфильтрованные по выбранной категории
-        Positioned(
-          left: 0,
-          top: 480.0,
-          right: 0,
-          height: 220.0,
-          child: Container(
-            color: const Color(0xfffefefe),
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xffea812e)))
-                : () {
-                    final filtered = _listings.where((l) => l.kind == _selectedKind).toList();
-                    if (filtered.isEmpty) {
-                      return Center(
-                        child: Text(
-                          _emptyMessageForKind(_selectedKind),
-                          style: const TextStyle(
-                            color: Color(0xff7d7d7d),
-                            fontSize: 13.0,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      );
-                    }
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      child: Row(
-                        children: filtered.map((l) => Padding(
-                          padding: const EdgeInsets.only(right: 15.0),
-                          child: ObjectCard(
-                            listing: l,
-                            favourite: state.isFavourite(l.id),
-                            onTap: () => Navigator.of(context).pushNamed(
-                              Routes.adPreview,
-                              arguments: l.slug,
-                            ),
-                            onFavourite: () => state.toggleFavourite(l.id),
-                          ),
-                        )).toList(),
-                      ),
-                    );
-                  }(),
-          ),
-        ),
-
-        // Клик по кнопке «Пополнить» на панели баланса (Y=725)
-        Positioned(
-          left: 230.0,
-          top: 725.0,
-          width: 120.0,
-          height: 55.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.topup),
-          ),
-        ),
-
-        // Белая маска поверх баланса на макете
-        Positioned(
-          left: 25.0,
-          top: 725.0,
-          width: 200.0,
-          height: 55.0,
-          child: ColoredBox(color: const Color(0xffffffff)),
-        ),
-
-        // Настоящий баланс кошелька
-        Positioned(
-          left: 25.0,
-          top: 725.0,
-          width: 200.0,
-          height: 55.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.history),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${state.walletBalance} кирпичей',
-                  style: const TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xffea812e),
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 2.0),
-                const Text(
-                  'Баланс',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    color: Color(0x993c3c43),
-                    height: 1.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Клик по «Последние уведомления» / «Посмотреть все» (Y=807)
-        Positioned(
-          left: 25.0,
-          top: 807.0,
-          width: 325.0,
-          height: 100.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
-          ),
-        ),
-
-        // Настоящее уведомление поверх нарисованной карточки кадра.
-        // Полоса между заголовком (заканчивается на 849) и ссылкой
-        // «Посмотреть все» (начинается на 922) — измерено по кадру 38.
-        const Positioned(
-          left: 25.0,
-          top: 855.0,
-          width: 325.0,
-          height: 62.0,
-          child: LatestNotifications(width: 325.0, height: 62.0, maxItems: 1),
-        ),
-
-        // Клик по настройке «Тарифы» (Y=976)
-        Positioned(
-          left: 25.0,
-          top: 976.0,
-          width: 325.0,
-          height: 44.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.tariffs),
-          ),
-        ),
-
-        // Клик по настройке «Уведомление» (Y=1020)
-        Positioned(
-          left: 25.0,
-          top: 1020.0,
-          width: 325.0,
-          height: 44.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
-          ),
-        ),
-
-        // Клик по настройке «Аккаунт» (Y=1064)
-        Positioned(
-          left: 25.0,
-          top: 1064.0,
-          width: 325.0,
-          height: 44.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.account),
-          ),
-        ),
-
-        // Клик по настройке «Служба поддержки» (Y=1108)
-        Positioned(
-          left: 25.0,
-          top: 1108.0,
-          width: 325.0,
-          height: 44.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.support),
-          ),
-        ),
-
-        // Клик по настройке «История пополнения и трат» (Y=1152)
-        Positioned(
-          left: 25.0,
-          top: 1152.0,
-          width: 325.0,
-          height: 44.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed(Routes.history),
-          ),
-        ),
-
-        // Маска под статичной плашкой языка из макета Figma (Y=1164..1214)
-        const Positioned(
-          left: 150.0,
-          top: 1164.0,
-          width: 225.0,
-          height: 50.0,
-          child: ColoredBox(color: Color(0xfffefefe)),
-        ),
-
-        // Полноценный переключатель языка (Y=1172, точно на одной высоте с текстом «Язык»)
-        const Positioned(
-          left: 175.0,
-          top: 1172.0,
-          child: LanguageToggleWidget(),
-        ),
-
-        // Строка «Выйти из аккаунта» сразу под блоком настроек (Y=1210)
-        if (state.isAuthenticated)
-          Positioned(
-            left: 25.0,
-            top: 1210.0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _isLoggingOut ? null : () => _confirmLogOut(context),
-              child: Container(
-                width: 325.0,
-                height: 40.0,
-                color: const Color(0xfffefefe),
+              // 2. Блок имени, статистики и плашки роли (Reference 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 24.0,
-                      height: 24.0,
-                      decoration: BoxDecoration(
-                        color: const Color(0xfffde8e8),
-                        borderRadius: BorderRadius.circular(6.0),
-                      ),
-                      alignment: Alignment.center,
-                      child: _isLoggingOut
-                          ? const SizedBox(
-                              width: 14.0,
-                              height: 14.0,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.0,
-                                color: dangerColor,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.logout,
-                              size: 16.0,
-                              color: dangerColor,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            state.userName ?? l10n.profileNoName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 22.0,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.3,
+                              color: Color(0xff000000),
                             ),
+                          ),
+                          const SizedBox(height: 5.0),
+                          Text(
+                            l10n.proObjectsCount(_activeCount ?? 0),
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xff7d7d7d),
+                            ),
+                          ),
+                          const SizedBox(height: 2.0),
+                          Text(
+                            l10n.proSold(_soldCount ?? 0),
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xff7d7d7d),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(width: 12.0),
-                    Text(
-                      _isLoggingOut ? 'Выход...' : 'Выйти из аккаунта',
-                      style: const TextStyle(
-                        fontSize: 15.0,
-                        fontWeight: FontWeight.w500,
-                        color: dangerColor,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 7.0),
+                      decoration: BoxDecoration(
+                        color: const Color(0xffe8f1ff),
+                        borderRadius: BorderRadius.circular(6.0),
                       ),
-                    ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 14.0,
-                      color: Color(0xffc7c7cc),
+                      child: Text(
+                        state.localizedRoleLabel(l10n),
+                        style: const TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xff006cfb),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 24.0),
+
+              // 3. Табы категорий (Reference 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final (kind, label) in _getCategoryTabs(l10n)) ...[
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            if (_selectedKind != kind) {
+                              setState(() => _selectedKind = kind);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 9.0),
+                            decoration: BoxDecoration(
+                              color: _selectedKind == kind
+                                  ? const Color(0xfffbeee3)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 14.0,
+                                fontWeight: _selectedKind == kind ? FontWeight.w600 : FontWeight.w500,
+                                color: _selectedKind == kind ? _accent : const Color(0xff8e8e93),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8.0),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20.0),
+
+              // 4. Большая карточка «Добавить объявление» (Reference 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    if (!requireAuth(context, reason: l10n.adMustSelectCategory)) return;
+                    Navigator.of(context).pushNamed(Routes.ad);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffffffff),
+                      borderRadius: BorderRadius.circular(12.0),
+                      border: Border.all(color: const Color(0xffe5e5ea)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x06000000),
+                          offset: Offset(0, 2),
+                          blurRadius: 8.0,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44.0,
+                          height: 44.0,
+                          decoration: BoxDecoration(
+                            color: const Color(0xfffbeee3),
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          child: const Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: _accent,
+                            size: 24.0,
+                          ),
+                        ),
+                        const SizedBox(width: 14.0),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.proAddListing,
+                                style: const TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xff000000),
+                                ),
+                              ),
+                              const SizedBox(height: 3.0),
+                              const Text(
+                                'Добавьте первый объект',
+                                style: TextStyle(
+                                  fontSize: 13.0,
+                                  color: Color(0xff7d7d7d),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24.0),
+
+              // 5. Заголовок «Все объявления» и 2 крупные карточки в ряд (Reference 1)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                child: Text(
+                  'Все объявление',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.2,
+                    color: Color(0xff000000),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14.0),
+
+              SizedBox(
+                height: 208.0,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accent))
+                    : () {
+                        final filtered = _listings.where((l) => l.kind == _selectedKind).toList();
+                        if (filtered.isEmpty) {
+                          return Center(
+                            child: Text(
+                              _emptyMessageForKind(_selectedKind, l10n),
+                              style: const TextStyle(
+                                color: Color(0xff7d7d7d),
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 14.0),
+                          itemBuilder: (context, index) {
+                            final l = filtered[index];
+                            return ObjectCard(
+                              listing: l,
+                              favourite: state.isFavourite(l.id),
+                              onTap: () => Navigator.of(context).pushNamed(
+                                Routes.adPreview,
+                                arguments: l.slug,
+                              ),
+                              onFavourite: () => state.toggleFavourite(l.id),
+                            );
+                          },
+                        );
+                      }(),
+              ),
+              const SizedBox(height: 24.0),
+
+              // 6. Секция «Последние уведомления» (Reference 1)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                child: ProfileLatestNotifications(showTitle: true, maxItems: 1),
+              ),
+              const SizedBox(height: 24.0),
+
+              // 7. Секция «Настройки» с просторным ритмом и тёплыми иконками (Reference 1)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                child: Text(
+                  'Настройки',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.2,
+                    color: Color(0xff000000),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8.0),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  children: [
+                    _ProSettingRow(
+                      icon: Icons.notifications_none,
+                      label: l10n.profileNotificationsRow,
+                      onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
+                    ),
+                    _ProSettingRow(
+                      icon: Icons.person_outline,
+                      label: l10n.profileAccountRow,
+                      onTap: () => Navigator.of(context).pushNamed(Routes.account),
+                    ),
+                    _ProSettingRow(
+                      icon: Icons.phone_in_talk_outlined,
+                      label: l10n.profileSupportRow,
+                      onTap: () => Navigator.of(context).pushNamed(Routes.support),
+                    ),
+
+                    // Строка переключателя языка
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 11.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.language, size: 22.0, color: _accent),
+                          const SizedBox(width: 14.0),
+                          Expanded(
+                            child: Text(
+                              l10n.profileLanguageRow,
+                              style: const TextStyle(
+                                fontSize: 16.0,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xff000000),
+                              ),
+                            ),
+                          ),
+                          const LanguageToggleWidget(),
+                        ],
+                      ),
+                    ),
+
+                    // Кнопка выхода из аккаунта
+                    if (state.isAuthenticated) ...[
+                      const SizedBox(height: 6.0),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _isLoggingOut ? null : () => _confirmLogOut(context),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 11.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 24.0,
+                                height: 24.0,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xfffde8e8),
+                                  borderRadius: BorderRadius.circular(6.0),
+                                ),
+                                alignment: Alignment.center,
+                                child: _isLoggingOut
+                                    ? const SizedBox(
+                                        width: 14.0,
+                                        height: 14.0,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.0,
+                                          color: _danger,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.logout,
+                                        size: 16.0,
+                                        color: _danger,
+                                      ),
+                              ),
+                              const SizedBox(width: 12.0),
+                              Expanded(
+                                child: Text(
+                                  _isLoggingOut ? l10n.profileLoggingOut : l10n.profileLogout,
+                                  style: const TextStyle(
+                                    fontSize: 15.0,
+                                    fontWeight: FontWeight.w500,
+                                    color: _danger,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 20.0,
+                                color: Color(0xffc7c7cc),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32.0),
+            ],
           ),
-      ],
-    ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProSettingRow extends StatelessWidget {
+  const _ProSettingRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 22.0, color: _accent),
+            const SizedBox(width: 14.0),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xff000000),
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              size: 20.0,
+              color: Color(0xffc7c7cc),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

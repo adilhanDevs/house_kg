@@ -28,6 +28,26 @@ enum PropertyKind {
 
   const PropertyKind(this.label);
   final String label;
+
+  String localized(dynamic l10n) {
+    if (l10n != null) {
+      switch (this) {
+        case PropertyKind.house:
+          return l10n.kindHouse;
+        case PropertyKind.apartment:
+          return l10n.kindApartment;
+        case PropertyKind.plot:
+          return l10n.kindPlot;
+        case PropertyKind.newBuilding:
+          return l10n.kindNewBuilding;
+        case PropertyKind.room:
+          return l10n.kindRoom;
+        case PropertyKind.commercial:
+          return l10n.kindCommercial;
+      }
+    }
+    return label;
+  }
 }
 
 /// Кто продаёт — три тумблера «Продавца» в «Фильтре».
@@ -40,6 +60,20 @@ enum SellerKind {
 
   /// Подпись — как в макете, вместе с его опечаткой в «агенстве».
   final String label;
+
+  String localized(dynamic l10n) {
+    if (l10n != null) {
+      switch (this) {
+        case SellerKind.owner:
+          return l10n.sellerOwner;
+        case SellerKind.realtor:
+          return l10n.sellerRealtor;
+        case SellerKind.agency:
+          return l10n.sellerAgency;
+      }
+    }
+    return label;
+  }
 }
 
 @immutable

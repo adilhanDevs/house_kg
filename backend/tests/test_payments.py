@@ -493,3 +493,38 @@ def test_finik_callback_without_confirmation_does_not_credit(
     assert response.status_code == 403
     assert get_wallet(user).balance == 0
     assert Payment.objects.get(pk=payment_id).status == PaymentStatus.PENDING
+
+
+@finik_settings
+def test_finik_callback_for_another_account_does_not_credit(
+    auth: APIClient, user, api_client: APIClient
+):
+    """Даже подтверждённая Finik транзакция должна относиться к нашему accountId."""
+    from apps.billing.providers.finik import FinikPaymentProvider
+
+    create_response = {"data": {"createItem": {"id": "finik-item-3"}}}
+    with patch("apps.billing.providers.finik._finik_graphql", return_value=create_response):
+        created = auth.post(
+            TOPUP_URL,
+            {"amount_kgs": 12_000},
+            format="json",
+            HTTP_IDEMPOTENCY_KEY=uuid.uuid4().hex,
+        )
+
+    payment_id = created.data["payment_id"]
+    verified_item = {
+        "id": "finik-item-3",
+        "fixedAmount": 12_000,
+        "paymentCount": 1,
+        "account": {"id": "another-account"},
+        "requiredFields": [{"fieldId": "paymentId", "value": str(payment_id)}],
+    }
+
+    with patch.object(
+        FinikPaymentProvider, "verify_finik_transaction", return_value=verified_item
+    ):
+        response = finik_callback(api_client, "finik-item-3", str(payment_id))
+
+    assert response.status_code == 403
+    assert get_wallet(user).balance == 0
+    assert Payment.objects.get(pk=payment_id).status == PaymentStatus.PENDING

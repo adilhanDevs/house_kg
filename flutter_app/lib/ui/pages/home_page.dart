@@ -11,6 +11,7 @@ import '../../app/stage.dart';
 import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import '../app_tab_bar.dart';
 import '../widgets/notification_badge.dart';
 import '../listing_grid.dart';
@@ -41,15 +42,10 @@ const List<(PropertyKind, double, double)> _categories = [
 /// Вкладки «Новых позиций»: подпись 15/500 и черта под выбранной.
 const double _tabsTop = 458;
 const double _tabsHeight = 22;
-const List<(PropertyKind, String, double, double)> _newTabs = [
-  (PropertyKind.apartment, 'Квартиры', 23, 68),
-  (PropertyKind.plot, 'Участки', 121, 58.8),
-  (PropertyKind.house, 'Дома', 209.8, 39.8),
-];
 
-/// Область, где кадр рисует четыре карточки.
-const double _cardsTop = 512;
-const double _cardsBottom = 945;
+/// Карточки объявлений под вкладками.
+const double _cardsTop = 496;
+const double _cardsBottom = 948;
 
 /// «Посмотреть все».
 const Rect _seeAll = Rect.fromLTWH(133, 957, 110, 22);
@@ -128,6 +124,13 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final l10n = context.l10n;
+
+    final newTabs = [
+      (PropertyKind.apartment, l10n.kindApartment, 23.0, 75.0),
+      (PropertyKind.plot, l10n.kindPlot, 115.0, 90.0),
+      (PropertyKind.house, l10n.kindHouse, 215.0, 60.0),
+    ];
 
     return RefreshIndicator(
       onRefresh: _loadListings,
@@ -137,16 +140,11 @@ class _HomePageState extends State<HomePage> {
       background: _page,
       bottomBar: const AppTabBar(active: 0),
       overlays: [
-        // Колокол кадр рисует сам — 30×30 с волосяным кольцом #ffac6a 0.962
-        // и иконкой 13×14.4 внутри. Сверху нужна только зона нажатия, ровно
-        // по его коробке: своя отрисовка макет не повторяет.
         FigZone(
           _bell.left, _bell.top, _bell.width, _bell.height,
-          label: 'Уведомления',
+          label: l10n.notificationsTitle,
           onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
         ),
-        // Счётчик непрочитанных — в правом верхнем углу колокольчика.
-        // Нажатия не перехватывает: под ним зона перехода к уведомлениям.
         Positioned(
           left: _bell.right - 12.0,
           top: _bell.top - 4.0,
@@ -159,7 +157,7 @@ class _HomePageState extends State<HomePage> {
             width: _search.width,
             fieldHeight: _search.height,
             controller: _searchController,
-            hint: 'Что ищете?',
+            hint: l10n.homeSearchHint,
             onChanged: (text) {
               state.setQuery(text);
             },
@@ -250,11 +248,11 @@ class _HomePageState extends State<HomePage> {
         for (final (kind, x, w) in _categories)
           FigZone(
             x, _categoryTop, w, _categoryBottom - _categoryTop,
-            label: kind.label,
+            label: kind.localized(l10n),
             onTap: () => _openCatalog(context, kind: kind),
           ),
         // вкладки: подписи перерисовываем, чтобы выбранная была акцентной
-        for (final (kind, label, x, w) in _newTabs)
+        for (final (kind, label, x, w) in newTabs)
           Positioned(
             left: x,
             top: _tabsTop,
@@ -279,18 +277,18 @@ class _HomePageState extends State<HomePage> {
           child: ColoredBox(
             color: _page,
             child: _isLoading
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(
+                        const CircularProgressIndicator(
                           color: Color(0xffea812e),
                           strokeWidth: 3,
                         ),
-                        SizedBox(height: 14),
+                        const SizedBox(height: 14),
                         Text(
-                          'Загрузка объявлений...',
-                          style: TextStyle(
+                          l10n.loading,
+                          style: const TextStyle(
                             fontSize: 13,
                             color: Color(0xff8e8e93),
                             fontWeight: FontWeight.w500,
@@ -306,10 +304,27 @@ class _HomePageState extends State<HomePage> {
                   ),
           ),
         ),
-        FigZone(
-          _seeAll.left, _seeAll.top, _seeAll.width, _seeAll.height,
-          label: 'Посмотреть все',
-          onTap: () => _openCatalog(context, kind: _tab),
+        Positioned(
+          left: _seeAll.left - 20,
+          top: _seeAll.top - 2,
+          width: _seeAll.width + 40,
+          height: _seeAll.height + 4,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _openCatalog(context, kind: _tab),
+            child: Container(
+              color: _page,
+              alignment: Alignment.center,
+              child: Text(
+                l10n.homeSeeAll,
+                style: const TextStyle(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xffea812e),
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     ),

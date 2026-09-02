@@ -1,8 +1,3 @@
-// Лента уведомлений.
-//
-// Раньше это был растр кадра 17 с четырьмя одинаковыми зонами нажатия: все
-// четыре открывали одно и то же захардкоженное объявление. Теперь список
-// приходит с сервера, а нажатие ведёт туда, куда указывает payload.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -12,6 +7,7 @@ import '../../app/routes.dart';
 import '../../data/chat_controller.dart' show describeApiError;
 import '../../data/chat_models.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import '../app_tab_bar.dart';
 import 'chat_page.dart';
 
@@ -87,16 +83,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  /// Куда ведёт уведомление.
-  ///
-  /// Для нового сообщения — в диалог по conversation_id из payload. Слаг
-  /// объявления там тоже есть, но навигация идёт именно по диалогу.
   Future<void> _open(AppNotification notification) async {
     final state = AppScope.read(context);
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
-    // Приватную переписку без авторизации не открываем.
     if (!state.isAuthenticated) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Войдите, чтобы открыть переписку')),
@@ -110,7 +101,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (notification.isNewMessage) {
       final conversationId = notification.conversationId;
       if (conversationId == null) {
-        // payload без диалога — вести некуда, но и падать незачем.
         messenger.showSnackBar(
           const SnackBar(content: Text('Диалог недоступен')),
         );
@@ -159,6 +149,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
       appBar: AppBar(
@@ -170,7 +161,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          'Уведомления',
+          l10n.notificationsTitle,
           style: figStyle(
             fontSize: 17.0,
             family: FigFont.display,
@@ -181,26 +172,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Сообщения',
+            tooltip: l10n.chatTitle,
             icon: const Icon(Icons.forum_outlined, color: _accent),
             onPressed: () => Navigator.of(context).pushNamed(Routes.conversations),
           ),
         ],
       ),
       bottomNavigationBar: const AppTabBar(active: null),
-      body: SafeArea(child: _body()),
+      body: SafeArea(child: _body(l10n)),
     );
   }
 
-  Widget _body() {
+  Widget _body(dynamic l10n) {
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: _accent));
     }
     if (_error != null && _items.isEmpty) {
-      return _Placeholder(text: _error!, actionLabel: 'Повторить', onAction: _load);
+      return _Placeholder(text: _error!, actionLabel: l10n.retry, onAction: _load);
     }
     if (_items.isEmpty) {
-      return const _Placeholder(text: 'Уведомлений пока нет');
+      return _Placeholder(text: l10n.notificationsEmpty);
     }
 
     return RefreshIndicator(

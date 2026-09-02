@@ -97,6 +97,7 @@ class ProfileCover extends StatelessWidget {
     this.width = double.infinity,
     this.height = 140.0,
     this.radius = 16.0,
+    this.borderRadius,
     this.fallback,
     this.darken = false,
   });
@@ -105,18 +106,19 @@ class ProfileCover extends StatelessWidget {
   final double width;
   final double height;
   final double radius;
+  final BorderRadius? borderRadius;
   final Widget? fallback;
   final bool darken;
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = BorderRadius.circular(radius);
+    final effectiveRadius = borderRadius ?? BorderRadius.circular(radius);
     final placeholder = fallback ??
         Container(
           width: width,
           height: height,
           decoration: BoxDecoration(
-            borderRadius: borderRadius,
+            borderRadius: effectiveRadius,
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -131,7 +133,7 @@ class ProfileCover extends StatelessWidget {
     if (url == null || url!.isEmpty) return placeholder;
 
     return ClipRRect(
-      borderRadius: borderRadius,
+      borderRadius: effectiveRadius,
       child: SizedBox(
         width: width,
         height: height,

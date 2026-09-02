@@ -1,10 +1,3 @@
-// «Фильтр» — прокручиваемый список секций.
-//
-// Раньше экран был кадром макета с чипами на жёстких координатах. Набор
-// параметров зависит от типа недвижимости (у участка нет комнат и серии, у
-// коммерции свои поля), а прятать блок на фиксированной координате — значит
-// оставлять дыру. Поэтому здесь обычный список, но собранный из тех же
-// `Fig*`-виджетов: чипы, шрифты, цвета и высоты остались прежними.
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -12,6 +5,7 @@ import '../../app/routes.dart';
 import '../../data/kind_fields.dart';
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import '../app_tab_bar.dart';
 import '../fig_controls.dart';
 
@@ -60,9 +54,8 @@ class _FilterPageState extends State<FilterPage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final l10n = context.l10n;
 
-    // Секция видна, если применима хотя бы к одному из выбранных типов.
-    // Пустой выбор — «ищем везде», тогда показываются все секции.
     final visible = fieldsForKinds(state.kinds);
 
     return Scaffold(
@@ -72,19 +65,19 @@ class _FilterPageState extends State<FilterPage> {
         bottom: false,
         child: Column(
           children: [
-            _header(context),
+            _header(context, l10n),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(_gutter, 8, _gutter, 16),
                 children: [
-                  _title('Тип недвижимости'),
+                  _title(l10n.filterPropertyType),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       for (final kind in PropertyKind.values)
                         FigChip(
-                          label: kind.label,
+                          label: kind.localized(l10n),
                           selected: state.kinds.contains(kind),
                           onTap: () => state.toggleKind(kind),
                         ),
@@ -100,13 +93,13 @@ class _FilterPageState extends State<FilterPage> {
                       children: [
                         if (visible.contains(ListingField.isSecondary))
                           FigChip(
-                            label: 'Вторичка',
+                            label: l10n.filterSecondary,
                             selected: state.secondaryOnly,
                             onTap: () => state.setSecondaryOnly(!state.secondaryOnly),
                           ),
                         if (visible.contains(ListingField.series))
                           FigChip(
-                            label: '103 серия',
+                            label: l10n.filterSeries103,
                             selected: state.series103,
                             onTap: () => state.setSeries103(!state.series103),
                           ),
@@ -116,14 +109,14 @@ class _FilterPageState extends State<FilterPage> {
 
                   if (visible.contains(ListingField.rooms)) ...[
                     const SizedBox(height: 20),
-                    _title('Количество комнат'),
+                    _title(l10n.filterRoomsCount),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
                         for (var count = 1; count <= 4; count++)
                           FigChip(
-                            label: '$count ком.',
+                            label: '$count ${l10n.filterRoomsUnit}',
                             selected: state.rooms.contains(count),
                             onTap: () => state.toggleRooms(count),
                           ),
@@ -132,7 +125,7 @@ class _FilterPageState extends State<FilterPage> {
                   ],
 
                   const SizedBox(height: 20),
-                  _title('Квадратура'),
+                  _title(l10n.filterArea),
                   SizedBox(
                     height: FigChip.height,
                     child: ListView(
@@ -149,7 +142,7 @@ class _FilterPageState extends State<FilterPage> {
                         FigChipInput(
                           width: 186,
                           controller: _area,
-                          hint: 'Введите свою квадратуру',
+                          hint: l10n.filterCustomArea,
                           onChanged: (text) => state.setCustomArea(AreaRange.parse(text)),
                         ),
                       ],
@@ -157,14 +150,14 @@ class _FilterPageState extends State<FilterPage> {
                   ),
 
                   const SizedBox(height: 20),
-                  _title('Цена'),
+                  _title(l10n.filterPrice),
                   Row(
                     children: [
                       Expanded(
                         child: FigInputBox(
                           width: double.infinity,
                           controller: _from,
-                          hint: 'Цена от',
+                          hint: l10n.filterPriceFrom,
                           keyboardType: TextInputType.number,
                           searchIcon: false,
                           onChanged: (_) => _applyPrice(),
@@ -175,7 +168,7 @@ class _FilterPageState extends State<FilterPage> {
                         child: FigInputBox(
                           width: double.infinity,
                           controller: _to,
-                          hint: 'Цена до',
+                          hint: l10n.filterPriceTo,
                           keyboardType: TextInputType.number,
                           searchIcon: false,
                           onChanged: (_) => _applyPrice(),
@@ -186,7 +179,7 @@ class _FilterPageState extends State<FilterPage> {
 
                   if (visible.contains(ListingField.plotPurpose)) ...[
                     const SizedBox(height: 20),
-                    _title('Назначение участка'),
+                    _title(l10n.filterPlotPurpose),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -203,7 +196,7 @@ class _FilterPageState extends State<FilterPage> {
 
                   if (visible.contains(ListingField.commercialPurpose)) ...[
                     const SizedBox(height: 20),
-                    _title('Назначение помещения'),
+                    _title(l10n.filterCommercialPurpose),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -220,7 +213,7 @@ class _FilterPageState extends State<FilterPage> {
 
                   if (visible.contains(ListingField.buildingLine)) ...[
                     const SizedBox(height: 20),
-                    _title('Линия'),
+                    _title(l10n.filterBuildingLine),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -236,7 +229,7 @@ class _FilterPageState extends State<FilterPage> {
                   ],
 
                   const SizedBox(height: 20),
-                  _title('Продавец'),
+                  _title(l10n.filterSeller),
                   for (final seller in SellerKind.values)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -246,7 +239,7 @@ class _FilterPageState extends State<FilterPage> {
                           Flexible(
                             child: FigText(
                               span: TextSpan(
-                                text: seller.label,
+                                text: seller.localized(l10n),
                                 style: figStyle(
                                   fontSize: 15.0,
                                   family: FigFont.display,
@@ -266,21 +259,21 @@ class _FilterPageState extends State<FilterPage> {
                 ],
               ),
             ),
-            _showResults(context, state),
+            _showResults(context, state, l10n),
           ],
         ),
       ),
     );
   }
 
-  Widget _header(BuildContext context) {
+  Widget _header(BuildContext context, dynamic l10n) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(_gutter, 12, _gutter, 8),
       child: Row(
         children: [
           FigText(
             span: TextSpan(
-              text: 'Фильтр',
+              text: l10n.filterTitle,
               style: figStyle(
                 fontSize: 24.0,
                 family: FigFont.display,
@@ -316,7 +309,7 @@ class _FilterPageState extends State<FilterPage> {
     );
   }
 
-  Widget _showResults(BuildContext context, AppState state) {
+  Widget _showResults(BuildContext context, AppState state, dynamic l10n) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(_gutter, 8, _gutter, 12),
       child: GestureDetector(
@@ -337,7 +330,7 @@ class _FilterPageState extends State<FilterPage> {
             child: FigText(
               noWrap: true,
               span: TextSpan(
-                text: 'Показать варианты (${state.results.length})',
+                text: l10n.filterShowVariants(state.results.length),
                 style: figStyle(
                   fontSize: 16.0,
                   family: FigFont.display,

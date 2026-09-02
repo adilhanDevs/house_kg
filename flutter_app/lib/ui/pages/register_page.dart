@@ -24,6 +24,7 @@ import '../../data/api_exceptions.dart';
 import '../../data/code_flow.dart';
 import '../../data/wait_time.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import '../fig_controls.dart';
 import '../widgets/consent_row.dart';
 
@@ -93,9 +94,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String _errorText(Object error) {
     if (error is ApiException) {
-      // У запроса кода несколько ограничений сразу; сервер уже свёл их к
-      // одному retry_after, его и показываем — человеческим текстом, а не
-      // «Повторите через 3062 секунды».
       final wait = error.retryAfter;
       if (error.isThrottled && wait != null) return waitMessage(wait);
       return error.message;
@@ -105,8 +103,6 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _complain(String message) {
-    // Предыдущее сообщение убираем: при нескольких отказах подряд баннеры
-    // выстраивались в очередь и человек читал устаревшее время.
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
@@ -134,6 +130,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _onNext() async {
     if (_isSending) return;
+    final l10n = context.l10n;
 
     final phone = _phoneController.text.trim();
     final name = _nameController.text.trim();
@@ -142,7 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final version = state.termsVersion;
 
     if (phone.isEmpty || name.isEmpty || password.isEmpty) {
-      _complain('Заполните телефон, имя и пароль');
+      _complain(l10n.fillAllFields);
       return;
     }
     if (version == null) {
@@ -150,7 +147,7 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
     if (!_accepted) {
-      _complain('Примите соглашение об обработке персональных данных');
+      _complain(l10n.consentRequired);
       return;
     }
 
@@ -178,6 +175,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -186,8 +184,6 @@ class _RegisterPageState extends State<RegisterPage> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xffffffff),
-        // Форма прокручивается, поэтому клавиатуре можно подвинуть содержимое:
-        // кнопка «Далее» не должна оставаться под ней на невысоких экранах.
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: SingleChildScrollView(
@@ -195,11 +191,10 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Полоса шага — как в макете: оранжевый отрезок на светлом фоне.
                 const _StepBar(progress: 0.18),
                 const SizedBox(height: 40.0),
                 Text(
-                  'Добро пожаловать!',
+                  l10n.register,
                   style: figStyle(
                     fontSize: 21.0,
                     family: FigFont.display,
@@ -210,8 +205,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 6.0),
                 Text(
-                  'Зарегистрируйтесь по номеру телефона. Мы пришлём код '
-                  'подтверждения, а войти потом можно будет по паролю.',
+                  l10n.welcomeSubtitle,
                   style: figStyle(
                     fontSize: 15.0,
                     family: FigFont.display,
@@ -224,21 +218,21 @@ class _RegisterPageState extends State<RegisterPage> {
                 _Field(
                   fieldKey: kRegisterPhoneFieldKey,
                   controller: _phoneController,
-                  hint: 'Номер телефона (с WhatsApp)',
+                  hint: l10n.phone,
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 12.0),
                 _Field(
                   fieldKey: kRegisterNameFieldKey,
                   controller: _nameController,
-                  hint: 'Имя',
+                  hint: l10n.name,
                   keyboardType: TextInputType.name,
                 ),
                 const SizedBox(height: 12.0),
                 _Field(
                   fieldKey: kRegisterPasswordFieldKey,
                   controller: _passwordController,
-                  hint: 'Пароль',
+                  hint: l10n.password,
                   keyboardType: TextInputType.visiblePassword,
                 ),
                 const SizedBox(height: 12.0),
@@ -252,14 +246,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 12.0),
                 _PrimaryButton(
                   buttonKey: kRegisterSubmitKey,
-                  label: 'Далее',
+                  label: l10n.next,
                   busy: _isSending,
                   onTap: _onNext,
                 ),
                 const SizedBox(height: 20.0),
                 Center(
                   child: _Link(
-                    label: 'У меня уже есть аккаунт',
+                    label: l10n.alreadyHaveAccount,
                     onTap: _onBack,
                   ),
                 ),

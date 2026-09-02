@@ -1,9 +1,7 @@
 // Галка «принимаю соглашение об обработке персональных данных».
-//
-// Версию документа задаёт сервер, поэтому пока она не загрузилась —
-// показываем ожидание, а не готовую к нажатию галку: принять документ,
-// которого ещё нет, нельзя.
 import 'package:flutter/material.dart';
+
+import '../../l10n/l10n.dart';
 
 /// Галка «принимаю соглашение» с ссылкой на текст.
 class ConsentRow extends StatelessWidget {
@@ -22,23 +20,22 @@ class ConsentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     if (loading) {
-      return const SizedBox(
+      return SizedBox(
         height: 22.0,
         child: Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 16.0,
               height: 16.0,
               child: CircularProgressIndicator(strokeWidth: 2.0, color: Color(0xffea812e)),
             ),
-            SizedBox(width: 10.0),
-            // Без Expanded строка не помещалась на узких экранах: Row
-            // переполнялся на 34 точки уже при 320 в ширину.
+            const SizedBox(width: 10.0),
             Expanded(
               child: Text(
-                'Загружаем соглашение…',
-                style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
+                l10n.loading,
+                style: const TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
               ),
             ),
           ],
@@ -71,9 +68,9 @@ class ConsentRow extends StatelessWidget {
         Expanded(
           child: GestureDetector(
             onTap: () => onChanged(!value),
-            child: const Text(
-              'Принимаю соглашение об обработке персональных данных',
-              style: TextStyle(fontSize: 13.0, height: 1.3, color: Color(0xff1c1939)),
+            child: Text(
+              '${l10n.consentPrefix}${l10n.consentTermsLink}',
+              style: const TextStyle(fontSize: 13.0, height: 1.3, color: Color(0xff1c1939)),
             ),
           ),
         ),

@@ -611,6 +611,8 @@ void main() {
       expect(find.byType(LanguageToggleWidget), findsOneWidget);
 
       // Tap logout
+      await tester.scrollUntilVisible(find.text('Выйти из аккаунта'), 100, scrollable: find.byType(Scrollable).first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Выйти из аккаунта'));
       await tester.pumpAndSettle();
 

@@ -24,6 +24,7 @@ import '../../data/api_exceptions.dart';
 import '../../data/code_flow.dart';
 import '../../data/wait_time.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 
 /// Ключи для тестов: искать поле по порядку в дереве ненадёжно.
 const Key kOtpInputKey = Key('registration_otp_input');
@@ -142,106 +143,108 @@ class _CodePageState extends State<CodePage> {
     return error.toString();
   }
 
-  Future<void> _resend() async {
-    if (_resendIn > 0 || _isChecking || _isResending) return;
-    final phone = widget.targetPhone;
-    if (phone == null) return;
+  Future<void> _onCodeChanged(String value) async {
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length > 4) return;
+    setState(() {
+      _code = digits;
+      _error = null;
+    });
 
-    final state = AppScope.read(context);
-    setState(() => _isResending = true);
-    try {
-      final response = await state.sendOtp(phone, purpose: widget.flow?.otpPurpose);
-      if (!mounted) return;
-      setState(() => _error = null);
-      final next = response['resend_after'];
-      _startResendCountdown(next is num ? next.toInt() : 60);
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(const SnackBar(content: Text('Код отправлен повторно')));
-    } catch (e) {
-      if (!mounted) return;
-      // Сервер сказал, сколько ждать, — по этому же числу и отсчитываем,
-      // чтобы на экране не было двух разных времён.
-      final wait = e is ApiException && e.isThrottled ? e.retryAfter : null;
-      if (wait != null) _startResendCountdown(wait);
-      setState(() => _error = _errorText(e));
-    } finally {
-      if (mounted) setState(() => _isResending = false);
+    if (digits.length == 4) {
+      await _verifyCode(digits);
     }
   }
 
-  void _onCodeChanged(String value) async {
-    if (value.length > 4) {
-      value = value.substring(0, 4);
-      _codeController.value = TextEditingValue(
-        text: value,
-        selection: TextSelection.collapsed(offset: value.length),
-      );
-    }
-    setState(() {
-      _code = value;
-      if (value.length < 4) _error = null;
-    });
-
-    if (value.length != 4 || _isChecking) return;
-
-    final phone = widget.targetPhone;
-    if (phone == null) {
-      Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
-      return;
-    }
-
+  Future<void> _verifyCode(String code) async {
+    if (_isChecking) return;
     setState(() => _isChecking = true);
     final state = AppScope.read(context);
-    final flow = widget.flow;
+
     try {
-      switch (flow?.kind) {
-        case CodeFlowKind.register:
-        case CodeFlowKind.proRegister:
-          await state.confirmRegistration(
-            phone: flow!.phone,
-            code: value,
-            name: flow.name,
-            password: flow.password,
-            termsVersion: flow.termsVersion,
-            purpose: flow.otpPurpose,
-          );
-        case CodeFlowKind.passwordReset:
-          await state.confirmPasswordReset(
-            phone: flow!.phone,
-            code: value,
-            password: flow.password,
-          );
-        case null:
-          await state.verifyAndLogin(phone, value);
+      final flow = widget.flow;
+      if (flow != null) {
+        switch (flow.kind) {
+          case CodeFlowKind.register:
+            await state.confirmRegistration(
+              phone: flow.phone,
+              code: code,
+              name: flow.name ?? '',
+              password: flow.password ?? '',
+              termsVersion: flow.termsVersion ?? '',
+            );
+          case CodeFlowKind.passwordReset:
+            await state.confirmPasswordReset(
+              phone: flow.phone,
+              code: code,
+              password: flow.password ?? '',
+            );
+          case CodeFlowKind.proRegister:
+            await state.verifyAndLogin(
+              flow.phone,
+              code,
+              name: flow.name,
+            );
+        }
+      } else {
+        await state.verifyAndLogin(
+          widget.targetPhone ?? '',
+          code,
+        );
       }
+
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        widget.nextRoute,
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
-      // Код не подошёл — остаёмся на экране и говорим почему. Поле чистим,
-      // чтобы следующая цифра начинала новый ввод, а не дописывала старый.
       setState(() {
-        _isChecking = false;
         _error = _errorText(e);
         _code = '';
         _codeController.clear();
       });
       _focusCode();
-      return;
+    } finally {
+      if (mounted) setState(() => _isChecking = false);
     }
+  }
 
-    if (!mounted) return;
-    setState(() => _isChecking = false);
+  Future<void> _resend() async {
+    if (_isResending || _resendIn > 0) return;
+    setState(() => _isResending = true);
+    final state = AppScope.read(context);
+    final phone = widget.targetPhone ?? '';
 
-    if (widget.nextRoute == Routes.home) {
-      Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (route) => false);
-    } else {
-      Navigator.of(context).pushNamed(widget.nextRoute);
+    try {
+      final purpose = widget.flow?.kind == CodeFlowKind.passwordReset
+          ? 'password_reset'
+          : (widget.flow?.kind == CodeFlowKind.register ? 'register' : null);
+      final resp = await state.sendOtp(phone, purpose: purpose);
+      final resendAfter = resp['resend_after'];
+      final seconds = resendAfter is num ? resendAfter.toInt() : 60;
+      _startResendCountdown(seconds);
+      if (mounted) {
+        setState(() {
+          _error = null;
+          _code = '';
+          _codeController.clear();
+        });
+        _focusCode();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = _errorText(e));
+      }
+    } finally {
+      if (mounted) setState(() => _isResending = false);
     }
   }
 
   void _onGoBack() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
     } else {
       Navigator.of(context).pushReplacementNamed(Routes.welcome);
     }
@@ -259,6 +262,7 @@ class _CodePageState extends State<CodePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
       resizeToAvoidBottomInset: true,
@@ -269,7 +273,7 @@ class _CodePageState extends State<CodePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Код подтверждения',
+                l10n.codeTitle,
                 style: figStyle(
                   fontSize: 21.0,
                   family: FigFont.display,
@@ -281,33 +285,14 @@ class _CodePageState extends State<CodePage> {
               const SizedBox(height: 8.0),
               // Номер подставляется, а не рисуется: в кадре он был зашит
               // в картинку одним и тем же значением для всех пользователей.
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: _prettyPhone.isEmpty
-                          ? 'Напишите 4-значный код из SMS.'
-                          : 'Напишите 4-значный код, который был отправлен на номер ',
-                    ),
-                    if (_prettyPhone.isNotEmpty)
-                      TextSpan(
-                        text: _prettyPhone,
-                        style: figStyle(
-                          fontSize: 15.0,
-                          family: FigFont.display,
-                          weight: 600,
-                          height: 1.333,
-                          color: _accent,
-                        ),
-                      ),
-                  ],
-                  style: figStyle(
-                    fontSize: 15.0,
-                    family: FigFont.display,
-                    weight: 500,
-                    height: 1.333,
-                    color: _muted,
-                  ),
+              Text(
+                l10n.codeSubtitle(_prettyPhone),
+                style: figStyle(
+                  fontSize: 15.0,
+                  family: FigFont.display,
+                  weight: 500,
+                  height: 1.333,
+                  color: _muted,
                 ),
               ),
               const SizedBox(height: 28.0),
@@ -347,7 +332,7 @@ class _CodePageState extends State<CodePage> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
-                      'Вернуться назад',
+                      l10n.back,
                       style: figStyle(
                         fontSize: 15.0,
                         family: FigFont.display,
@@ -470,12 +455,13 @@ class _ResendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final blocked = secondsLeft > 0 || busy;
     final label = busy
-        ? 'Отправляем…'
+        ? l10n.codeSending
         : (secondsLeft > 0
-            ? 'Отправить код повторно через ${formatWait(secondsLeft)}'
-            : 'Отправить код повторно');
+            ? l10n.resendCodeIn(secondsLeft)
+            : l10n.resendCode);
 
     return Center(
       child: GestureDetector(

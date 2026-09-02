@@ -13,6 +13,7 @@ import '../../app/stage.dart';
 import '../app_tab_bar.dart';
 import '../listing_grid.dart';
 import '../search_field.dart';
+import '../../l10n/l10n.dart';
 
 /// Что кадр рисует статикой и что приложение закрывает своим списком.
 const double _gridTop = 95.0;
@@ -118,23 +119,18 @@ class _CatalogPageState extends State<CatalogPage> {
     }
   }
 
-  String _searchHint(AppState state) {
-    if (state.kinds.length == 1) {
-      return switch (state.kinds.first) {
-        PropertyKind.house => 'Дома в Бишкеке',
-        PropertyKind.apartment => 'Квартиры в Бишкеке',
-        PropertyKind.plot => 'Участки в Бишкеке',
-        PropertyKind.newBuilding => 'Новостройки в Бишкеке',
-        PropertyKind.room => 'Комнаты в Бишкеке',
-        PropertyKind.commercial => 'Коммерция в Бишкеке',
-      };
+  String _searchHint(AppState state, dynamic l10n) {
+    if (state.selectedKinds.length == 1) {
+      final kind = state.selectedKinds.first;
+      return kind.localized(l10n);
     }
-    return 'Недвижимость в Бишкеке';
+    return l10n.catalogTitle;
   }
 
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final l10n = context.l10n;
 
     return FigStage(
       frame: frame('11'),
@@ -150,18 +146,18 @@ class _CatalogPageState extends State<CatalogPage> {
           child: ColoredBox(
             color: const Color(0xfffefefe),
             child: _isLoading 
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(
+                      const CircularProgressIndicator(
                         color: Color(0xffea812f),
                         strokeWidth: 3,
                       ),
-                      SizedBox(height: 14),
+                      const SizedBox(height: 14),
                       Text(
-                        'Загрузка каталога...',
-                        style: TextStyle(
+                        l10n.loading,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xff8e8e93),
                           fontWeight: FontWeight.w500,
@@ -191,7 +187,7 @@ class _CatalogPageState extends State<CatalogPage> {
           child: FigSearchField(
             width: _searchBox.width,
             controller: _search,
-            hint: _searchHint(state),
+            hint: _searchHint(state, l10n),
             onChanged: state.setQuery,
           ),
         ),
@@ -200,7 +196,7 @@ class _CatalogPageState extends State<CatalogPage> {
           _filterIcon.top - 8,
           _filterIcon.width + 16,
           _filterIcon.height + 16,
-          label: 'Фильтр',
+          label: l10n.catalogFilters,
           onTap: () => Navigator.of(context).pushNamed(Routes.filter),
         ),
       ],

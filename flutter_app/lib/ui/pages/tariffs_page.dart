@@ -5,6 +5,7 @@ import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/tariff.dart';
 import '../../data/api_client.dart';
+import '../../l10n/l10n.dart';
 import '../widgets/finik_payment_sheet.dart';
 
 class TariffsPage extends StatefulWidget {
@@ -409,6 +410,7 @@ class _TariffsPageState extends State<TariffsPage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final l10n = context.l10n;
     final plans = kDefaultTariffPlans;
 
     return Scaffold(
@@ -420,9 +422,9 @@ class _TariffsPageState extends State<TariffsPage> {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
           onPressed: () => _handleBack(context),
         ),
-        title: const Text(
-          'Тарифы и подписки',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          l10n.tariffsTitle,
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -433,12 +435,12 @@ class _TariffsPageState extends State<TariffsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      'Выберите подходящий тариф для эффективного продвижения объектов',
+                      l10n.tariffsSubtitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
                         color: Color(0xff666668),
                       ),

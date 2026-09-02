@@ -1,14 +1,9 @@
-// «История просмотров» — третья вкладка меню.
-//
-// Экрана в макете нет: он собран из тех же цветов и той же типографики, что и
-// остальные страницы приложения — оранжевый акцент, чипы 8 pt, серый текст
-// #3c3c43. Сетка показывает объекты, которые открывали, свежие сверху; режим
-// выбора убирает лишнее из истории.
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
 import '../../data/listings.dart';
+import '../../l10n/l10n.dart';
 import '../app_tab_bar.dart';
 import '../widgets/safe_image.dart';
 
@@ -27,11 +22,13 @@ const int _columns = 3;
 
 /// Порядок в истории.
 enum _Order {
-  newest('Сначала новые'),
-  oldest('Сначала старые');
+  newest,
+  oldest;
 
-  const _Order(this.label);
-  final String label;
+  String localized(dynamic l10n) => switch (this) {
+        _Order.newest => l10n.historyOrderNewest,
+        _Order.oldest => l10n.historyOrderOldest,
+      };
 }
 
 /// Срок по умолчанию — тот, о котором говорит подпись под чипами.
@@ -39,14 +36,20 @@ const _Period _kPeriod = _Period.month;
 
 /// За какой срок показывать.
 enum _Period {
-  all('Все даты', null),
-  today('Сегодня', Duration(days: 1)),
-  week('7 дней', Duration(days: 7)),
-  month('30 дней', Duration(days: 30));
+  all(null),
+  today(Duration(days: 1)),
+  week(Duration(days: 7)),
+  month(Duration(days: 30));
 
-  const _Period(this.label, this.span);
-  final String label;
+  const _Period(this.span);
   final Duration? span;
+
+  String localized(dynamic l10n) => switch (this) {
+        _Period.all => l10n.historyPeriodAll,
+        _Period.today => l10n.historyPeriodToday,
+        _Period.week => l10n.historyPeriodWeek,
+        _Period.month => l10n.historyPeriodMonth,
+      };
 }
 
 class ViewHistoryPage extends StatefulWidget {
@@ -118,6 +121,7 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final l10n = context.l10n;
     final entries = _entries(state);
 
     return Scaffold(
@@ -127,7 +131,7 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _header(),
+            _header(l10n),
             Padding(
               padding: const EdgeInsets.fromLTRB(_side, 14, _side, 0),
               child: SingleChildScrollView(
@@ -135,21 +139,21 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
                 child: Row(
                   children: [
                     _Dropdown(
-                      label: _order.label,
+                      label: _order.localized(l10n),
                       selected: _order != _Order.newest,
-                      onTap: () => _pickOrder(),
+                      onTap: () => _pickOrder(l10n),
                     ),
                     const SizedBox(width: 8),
                     _Dropdown(
-                      label: _period.label,
+                      label: _period.localized(l10n),
                       selected: _period != _kPeriod,
-                      onTap: () => _pickPeriod(),
+                      onTap: () => _pickPeriod(l10n),
                     ),
                     const SizedBox(width: 8),
                     _Dropdown(
-                      label: _kind?.label ?? 'Все типы',
+                      label: _kind?.localized(l10n) ?? l10n.historyAllTypes,
                       selected: _kind != null,
-                      onTap: () => _pickKind(),
+                      onTap: () => _pickKind(l10n),
                     ),
                   ],
                 ),
@@ -158,25 +162,24 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(_side, 14, _side, 14),
               child: Text(
-                'Здесь объекты, которые вы открывали за последние 30 дней. '
-                'Нажмите «Выбрать», чтобы убрать их из истории.',
+                l10n.historySubtitle,
                 style: const TextStyle(fontSize: 13.0, color: _muted, height: 1.35),
               ),
             ),
             Expanded(
               child: state.isHistoryLoading && entries.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircularProgressIndicator(
+                          const CircularProgressIndicator(
                             color: _accent,
                             strokeWidth: 3,
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
-                            'Загрузка истории...',
-                            style: TextStyle(
+                            l10n.loading,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: _muted,
                               fontWeight: FontWeight.w500,
@@ -186,7 +189,7 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
                       ),
                     )
                   : entries.isEmpty
-                      ? const _Empty()
+                      ? _Empty(message: l10n.historyEmpty)
                       : _Grid(
                           entries: entries,
                           selecting: _selecting,
@@ -212,8 +215,8 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
                     ),
                     child: Text(
                       _picked.isEmpty
-                          ? 'Выберите объекты'
-                          : 'Убрать из истории (${_picked.length})',
+                          ? l10n.historyClearSelection
+                          : l10n.historyRemovePicked(_picked.length),
                       style: TextStyle(
                         fontSize: 16.0,
                         fontWeight: FontWeight.bold,
@@ -226,20 +229,19 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
           ],
         ),
       ),
-      // Без SafeArea: полоса под жест уже заложена в самом таб-баре макета.
       bottomNavigationBar: const AppTabBar(active: 2),
     );
   }
 
-  Widget _header() => Padding(
+  Widget _header(dynamic l10n) => Padding(
         padding: const EdgeInsets.fromLTRB(_side, 12, _side, 0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'История просмотров',
-                style: TextStyle(
+                l10n.tabHistory,
+                style: const TextStyle(
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold,
                   color: _ink,
@@ -253,7 +255,7 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 child: Text(
-                  _selecting ? 'Готово' : 'Выбрать',
+                  _selecting ? l10n.historyDone : l10n.historySelect,
                   style: const TextStyle(
                     fontSize: 16.0,
                     fontWeight: FontWeight.w600,
@@ -266,33 +268,31 @@ class _ViewHistoryPageState extends State<ViewHistoryPage> {
         ),
       );
 
-  Future<void> _pickOrder() async {
+  Future<void> _pickOrder(dynamic l10n) async {
     final picked = await _choose<_Order>(
-      title: 'Порядок',
+      title: l10n.historyOrderTitle,
       options: _Order.values,
-      label: (o) => o.label,
+      label: (o) => o.localized(l10n),
       current: _order,
     );
     if (picked != null) setState(() => _order = picked);
   }
 
-  Future<void> _pickPeriod() async {
+  Future<void> _pickPeriod(dynamic l10n) async {
     final picked = await _choose<_Period>(
-      title: 'Период',
+      title: l10n.historyPeriodTitle,
       options: _Period.values,
-      label: (p) => p.label,
+      label: (p) => p.localized(l10n),
       current: _period,
     );
     if (picked != null) setState(() => _period = picked);
   }
 
-  Future<void> _pickKind() async {
-    // «Все типы» — это отсутствие фильтра, поэтому выбираем не сам вид, а его
-    // номер: иначе закрытый свайпом лист было бы не отличить от выбора.
+  Future<void> _pickKind(dynamic l10n) async {
     final picked = await _choose<int>(
-      title: 'Тип недвижимости',
+      title: l10n.filterPropertyType,
       options: [for (var i = 0; i <= PropertyKind.values.length; i++) i],
-      label: (i) => i == 0 ? 'Все типы' : PropertyKind.values[i - 1].label,
+      label: (i) => i == 0 ? l10n.historyAllTypes : PropertyKind.values[i - 1].localized(l10n),
       current: _kind == null ? 0 : PropertyKind.values.indexOf(_kind!) + 1,
     );
     if (picked == null) return;
@@ -586,16 +586,18 @@ String _ago(DateTime at) {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty();
+  const _Empty({required this.message});
+
+  final String message;
 
   @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) => Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
-            'Пока пусто. Объекты, которые вы откроете, появятся здесь.',
+            message,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14.0, color: _muted, height: 1.4),
+            style: const TextStyle(fontSize: 14.0, color: _muted, height: 1.4),
           ),
         ),
       );

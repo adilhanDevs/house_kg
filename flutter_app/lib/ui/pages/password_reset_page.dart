@@ -1,11 +1,4 @@
 // «Забыли пароль» — новый пароль по коду из SMS.
-//
-// Отдельного кадра в макете нет: экран собран из тех же элементов, что и
-// кадры входа и регистрации — заголовок 21/600, пояснение 15/500 серым,
-// поля 324×36 и оранжевая кнопка 324×36 с радиусом 10.
-//
-// Вход у нас парольный, поэтому забытый пароль означал потерю аккаунта:
-// задать новый было негде.
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -14,6 +7,7 @@ import '../../data/api_exceptions.dart';
 import '../../data/code_flow.dart';
 import '../../data/wait_time.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import '../fig_controls.dart';
 
 /// Оранжевый акцент приложения.
@@ -43,9 +37,6 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
 
   String _errorText(Object error) {
     if (error is ApiException) {
-      // У запроса кода несколько ограничений сразу; сервер уже свёл их к
-      // одному retry_after, его и показываем — человеческим текстом, а не
-      // «Повторите через 3062 секунды».
       final wait = error.retryAfter;
       if (error.isThrottled && wait != null) return waitMessage(wait);
       return error.message;
@@ -55,8 +46,6 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
   }
 
   void _complain(String message) {
-    // Предыдущее сообщение убираем: при нескольких отказах подряд баннеры
-    // выстраивались в очередь и человек читал устаревшее время.
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
@@ -76,12 +65,13 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
 
   Future<void> _onNext() async {
     if (_isSending) return;
+    final l10n = context.l10n;
 
     final phone = _phoneController.text.trim();
     final password = _passwordController.text;
 
     if (phone.isEmpty || password.isEmpty) {
-      _complain('Введите номер телефона и новый пароль');
+      _complain(l10n.fillAllFields);
       return;
     }
 
@@ -90,8 +80,6 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
     try {
       final otp = await state.startPasswordReset(phone);
       if (!mounted) return;
-      // Новый пароль едет с формой и применяется только после кода: до него
-      // мы не знаем, владеет ли человек этим номером.
       Navigator.of(context).pushNamed(
         Routes.code,
         arguments: CodeFlow(
@@ -118,6 +106,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -133,10 +122,10 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _BackLink(onTap: _onBack),
+                _BackLink(label: l10n.back, onTap: _onBack),
               const SizedBox(height: 24.0),
               Text(
-                'Забыли пароль?',
+                l10n.passwordResetTitle,
                 style: figStyle(
                   fontSize: 21.0,
                   family: FigFont.display,
@@ -147,8 +136,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
               ),
               const SizedBox(height: 6.0),
               Text(
-                'Введите номер телефона и новый пароль. Мы пришлём код '
-                'подтверждения — после него пароль сменится.',
+                l10n.passwordResetSubtitle,
                 style: figStyle(
                   fontSize: 15.0,
                   family: FigFont.display,
@@ -161,19 +149,19 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
               FigInputBox(
                 width: 324.0,
                 controller: _phoneController,
-                hint: 'Номер телефона',
+                hint: l10n.phone,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 12.0),
               FigInputBox(
                 width: 324.0,
                 controller: _passwordController,
-                hint: 'Новый пароль',
+                hint: l10n.newPasswordHint,
                 keyboardType: TextInputType.visiblePassword,
               ),
               const SizedBox(height: 12.0),
               _PrimaryButton(
-                label: 'Получить код',
+                label: l10n.sendCode,
                 busy: _isSending,
                 onTap: _onNext,
               ),
@@ -231,10 +219,11 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-/// «Вернуться назад» — та же подпись и цвет, что на экране кода.
+/// Ссылка «Назад».
 class _BackLink extends StatelessWidget {
-  const _BackLink({required this.onTap});
+  const _BackLink({required this.label, required this.onTap});
 
+  final String label;
   final VoidCallback onTap;
 
   @override
@@ -243,7 +232,7 @@ class _BackLink extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Text(
-        'Вернуться назад',
+        label,
         style: figStyle(
           fontSize: 15.0,
           family: FigFont.display,

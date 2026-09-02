@@ -1,0 +1,454 @@
+{
+  "@@locale": "ru",
+  "appTitle": "House KGZ",
+
+  "cancel": "Отмена",
+  "save": "Сохранить",
+  "delete": "Удалить",
+  "confirm": "Подтвердить",
+  "close": "Закрыть",
+  "back": "Назад",
+  "done": "Готово",
+  "next": "Далее",
+  "error": "Ошибка",
+  "success": "Успешно",
+  "retry": "Повторить",
+  "apply": "Применить",
+  "reset": "Сбросить",
+  "clear": "Очистить",
+  "search": "Поиск",
+  "all": "Все",
+  "loading": "Загрузка...",
+  "empty": "Ничего не найдено",
+  "tryAgain": "Попробовать снова",
+  "dataLoadError": "Не удалось загрузить данные",
+  "noInternet": "Нет подключения к интернету",
+  "fillAllFields": "Заполните все поля",
+
+  "tabHome": "Главная",
+  "tabCatalog": "Поиск",
+  "tabHistory": "История",
+  "tabFavourites": "Избранное",
+  "tabProfile": "Профиль",
+
+  "langTitle": "Язык",
+  "langRu": "Русский",
+  "langKy": "Кыргызский",
+  "langKyShort": "Кыргызча",
+  "langRuShort": "Русский",
+
+  "roleClient": "Клиент",
+  "roleOwner": "Собственник",
+  "roleRealtor": "Риелтор",
+  "roleAgency": "Агентство",
+  "rolePro": "Исполнитель",
+
+  "kindHouse": "Дома",
+  "kindApartment": "Квартиры",
+  "kindPlot": "Участки",
+  "kindNewBuilding": "Новостройки",
+  "kindRoom": "Комната",
+  "kindCommercial": "Коммерция",
+
+  "sellerOwner": "Только собственник",
+  "sellerRealtor": "Риелторы",
+  "sellerAgency": "Агентство недвижимости",
+
+  "statusDraft": "Черновик",
+  "statusPending": "На модерации",
+  "statusActive": "Активно",
+  "statusRejected": "Отклонено",
+  "statusArchived": "В архиве",
+  "statusSold": "Продано",
+
+  "welcomeTitle": "Поиск недвижимости в Кыргызстане",
+  "welcomeSubtitle": "Квартиры, дома, участки и коммерческая недвижимость",
+  "login": "Войти",
+  "register": "Зарегистрироваться",
+  "phone": "Номер телефона",
+  "phoneHint": "+996 000 000 000",
+  "password": "Пароль",
+  "passwordHint": "Введите пароль",
+  "passwordConfirm": "Подтверждение пароля",
+  "passwordConfirmHint": "Повторите пароль",
+  "name": "Имя",
+  "nameHint": "Как к вам обращаться",
+  "forgotPassword": "Забыли пароль?",
+  "dontHaveAccount": "Нет аккаунта?",
+  "alreadyHaveAccount": "Уже есть аккаунт?",
+  "consentPrefix": "Я согласен с ",
+  "consentTermsLink": "условиями обработки персональных данных",
+  "consentRequired": "Примите условия соглашения",
+  "invalidPhone": "Введите корректный номер телефона",
+  "invalidPasswordLength": "Пароль должен быть не менее 6 символов",
+  "passwordsDoNotMatch": "Пароли не совпадают",
+  "enterName": "Введите ваше имя",
+  "loginError": "Ошибка авторизации",
+
+  "passwordResetTitle": "Восстановление пароля",
+  "passwordResetSubtitle": "Укажите номер телефона, и мы отправим код для сброса пароля",
+  "sendCode": "Отправить код",
+  "newPassword": "Новый пароль",
+  "newPasswordHint": "Введите новый пароль",
+  "repeatNewPassword": "Повторите новый пароль",
+  "savePassword": "Сохранить пароль",
+
+  "codeTitle": "Код подтверждения",
+  "codeSubtitle": "Введите 4-значный код, отправленный на номер {phone}",
+  "@codeSubtitle": {
+    "placeholders": {
+      "phone": { "type": "String" }
+    }
+  },
+  "resendCodeIn": "Повторить через {seconds} сек.",
+  "@resendCodeIn": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "resendCode": "Отправить код повторно",
+  "codeSending": "Отправка кода...",
+
+  "homeCategories": "Категории",
+  "homePopular": "Популярные",
+  "homeFeatured": "Рекомендованные",
+  "homeSeeAll": "Посмотреть все",
+  "homeNewBuildings": "Новостройки",
+  "homeSecondary": "Вторичка",
+  "homeHouses": "Дома",
+  "homePlots": "Участки",
+  "homeCommercial": "Коммерция",
+  "homeSearchHint": "Поиск по адресу, району...",
+
+  "catalogTitle": "Каталог",
+  "catalogFilters": "Фильтры",
+  "catalogPrice": "Цена",
+  "catalogPriceFrom": "от",
+  "catalogPriceTo": "до",
+  "catalogRooms": "Комнатность",
+  "catalogArea": "Площадь, м²",
+  "catalogFloor": "Этаж",
+  "catalogSeries": "Серия дома",
+  "catalogSeries103": "Только 103 серия",
+  "catalogSecondaryOnly": "Только вторичка",
+  "catalogSeller": "Продавец",
+  "catalogPlotPurpose": "Назначение участка",
+  "catalogCommercialPurpose": "Назначение помещения",
+  "catalogBuildingLine": "Линия",
+  "catalogFoundCount": "Найдено объявлений: {count}",
+  "@catalogFoundCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "catalogShowListings": "Показать объявления",
+  "catalogClearFilters": "Сбросить фильтры",
+  "catalogSaveFilter": "Сохранить фильтр",
+  "catalogSaveFilterTitle": "Сохранение фильтра",
+  "catalogFilterName": "Название фильтра",
+  "catalogFilterNameHint": "Например, 2-комн. в центре",
+  "catalogSavedFilters": "Мои фильтры",
+  "catalogNoSavedFilters": "Нет сохраненных фильтров",
+
+  "listingCharacteristics": "Характеристики",
+  "listingDescription": "Описание",
+  "listingLocation": "Расположение",
+  "listingSeller": "Продавец",
+  "listingWrite": "Написать",
+  "listingCall": "Позвонить",
+  "listingShare": "Поделиться",
+  "listingToFavourites": "В избранное",
+  "listingInFavourites": "В избранном",
+  "listingSimilar": "Похожие объявления",
+  "listingPriceDrop": "Снижение цены",
+  "listingRedBook": "Красная книга",
+  "listingBelowMarket": "Ниже рынка",
+  "listingPhotos": "Фотообзор",
+  "listingVideo": "Видеообзор",
+  "listingDownloadPhoto": "Скачать фото",
+  "listingDownloadAllowed": "Скачивание разрешено",
+  "listingViewsCount": "Количество просмотров: {count}",
+  "@listingViewsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "listingPublishedAt": "Опубликовано: {date}",
+  "@listingPublishedAt": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "listingRoomsCount": "{count}-комн.",
+  "@listingRoomsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "listingAreaSqM": "{area} м²",
+  "@listingAreaSqM": {
+    "placeholders": {
+      "area": { "type": "String" }
+    }
+  },
+  "listingFloorOf": "{floor}/{total} этаж",
+  "@listingFloorOf": {
+    "placeholders": {
+      "floor": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "adCreate": "Подать объявление",
+  "adEdit": "Изменить объявление",
+  "adPublish": "Опубликовать",
+  "adSaveDraft": "Сохранить черновик",
+  "adCategory": "Категория",
+  "adCity": "Город",
+  "adDistrict": "Район",
+  "adAddress": "Адрес",
+  "adPriceUSD": "Цена в $",
+  "adPriceKGS": "Цена в сомах",
+  "adRooms": "Количество комнат",
+  "adTotalArea": "Общая площадь (м²)",
+  "adLivingArea": "Жилая площадь (м²)",
+  "adKitchenArea": "Площадь кухни (м²)",
+  "adFloor": "Этаж",
+  "adFloorsTotal": "Этажность дома",
+  "adSeries": "Серия",
+  "adDescription": "Описание объекта",
+  "adDescriptionHint": "Расскажите подробнее об объекте...",
+  "adPhotosTitle": "Фотографии",
+  "adPhotosSubtitle": "Добавьте до 20 фотографий. Первое фото станет обложкой.",
+  "adAddPhotos": "Добавить фото",
+  "adAddVideo": "Добавить видео",
+  "adMakeCover": "Сделать обложкой",
+  "adDeleteMedia": "Удалить",
+  "adCoverBadge": "Обложка",
+  "adPromoTitle": "Продвижение объявления",
+  "adPromoDays": "{days} дней",
+  "@adPromoDays": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "adPromoCost": "{cost} кирпичей",
+  "@adPromoCost": {
+    "placeholders": {
+      "cost": { "type": "int" }
+    }
+  },
+  "adPreview": "Предпросмотр",
+  "adPublishedSuccess": "Объявление успешно опубликовано!",
+  "adSavedSuccess": "Объявление сохранено",
+  "adMustHavePhotos": "Добавьте хотя бы одну фотографию",
+  "adMustSelectCategory": "Выберите категорию",
+
+  "favouritesTitle": "Вам понравилось",
+  "favouritesEmpty": "Нет избранных объявлений",
+  "favouritesEmptySubtitle": "Нажимайте на сердечко в карточках объектов, чтобы сохранить их здесь",
+
+  "historyTitle": "История просмотров",
+  "historyEmpty": "Вы еще не просматривали объявления",
+  "historyClear": "Очистить историю",
+  "historyClearConfirmTitle": "Очистить историю просмотров?",
+  "historyClearConfirmBody": "Все просмотренные объявления будут удалены из истории.",
+
+  "notificationsTitle": "Уведомления",
+  "notificationsLatest": "Последние уведомления",
+  "notificationsEmpty": "Нет уведомлений",
+  "notificationsMarkAllRead": "Отметить все как прочитанные",
+  "messagesTitle": "Сообщения",
+  "messagesEmpty": "Нет сообщений",
+  "chatInputHint": "Введите сообщение...",
+  "chatSend": "Отправить",
+  "chatNoDialogs": "Диалогов пока нет",
+
+  "profileTitle": "Ваш профиль",
+  "profileNoName": "Без имени",
+  "profileFavoritesRow": "Вам понравилось",
+  "profileTariffsRow": "Тарифы",
+  "profileNotificationsRow": "Уведомления",
+  "profileAccountRow": "Аккаунт",
+  "profileSupportRow": "Служба поддержки",
+  "profileHistoryRow": "История пополнения и трат",
+  "profileLanguageRow": "Язык",
+  "profileSellButton": "Продать недвижимость",
+  "profileLogout": "Выйти из аккаунта",
+  "profileLogoutConfirmTitle": "Выйти из аккаунта?",
+  "profileLogoutConfirmBody": "Избранное и фильтры этого сеанса будут забыты.",
+  "profileLoggingOut": "Выход...",
+
+  "proProfileTitle": "Профиль продавца",
+  "proSold": "Продано: {count}",
+  "@proSold": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "proObjectsCount": "{count} объектов недвижимости",
+  "@proObjectsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "proAddListing": "Добавить объявление",
+  "proMyListings": "Мои объявления",
+  "proEmptyNewBuildings": "Нет новостроек",
+  "proEmptyApartments": "Нет квартир",
+  "proEmptyCommercial": "Нет коммерческих объектов",
+  "proEmptyHouses": "Нет домов",
+  "proEmptyPlots": "Нет участков",
+  "proEmptyRooms": "Нет комнат",
+  "proWalletBalance": "{count} кирпичей",
+  "@proWalletBalance": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "proWalletTitle": "Баланс",
+  "proTopUp": "Пополнить",
+
+  "proSignupTitle": "Регистрация продавца",
+  "proSignupIin": "ИНН / ПИН",
+  "proSignupIinHint": "14 цифр",
+  "proIdentityTitle": "Подтверждение личности",
+  "proIdentitySelfie": "Сделайте селфи",
+  "proIdentityPassport": "Фото паспорта",
+
+  "accountTitle": "Личные данные",
+  "accountName": "Имя и фамилия",
+  "accountWhatsapp": "Номер WhatsApp",
+  "accountChangeAvatar": "Изменить фото",
+  "accountChangeCover": "Изменить обложку",
+  "accountDeletePhoto": "Удалить фото",
+  "accountChangePassword": "Сменить пароль",
+  "accountOldPassword": "Старый пароль",
+  "accountNewPassword": "Новый пароль",
+  "accountRepeatPassword": "Повторите новый пароль",
+  "accountPasswordChanged": "Пароль успешно изменен",
+  "accountDeleteAccount": "Удалить аккаунт",
+  "accountDeleteConfirmTitle": "Удалить аккаунт?",
+  "accountDeleteConfirmBody": "Это действие необратимо. Все ваши данные и объявления будут удалены.",
+
+  "tariffsTitle": "Тарифы",
+  "tariffsCurrent": "Текущий тариф",
+  "tariffsConnect": "Подключить",
+  "tariffsExtend": "Продлить",
+  "tariffsFree": "Бесплатный",
+  "tariffsPerMonth": "{price} сом/мес",
+  "@tariffsPerMonth": {
+    "placeholders": {
+      "price": { "type": "String" }
+    }
+  },
+  "tariffsPayBricks": "Оплатить кирпичами ({count})",
+  "@tariffsPayBricks": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "tariffsPaySom": "Оплатить {price} сом",
+  "@tariffsPaySom": {
+    "placeholders": {
+      "price": { "type": "String" }
+    }
+  },
+
+  "topupTitle": "Пополнение баланса",
+  "topupAmount": "Сумма пополнения (сом)",
+  "topupBonusHint": "1 сом = 1 кирпич + 10% бонус",
+  "topupYouWillGet": "Вам будет начислено: {bricks} кирпичей",
+  "@topupYouWillGet": {
+    "placeholders": {
+      "bricks": { "type": "int" }
+    }
+  },
+  "topupPayButton": "Оплатить {amount} сом",
+  "@topupPayButton": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "topupSelectMethod": "Выберите способ оплаты",
+
+  "walletHistoryTitle": "История пополнения и трат",
+  "walletTabAll": "Все операции",
+  "walletTabTopup": "Пополнение",
+  "walletTabSpend": "Списание",
+  "walletTabBonus": "Бонусы",
+  "walletHistoryEmpty": "Нет операций",
+
+  "supportTitle": "Служба поддержки",
+  "supportFaq": "Часто задаваемые вопросы",
+  "supportWhatsapp": "Написать в WhatsApp",
+  "supportCall": "Позвонить в поддержку",
+  "supportEmail": "Написать на почту",
+
+  "dateToday": "Сегодня",
+  "dateYesterday": "Вчера",
+  "dateDaysAgo": "{days} дн. назад",
+  "@dateDaysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+
+  "filterPlotPurpose": "Назначение участка",
+  "filterCommercialPurpose": "Назначение объекта",
+  "filterBuildingLine": "Линия застройки",
+  "filterSeller": "Кто продаёт",
+  "chatTitle": "Сообщения",
+  "tariffsSubtitle": "Выберите подходящий тариф для эффективного продвижения объектов",
+  "historyAllTypes": "Все типы",
+  "historySubtitle": "Здесь объекты, которые вы открывали за последние 30 дней. Нажмите «Выбрать», чтобы убрать их из истории.",
+  "historyClearSelection": "Выберите объекты",
+  "historyRemovePicked": "Убрать из истории ({count})",
+  "@historyRemovePicked": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "walletFilterAll": "Все операции",
+  "walletFilterTopup": "Пополнение",
+  "walletFilterSpend": "Списание",
+  "walletFilterBonus": "Бонусы",
+  "walletHistorySubtitle": "История операций кошелька и начисления бонусов",
+  "walletEmpty": "Нет операций",
+
+  "filterPropertyType": "Тип недвижимости",
+  "filterSecondary": "Вторичка",
+  "filterSeries103": "103 серия",
+  "filterRoomsCount": "Количество комнат",
+  "filterRoomsUnit": "комн.",
+  "filterArea": "Площадь",
+  "filterCustomArea": "Своя площадь (м²)",
+  "filterPrice": "Стоимость",
+  "filterPriceFrom": "От",
+  "filterPriceTo": "До",
+
+  "langRussian": "Русский",
+  "langKyrgyz": "Кыргызча",
+  "languageRussian": "Русский",
+  "languageKyrgyz": "Кыргызча",
+
+  "historySelect": "Выбрать",
+  "historyDone": "Готово",
+  "historyOrderTitle": "Сортировка",
+  "historyOrderNewest": "Сначала новые",
+  "historyOrderOldest": "Сначала старые",
+  "historyPeriodTitle": "Период",
+  "historyPeriodAll": "За всё время",
+  "historyPeriodToday": "За сегодня",
+  "historyPeriodWeek": "За неделю",
+  "historyPeriodMonth": "За месяц",
+  "chatStart": "Начните диалог с продавцом",
+  "chatEmpty": "Диалогов пока нет",
+  "filterTitle": "Фильтры",
+  "filterShowVariants": "Показать {count} вариантов",
+  "@filterShowVariants": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
+}

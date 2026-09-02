@@ -9,6 +9,7 @@ import '../../app/routes.dart';
 import '../../data/chat_controller.dart' show describeApiError;
 import '../../data/chat_models.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 import 'chat_page.dart';
 
 const Key kConversationsListKey = Key('conversations_list');
@@ -118,6 +119,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
       appBar: AppBar(
@@ -129,7 +131,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          'Сообщения',
+          l10n.chatTitle,
           style: figStyle(
             fontSize: 17.0,
             family: FigFont.display,
@@ -139,19 +141,19 @@ class _ConversationsPageState extends State<ConversationsPage> {
           ),
         ),
       ),
-      body: SafeArea(child: _body()),
+      body: SafeArea(child: _body(l10n)),
     );
   }
 
-  Widget _body() {
+  Widget _body(dynamic l10n) {
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: _accent));
     }
     if (_error != null && _items.isEmpty) {
-      return _Placeholder(text: _error!, actionLabel: 'Повторить', onAction: _load);
+      return _Placeholder(text: _error!, actionLabel: l10n.retry, onAction: _load);
     }
     if (_items.isEmpty) {
-      return const _Placeholder(text: 'У вас пока нет сообщений');
+      return _Placeholder(text: l10n.chatEmpty);
     }
 
     return RefreshIndicator(

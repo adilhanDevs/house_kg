@@ -5,15 +5,16 @@
    - createItem (создание счёта/инвойса с привязкой paymentId, userId, amount)
    - getItem (верификация транзакции по transactionId / itemId)
    - listItems (поиск потерянных платежей по requestId)
-2. Приём Callback/Webhook со сверкой accountId, amount, paymentId и двойной проверкой через Finik GraphQL.
+2. Приём Callback/Webhook со сверкой accountId, amount, paymentId
+   и двойной проверкой через Finik GraphQL.
 3. Поддержка Reconcile (сверки) при задержке вебхука.
 """
 
-from decimal import Decimal, InvalidOperation
 import hashlib
 import hmac
 import json
 import logging
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import requests
@@ -96,7 +97,7 @@ mutation CreateFinikItem($input: CreateItemInput!) {
 """
 
 
-class FinikVerificationUnavailable(Exception):
+class FinikVerificationUnavailable(Exception):  # noqa: N818
     """Шлюз Finik недоступен или вернул некорректный ответ."""
 
     def __init__(self, code: str, provider_message: str = "") -> None:
@@ -403,6 +404,17 @@ class FinikPaymentProvider(PaymentProvider):
         if verified_item is not None:
             # Сумму и ссылку берём из ответа Finik, а не из тела колбэка:
             # тело мог подделать кто угодно, ответ шлюза — нет.
+            verified_account_id = str(
+                (verified_item.get("account") or {}).get("id") or ""
+            ).strip()
+            if self.account_id and verified_account_id and verified_account_id != self.account_id:
+                logger.error(
+                    "Finik: account.id из сверки (%s) не совпал с нашим аккаунтом (%s)",
+                    verified_account_id,
+                    self.account_id,
+                )
+                raise WebhookSignatureError("Транзакция Finik относится к другому аккаунту")
+
             verified_amount = self._amount(verified_item.get("fixedAmount"))
             if verified_amount is not None:
                 amount = verified_amount

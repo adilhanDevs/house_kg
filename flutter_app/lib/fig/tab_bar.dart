@@ -1,8 +1,6 @@
-// GENERATED from screens/Components.bundle.js — the mockup's tab bar,
-// restyled the way the prototype does at runtime.
-// Do not edit by hand; regenerate with tool/generate_screens.js.
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import 'fig.dart';
 
 /// The bottom tab bar: Главное · Поиск · История · Избранное · Профиль.
@@ -113,9 +111,9 @@ class FigTabBar extends StatelessWidget {
                                 color: _color(0, const Color(0xffacacb0)),
                                 weight: _weight(0),
                                 child: FigText(
-                                  width: 37.0,
+                                  width: 50.0,
                                   span: 
-                                    TextSpan(text: 'Главное', style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xffacacb0)))
+                                    TextSpan(text: context.l10n.tabHome, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xffacacb0)))
                                   ,
                                 )
                                 ,
@@ -129,7 +127,7 @@ class FigTabBar extends StatelessWidget {
                     ),
                     _tab(1,
                       FigBox(
-                        width: 39.0,
+                        width: 45.0,
                         child: FigOverflow(
                           alignment: const Alignment(0.0, -1.0),
                           child: Column(
@@ -164,10 +162,9 @@ class FigTabBar extends StatelessWidget {
                                 color: _color(1, const Color(0xffea812e)),
                                 weight: _weight(1),
                                 child: FigText(
-                                  noWrap: true,
-                                  width: 39.0,
+                                  width: 45.0,
                                   span: 
-                                    TextSpan(text: 'Поиск', style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xffea812e)))
+                                    TextSpan(text: context.l10n.tabCatalog, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xffea812e)))
                                   ,
                                 )
                                 ,
@@ -276,10 +273,9 @@ class FigTabBar extends StatelessWidget {
                                 color: _color(2, const Color(0xf2aeaeb2)),
                                 weight: _weight(2),
                                 child: FigText(
-                                  noWrap: true,
-                                  width: 39.0,
+                                  width: 45.0,
                                   span: 
-                                    TextSpan(text: 'История', style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
+                                    TextSpan(text: context.l10n.tabHistory, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
                                   ,
                                 )
                                 ,
@@ -293,7 +289,7 @@ class FigTabBar extends StatelessWidget {
                     ),
                     _tab(3,
                       FigBox(
-                        width: 52.0,
+                        width: 68.0,
                         child: FigOverflow(
                           alignment: const Alignment(0.0, -1.0),
                           child: Column(
@@ -327,10 +323,9 @@ class FigTabBar extends StatelessWidget {
                                 color: _color(3, const Color(0xf2aeaeb2)),
                                 weight: _weight(3),
                                 child: FigText(
-                                  noWrap: true,
-                                  width: 52.0,
+                                  width: 68.0,
                                   span: 
-                                    TextSpan(text: 'Избранное', style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
+                                    TextSpan(text: context.l10n.tabFavourites, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
                                   ,
                                 )
                                 ,
@@ -344,7 +339,7 @@ class FigTabBar extends StatelessWidget {
                     ),
                     _tab(4,
                       FigBox(
-                        width: 42.0,
+                        width: 48.0,
                         child: FigOverflow(
                           alignment: const Alignment(0.0, -1.0),
                           child: Column(
@@ -379,9 +374,9 @@ class FigTabBar extends StatelessWidget {
                                 color: _color(4, const Color(0xf2aeaeb2)),
                                 weight: _weight(4),
                                 child: FigText(
-                                  width: 42.0,
+                                  width: 48.0,
                                   span: 
-                                    TextSpan(text: 'Профиль', style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
+                                    TextSpan(text: context.l10n.tabProfile, style: figStyle(fontSize: 10.0, family: FigFont.display, weight: 500, height: 1.0, color: const Color(0xf2aeaeb2)))
                                   ,
                                 )
                                 ,

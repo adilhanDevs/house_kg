@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../app/stage.dart';
-import '../../screens/screen_02_onboarding_1.dart';
-import '../../screens/screen_03_onboarding_2.dart';
-import '../../screens/screen_04_onboarding_3.dart';
+import '../../l10n/l10n.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -43,6 +41,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final frameNumber = switch (_step) {
       0 => '02',
       1 => '03',
@@ -53,14 +52,30 @@ class _OnboardingPageState extends State<OnboardingPage> {
       frame: frame(frameNumber),
       background: const Color(0xffffffff),
       overlays: [
-        // Интерактивная зона для кнопки «Далее» (31, 670, 314, 52)
-        FigZone(
-          31.0,
-          670.0,
-          314.0,
-          52.0,
-          label: 'Далее',
-          onTap: _onNext,
+        Positioned(
+          left: 31.0,
+          top: 670.0,
+          width: 314.0,
+          height: 52.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _onNext,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xffea812e),
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                l10n.next,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
