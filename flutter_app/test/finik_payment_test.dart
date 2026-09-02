@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:house_kgz/app/app_state.dart';
 import 'package:house_kgz/data/api_client.dart';
+import 'package:house_kgz/data/tariff.dart';
 import 'package:house_kgz/data/topup.dart';
 import 'package:house_kgz/ui/widgets/finik_payment_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +19,6 @@ class _MockBillingClient extends http.BaseClient {
   _MockBillingClient({
     this.providers = const [],
     this.statuses = const ['succeeded'],
-    this.balanceAfter = 13200,
     this.expiresInSeconds = 1800,
   });
 
@@ -27,12 +27,14 @@ class _MockBillingClient extends http.BaseClient {
 
   /// Статусы счёта в порядке опроса.
   final List<String> statuses;
-  final int balanceAfter;
   final int expiresInSeconds;
 
   String? lastIdempotencyKey;
+  String? lastSubscribedCode;
+  String? lastSubscriptionPaymentMethod;
   int topupRequests = 0;
   int statusRequests = 0;
+  int subscriptionRequests = 0;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
@@ -59,33 +61,49 @@ class _MockBillingClient extends http.BaseClient {
     }
 
     if (path.startsWith('/api/v1/wallet/topup/') && request.method == 'GET') {
-      final index = statusRequests < statuses.length ? statusRequests : statuses.length - 1;
+      final index = statusRequests < statuses.length
+          ? statusRequests
+          : statuses.length - 1;
       statusRequests += 1;
       final status = statuses[index];
       return _json({
         'status': status,
-        'balance': status == 'succeeded' ? balanceAfter : 0,
+        'balance': status == 'succeeded' ? 13200 : 0,
         'credited_bricks': status == 'succeeded' ? 13200 : 0,
       }, 200);
     }
 
     if (path == '/api/v1/wallet/') {
-      return _json({'balance': balanceAfter}, 200);
+      return _json({'balance': 13200}, 200);
+    }
+
+    if (path == '/api/v1/subscriptions/' && request.method == 'POST') {
+      subscriptionRequests += 1;
+      if (request is http.Request) {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        lastSubscribedCode = body['tariff_code']?.toString();
+        lastSubscriptionPaymentMethod = body['payment_method']?.toString();
+      }
+      return _json({
+        'id': 1,
+        'tariff': {'code': lastSubscribedCode, 'name': lastSubscribedCode},
+        'status': 'active',
+      }, 201);
     }
 
     return _json(const <String, dynamic>{}, 200);
   }
 
   http.StreamedResponse _json(Object body, int code) => http.StreamedResponse(
-        Stream.value(utf8.encode(jsonEncode(body))),
-        code,
-        headers: {'content-type': 'application/json'},
-      );
+    Stream.value(utf8.encode(jsonEncode(body))),
+    code,
+    headers: {'content-type': 'application/json'},
+  );
 }
 
 AppState _stateWith(_MockBillingClient client) => AppState(
-      apiClient: ListingApiClient(baseUrl: 'http://test.local', client: client),
-    );
+  apiClient: ListingApiClient(baseUrl: 'http://test.local', client: client),
+);
 
 Future<void> _openSheet(WidgetTester tester, AppState state) async {
   // Лист высокий: на дефолтных 800x600 кнопки уезжают за пределы экрана и
@@ -133,23 +151,30 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('Счёт Finik', () {
-    test('TopupIntent: QR кодирует ссылку оплаты, если провайдер не дал payload', () {
-      final intent = TopupIntent.fromJson({
-        'payment_id': 'pay-1',
-        'amount_kgs': '12000.00',
-        'bricks': 12000,
-        'bonus_bricks': 1200,
-        'total_bricks': 13200,
-        'payment_url': 'https://pay.finik.kg/checkout/item-1',
-        'qr_data': '',
-        'providers': [
-          {'code': 'mbank', 'name': 'MBank', 'deeplink': 'mbank://pay?target=item-1'},
-        ],
-      });
+    test(
+      'TopupIntent: QR кодирует ссылку оплаты, если провайдер не дал payload',
+      () {
+        final intent = TopupIntent.fromJson({
+          'payment_id': 'pay-1',
+          'amount_kgs': '12000.00',
+          'bricks': 12000,
+          'bonus_bricks': 1200,
+          'total_bricks': 13200,
+          'payment_url': 'https://pay.finik.kg/checkout/item-1',
+          'qr_data': '',
+          'providers': [
+            {
+              'code': 'mbank',
+              'name': 'MBank',
+              'deeplink': 'mbank://pay?target=item-1',
+            },
+          ],
+        });
 
-      expect(intent.qrPayload, 'https://pay.finik.kg/checkout/item-1');
-      expect(intent.providers.single.deeplink, 'mbank://pay?target=item-1');
-    });
+        expect(intent.qrPayload, 'https://pay.finik.kg/checkout/item-1');
+        expect(intent.providers.single.deeplink, 'mbank://pay?target=item-1');
+      },
+    );
 
     test('createTopup передаёт Idempotency-Key', () async {
       final client = _MockBillingClient();
@@ -165,37 +190,58 @@ void main() {
   });
 
   group('Платёжный лист', () {
-    testWidgets('без банков с диплинками показывает QR Finik и не рисует вкладки',
-        (tester) async {
-      final state = _stateWith(_MockBillingClient());
+    testWidgets(
+      'без банков с диплинками показывает QR Finik и не рисует вкладки',
+      (tester) async {
+        final state = _stateWith(_MockBillingClient());
+        await _openSheet(tester, state);
+
+        expect(find.text('Finik Pay'), findsOneWidget);
+        expect(find.text('QR-код Finik'), findsOneWidget);
+        expect(find.text('Банки Кыргызстана'), findsNothing);
+        expect(find.text('Оплатить 12000 сом'), findsOneWidget);
+
+        await _closeSheet(tester);
+      },
+    );
+
+    testWidgets('способ оплаты без диплинка не превращается в кнопку выбора', (
+      tester,
+    ) async {
+      final state = _stateWith(
+        _MockBillingClient(
+          providers: [
+            {'code': 'mbank', 'name': 'MBank', 'deeplink': ''},
+          ],
+        ),
+      );
       await _openSheet(tester, state);
 
-      expect(find.text('Finik Pay'), findsOneWidget);
-      expect(find.text('QR-код Finik'), findsOneWidget);
       expect(find.text('Банки Кыргызстана'), findsNothing);
-      expect(find.text('Оплатить 12000 сом'), findsOneWidget);
+      expect(find.text('QR-код Finik'), findsOneWidget);
 
       await _closeSheet(tester);
     });
 
-    testWidgets('способ оплаты без диплинка не превращается в кнопку выбора',
-        (tester) async {
-      final state = _stateWith(_MockBillingClient(providers: [
-        {'code': 'mbank', 'name': 'MBank', 'deeplink': ''},
-      ]));
-      await _openSheet(tester, state);
-
-      expect(find.text('Банки Кыргызстана'), findsNothing);
-      expect(find.text('QR-код Finik'), findsOneWidget);
-
-      await _closeSheet(tester);
-    });
-
-    testWidgets('банки с диплинками дают вкладки и список выбора', (tester) async {
-      final state = _stateWith(_MockBillingClient(providers: [
-        {'code': 'mbank', 'name': 'MBank', 'deeplink': 'mbank://pay?target=item-1'},
-        {'code': 'optima', 'name': 'Optima24', 'deeplink': 'optima24://pay?target=item-1'},
-      ]));
+    testWidgets('банки с диплинками дают вкладки и список выбора', (
+      tester,
+    ) async {
+      final state = _stateWith(
+        _MockBillingClient(
+          providers: [
+            {
+              'code': 'mbank',
+              'name': 'MBank',
+              'deeplink': 'mbank://pay?target=item-1',
+            },
+            {
+              'code': 'optima',
+              'name': 'Optima24',
+              'deeplink': 'optima24://pay?target=item-1',
+            },
+          ],
+        ),
+      );
       await _openSheet(tester, state);
 
       expect(find.text('Банки Кыргызстана'), findsOneWidget);
@@ -209,8 +255,12 @@ void main() {
       await _closeSheet(tester);
     });
 
-    testWidgets('успех показывается только после статуса succeeded', (tester) async {
-      final client = _MockBillingClient(statuses: const ['pending', 'succeeded']);
+    testWidgets('успех показывается только после статуса succeeded', (
+      tester,
+    ) async {
+      final client = _MockBillingClient(
+        statuses: const ['pending', 'succeeded'],
+      );
       final state = _stateWith(client);
       await _openSheet(tester, state);
 
@@ -234,6 +284,57 @@ void main() {
       expect(find.text('Finik Pay'), findsNothing);
     });
 
+    testWidgets('после успешной оплаты тарифа подключает подписку за кирпичи', (
+      tester,
+    ) async {
+      final client = _MockBillingClient(statuses: const ['succeeded']);
+      final state = _stateWith(client);
+
+      tester.view.physicalSize = const Size(420, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        AppScope(
+          state: state,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => showFinikPaymentSheet(
+                    context: context,
+                    amountSom: 1,
+                    purposeTitle: 'Подписка на тариф «VIP» (1 месяц)',
+                    state: state,
+                    tariff: kDefaultTariffPlans[2],
+                  ),
+                  child: const Text('Открыть тариф'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Открыть тариф'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Я уже оплатил — проверить статус'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Оплата прошла успешно!'), findsOneWidget);
+      expect(client.subscriptionRequests, 1);
+      expect(client.lastSubscribedCode, 'vip');
+      expect(client.lastSubscriptionPaymentMethod, 'bricks');
+      expect(state.currentTariffCode, 'vip');
+
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpAndSettle();
+      expect(find.text('Finik Pay'), findsNothing);
+    });
+
     testWidgets('отказ провайдера не выдаётся за оплату', (tester) async {
       final client = _MockBillingClient(statuses: const ['failed']);
       final state = _stateWith(client);
@@ -244,7 +345,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('Оплата прошла успешно!'), findsNothing);
-      expect(find.text('Оплата не прошла. Попробуйте ещё раз.'), findsOneWidget);
+      expect(
+        find.text('Оплата не прошла. Попробуйте ещё раз.'),
+        findsOneWidget,
+      );
 
       await _closeSheet(tester);
     });
