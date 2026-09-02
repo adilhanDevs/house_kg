@@ -8,6 +8,8 @@ import '../../data/api_client.dart';
 import '../../data/topup.dart';
 import '../../data/tariff.dart';
 
+import 'finik_bank_launcher.dart';
+
 class FinikBankOption {
   final String id;
   final String name;
@@ -125,9 +127,9 @@ class _FinikPaymentSheetContent extends StatefulWidget {
 }
 
 class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
-  // 0 = приложения банков (только если бэкенд прислал диплинки), 1 = QR Finik.
-  int _tabIndex = 1;
-  String _selectedBankId = '';
+  // 0 = приложения банков Кыргызстана, 1 = QR Finik.
+  int _tabIndex = 0;
+  String _selectedBankId = 'mbank';
   bool _isProcessing = false;
   bool _isSuccess = false;
   bool _isDisposed = false;
@@ -154,9 +156,6 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
     super.dispose();
   }
 
-  /// Банки, по которым реально есть куда уйти платить. Способ оплаты без
-  /// диплинка — это просто ещё одна кнопка на ту же ссылку Finik, поэтому в
-  /// списке ему делать нечего.
   static List<TopupProvider> _banksOf(TopupIntent? intent) =>
       (intent?.providers ?? const <TopupProvider>[])
           .where((provider) => provider.deeplink.isNotEmpty)
@@ -164,7 +163,7 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
 
   List<TopupProvider> get _bankProviders => _banksOf(_intent);
 
-  bool get _hasBanks => _bankProviders.isNotEmpty;
+  bool get _hasBanks => true;
 
   /// Счёт Finik живёт ограниченное время; после этого платить по нему нельзя.
   bool get _isExpired => _intent?.expiresAt != null && _secondsLeft <= 0;
@@ -189,14 +188,13 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
       final intent = await widget.state.createTopup(widget.amountSom);
       if (!mounted) return;
 
-      final banks = _banksOf(intent);
       setState(() {
         _intent = intent;
         _secondsLeft = intent.secondsLeft;
-        // Вкладка «Банки» появляется, только когда есть куда уводить. Иначе
-        // сразу показываем QR Finik — единственный рабочий способ.
-        _tabIndex = banks.isEmpty ? 1 : 0;
-        _selectedBankId = banks.isEmpty ? '' : banks.first.code;
+        _tabIndex = 0;
+        if (_selectedBankId.isEmpty) {
+          _selectedBankId = 'mbank';
+        }
       });
       _startTicker();
     } catch (e) {
@@ -220,21 +218,18 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
     });
   }
 
-  /// Ссылка, по которой уходим платить: диплинк выбранного банка, если бэкенд
-  /// его дал, иначе страница оплаты провайдера.
-  String _payTarget() {
+  String _explicitDeeplinkFor(String bankId) {
     final intent = _intent;
     if (intent == null) return '';
-
-    if (_tabIndex == 0) {
-      for (final provider in _bankProviders) {
-        if (provider.code == _selectedBankId) return provider.deeplink;
+    for (final provider in intent.providers) {
+      if (provider.code == bankId && provider.deeplink.isNotEmpty) {
+        return provider.deeplink;
       }
     }
-    return intent.paymentUrl;
+    return '';
   }
 
-  /// Уводит платить: в приложение банка (если бэкенд дал диплинк) или на
+  /// Уводит платить: в приложение банка (если установлено) или на
   /// страницу оплаты Finik, — и дальше ждёт подтверждения от бэкенда.
   Future<void> _handlePay() async {
     if (_isProcessing) return;
@@ -250,13 +245,14 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
       _error = null;
     });
 
-    // Диплинк банка настраивается в админке и может не открыться (приложения
-    // нет, схема устарела). Тогда уходим на страницу оплаты Finik — она
-    // работает в любом браузере.
-    var opened = await _openPayTarget(_payTarget());
-    if (!opened && intent.paymentUrl.isNotEmpty) {
-      opened = await _openPayTarget(intent.paymentUrl);
-    }
+    final explicitDeeplink = _explicitDeeplinkFor(_selectedBankId);
+    final bankId = _tabIndex == 0 ? _selectedBankId : 'card';
+    final opened = await const FinikBankLauncher().launchBank(
+      bankId: bankId,
+      paymentUrl: intent.paymentUrl,
+      qrPayload: intent.qrPayload,
+      explicitDeeplink: explicitDeeplink,
+    );
 
     if (!opened) {
       if (!mounted) return;
@@ -741,20 +737,25 @@ class _FinikPaymentSheetContentState extends State<_FinikPaymentSheetContent> {
     );
   }
 
-  /// Способы оплаты приходят с бэкенда (`providers` в ответе на счёт).
-  /// Локальный список нужен только ради иконки и цвета; если бэкенд банк не
-  /// прислал — платить по нему нельзя, поэтому и показывать его незачем.
+  /// Банки Кыргызстана для оплаты через Finik Pay.
   List<FinikBankOption> get _bankOptions {
-    return _bankProviders.map((provider) {
-      final matches = kFinikBanks.where((b) => b.id == provider.code);
-      final design = matches.isEmpty ? null : matches.first;
-      return FinikBankOption(
-        id: provider.code,
-        name: provider.name.isNotEmpty ? provider.name : (design?.name ?? provider.code),
-        subtitle: design?.subtitle ?? 'Оплата через ${provider.name}',
-        primaryColor: design?.primaryColor ?? const Color(0xff2d3142),
-        icon: design?.icon ?? Icons.account_balance,
-      );
+    if (_bankProviders.isEmpty) {
+      return kFinikBanks;
+    }
+    return kFinikBanks.map((design) {
+      final matches = _bankProviders.where((p) => p.code == design.id);
+      if (matches.isNotEmpty) {
+        final provider = matches.first;
+        return FinikBankOption(
+          id: design.id,
+          name: provider.name.isNotEmpty ? provider.name : design.name,
+          subtitle: design.subtitle,
+          primaryColor: design.primaryColor,
+          icon: design.icon,
+          deepLinkScheme: provider.deeplink.isNotEmpty ? provider.deeplink : design.deepLinkScheme,
+        );
+      }
+      return design;
     }).toList();
   }
 
