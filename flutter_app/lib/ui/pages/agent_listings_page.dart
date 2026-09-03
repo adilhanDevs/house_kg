@@ -354,24 +354,19 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
                   ),
                 ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            // Даёт последней карточке прокрутиться выше плавающей CTA, не
+            // создавая постоянную белую панель под сеткой.
+            const SliverToBoxAdapter(child: SizedBox(height: 72)),
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        key: const ValueKey('agent-bottom-chrome'),
-        color: const Color(0xffffffff),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FigCta(
-              label: _isOpeningChat ? 'Загрузка...' : _getContactLabel(l10n),
-              onTap: _isOpeningChat ? null : _onContactPressed,
-            ),
-            const AppTabBar(active: 1),
-          ],
-        ),
+      floatingActionButton: FigCta(
+        label: _isOpeningChat ? 'Загрузка...' : _getContactLabel(l10n),
+        onTap: _isOpeningChat ? null : _onContactPressed,
+        bottomGap: 0,
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      bottomNavigationBar: const AppTabBar(active: 1),
     );
   }
 

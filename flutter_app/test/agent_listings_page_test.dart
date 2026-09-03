@@ -377,6 +377,45 @@ void main() {
       },
     );
 
+    testWidgets('CTA floats above tabs instead of reserving a white panel', (
+      tester,
+    ) async {
+      await _pumpPage(tester, server: _FakeServer());
+
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+      expect(scaffold.floatingActionButton, isA<FigCta>());
+      expect(scaffold.bottomNavigationBar, isA<AppTabBar>());
+
+      final cta = tester.getRect(find.byType(FigCta));
+      final tabs = tester.getRect(find.byType(AppTabBar));
+      expect(cta.bottom, lessThanOrEqualTo(tabs.top));
+    });
+
+    testWidgets('CTA preserves the listing that opened the seller profile', (
+      tester,
+    ) async {
+      final server = _FakeServer(sellerKind: 'owner');
+      await _pumpPage(
+        tester,
+        server: server,
+        loggedInUserId: 99,
+        args: const AgentListingsArgs(
+          sellerId: 42,
+          initialListingSlug: 'source-listing',
+          initialListingTitle: 'Исходное объявление',
+        ),
+      );
+
+      await tester.tap(find.byType(FigCta));
+      await tester.pumpAndSettle();
+
+      expect(server.lastPostJson?['listing_slug'], 'source-listing');
+      expect(
+        find.text('ChatPage:conv-uuid-1234:Исходное объявление'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('guest user tapping CTA redirects to WelcomePage', (
       tester,
     ) async {

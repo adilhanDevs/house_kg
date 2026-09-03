@@ -12,10 +12,16 @@ import '../fig/fig.dart';
 const double kCtaGap = 20.0;
 
 class FigCta extends StatelessWidget {
-  const FigCta({super.key, required this.label, this.onTap});
+  const FigCta({
+    super.key,
+    required this.label,
+    this.onTap,
+    this.bottomGap = kCtaGap,
+  });
 
   final String label;
   final VoidCallback? onTap;
+  final double bottomGap;
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +31,11 @@ class FigCta extends StatelessWidget {
         final scale = constraints.maxWidth / kDesignWidth;
         return MediaQuery(
           // размер шрифта системы порвал бы вёрстку коробки фиксированной высоты
-          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.noScaling),
           child: Padding(
-            padding: EdgeInsets.only(bottom: kCtaGap * scale),
+            padding: EdgeInsets.only(bottom: bottomGap * scale),
             child: Center(
               child: Semantics(
                 button: true,
