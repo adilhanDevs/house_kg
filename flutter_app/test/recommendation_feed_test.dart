@@ -109,7 +109,21 @@ void main() {
       expect(page.results.single.backendId, 7);
     });
 
-    test('пустая, но корректная лента откатом не подменяется', () async {
+    test('пустая ПЕРВАЯ страница подстраховывается обычной лентой', () async {
+      // Иначе экран остаётся с единственным роликом и не листается.
+      final fake = _FakeClient(
+        recommended: (_) => _ok(_listingsJson([])),
+        legacy: (_) => _ok(_listingsJson([5, 6])),
+      );
+      final api = _client(fake);
+
+      final page = await ListingRepository(api)
+          .getReelsFeed(feed: RecommendationFeed(apiClient: api));
+
+      expect(page.results.map((l) => l.backendId), [5, 6]);
+    });
+
+    test('пустая следующая страница — это конец ленты, а не отказ', () async {
       final fake = _FakeClient(
         recommended: (_) => _ok(_listingsJson([])),
         legacy: (_) => _ok(_listingsJson([99])),
@@ -117,9 +131,23 @@ void main() {
       final api = _client(fake);
 
       final page = await ListingRepository(api)
-          .getReelsFeed(feed: RecommendationFeed(apiClient: api));
+          .getReelsFeed(cursor: 'next', feed: RecommendationFeed(apiClient: api));
 
       expect(page.results, isEmpty);
+      expect(fake.calls.length, 1, reason: 'обычную ленту дёргать не должны');
+    });
+
+    test('непустая лента откатом не подменяется', () async {
+      final fake = _FakeClient(
+        recommended: (_) => _ok(_listingsJson([3])),
+        legacy: (_) => _ok(_listingsJson([99])),
+      );
+      final api = _client(fake);
+
+      final page = await ListingRepository(api)
+          .getReelsFeed(feed: RecommendationFeed(apiClient: api));
+
+      expect(page.results.single.backendId, 3);
       expect(fake.calls.length, 1, reason: 'обычную ленту дёргать не должны');
     });
 

@@ -48,7 +48,19 @@ class ListingRepository {
           feedSessionId: feed.feedSessionId,
           cursor: cursor,
         );
-        return _reelsFromRecommendations(data);
+        final page = _reelsFromRecommendations(data);
+
+        // Пустая ПЕРВАЯ страница — это тупик: экран остаётся с одним
+        // роликом, который открыли, и листать нечего. Рекомендатель может
+        // отдать пусто законно (всё уже показано в этой сессии, мало
+        // объявлений с видео), но человеку от этого не легче. На первой
+        // странице подстраховываемся обычной лентой; дальше пусто означает
+        // просто конец ленты и подмены не требует.
+        if (page.results.isEmpty && (cursor == null || cursor.isEmpty)) {
+          debugPrint('Персонализированная лента пуста на первой странице — беру обычную');
+        } else {
+          return page;
+        }
       } on ApiException catch (e) {
         if (!_shouldFallBack(e.statusCode)) rethrow;
         debugPrint('Персонализированная лента недоступна (${e.statusCode}) — беру обычную');

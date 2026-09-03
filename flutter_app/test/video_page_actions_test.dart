@@ -12,10 +12,20 @@ import 'package:house_kgz/data/api_client.dart';
 import 'package:house_kgz/ui/pages/video_page.dart';
 
 class _ReelServer extends http.BaseClient {
-  _ReelServer({this.initiallyFavourite = false});
+  _ReelServer({this.initiallyFavourite = false, this.reelCount = 1});
 
   final bool initiallyFavourite;
+
+  /// Сколько роликов в ленте: вертикальный свайп можно проверить только
+  /// тогда, когда листать есть куда.
+  final int reelCount;
   int favouritePosts = 0;
+
+  /// Лента из нескольких объявлений — копии основного с другими слагами.
+  List<Map<String, dynamic>> get feed => [
+    for (var i = 0; i < reelCount; i++)
+      {...listing, 'slug': i == 0 ? 'reel-one' : 'reel-${i + 1}'},
+  ];
 
   Map<String, dynamic> get listing => {
     'slug': 'reel-one',
@@ -73,12 +83,16 @@ class _ReelServer extends http.BaseClient {
     if (request.method == 'GET' && path == '/api/v1/listings/reel-one/') {
       return _json(listing);
     }
+    if (request.method == 'GET' &&
+        path == '/api/v1/recommendations/reels/') {
+      return _json({'results': feed, 'next': null});
+    }
     if (request.method == 'GET' && path == '/api/v1/listings/reels/') {
       return _json({
-        'count': 1,
+        'count': reelCount,
         'next': null,
         'previous': null,
-        'results': [listing],
+        'results': feed,
       });
     }
     if (request.method == 'GET' && path == '/api/v1/favourites/') {
@@ -282,6 +296,36 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(server.favouritePosts, 1);
+  });
+
+  testWidgets('лента листается вертикальным свайпом', (tester) async {
+    await _pumpReel(tester, _ReelServer(reelCount: 3));
+
+    final vertical = find.byWidgetPredicate(
+      (w) => w is PageView && w.scrollDirection == Axis.vertical,
+    );
+    expect(vertical, findsOneWidget);
+    final controller = tester.widget<PageView>(vertical).controller!;
+    expect(controller.page?.round(), 0);
+
+    // pumpAndSettle здесь непригоден: в конце ленты крутится индикатор
+    // подгрузки, и кадры не заканчиваются никогда.
+    Future<void> settle() async {
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    }
+
+    // Настоящий свайп: палец опускается, ведёт по шагам и отрывается —
+    // одно мгновенное перемещение PageView трактует иначе.
+    await tester.fling(vertical, const Offset(0, -600), 1200);
+    await settle();
+    expect(controller.page?.round(), 1, reason: 'свайп вверх не листает ленту');
+
+    // И обратно вниз — к предыдущему.
+    await tester.fling(vertical, const Offset(0, 600), 1200);
+    await settle();
+    expect(controller.page?.round(), 0, reason: 'свайп вниз не листает ленту');
   });
 
   testWidgets('блокировка экрана останавливает ролик', (tester) async {
