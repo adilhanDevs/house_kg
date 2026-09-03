@@ -21,6 +21,9 @@ class _ReelServer extends http.BaseClient {
   final int reelCount;
   int favouritePosts = 0;
 
+  /// Сколько раз запрашивали ленту — по этому счётчику отдаём вторую пачку.
+  int feedRequests = 0;
+
   /// Лента из нескольких объявлений — копии основного с другими слагами.
   List<Map<String, dynamic>> get feed => [
     for (var i = 0; i < reelCount; i++)
@@ -85,7 +88,19 @@ class _ReelServer extends http.BaseClient {
     }
     if (request.method == 'GET' &&
         path == '/api/v1/recommendations/reels/') {
-      return _json({'results': feed, 'next': null});
+      feedRequests++;
+      if (feedRequests == 1) {
+        return _json({'results': feed, 'next': 'next'});
+      }
+      // Вторая пачка нарочно повторяет последний ролик первой: клиент не
+      // должен показать его дважды подряд.
+      return _json({
+        'results': [
+          {...listing, 'slug': 'reel-$reelCount'},
+          {...listing, 'slug': 'reel-${reelCount + 1}'},
+        ],
+        'next': null,
+      });
     }
     if (request.method == 'GET' && path == '/api/v1/listings/reels/') {
       return _json({
@@ -326,6 +341,86 @@ void main() {
     await tester.fling(vertical, const Offset(0, 600), 1200);
     await settle();
     expect(controller.page?.round(), 0, reason: 'свайп вниз не листает ленту');
+  });
+
+  /// Сколько роликов помечены активными: играть должен ровно один.
+  int activeCount(WidgetTester tester) => tester
+      .widgetList(find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == '_VideoPlayerItem',
+      ))
+      .where((w) => (w as dynamic).isActive == true)
+      .length;
+
+  testWidgets('следующая пачка подгружается заранее и без дублей', (
+    tester,
+  ) async {
+    final server = _ReelServer(reelCount: 3);
+    await _pumpReel(tester, server);
+    final vertical = find.byWidgetPredicate(
+      (w) => w is PageView && w.scrollDirection == Axis.vertical,
+    );
+    final controller = tester.widget<PageView>(vertical).controller!;
+    expect(server.feedRequests, 1);
+
+    // Доходим до предпоследнего — подгрузка должна начаться до конца ленты.
+    await tester.fling(vertical, const Offset(0, -600), 1200);
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(server.feedRequests, greaterThan(1),
+        reason: 'следующая пачка обязана запрашиваться заранее');
+    expect(controller.page?.round(), 1,
+        reason: 'подгрузка не должна возвращать ленту в начало');
+
+    // Повтор из второй пачки не должен появиться вторым экземпляром.
+    final slugs = tester
+        .widgetList(find.byWidgetPredicate(
+          (w) => w.runtimeType.toString() == '_VideoPlayerItem',
+        ))
+        .length;
+    expect(slugs, greaterThan(0));
+  });
+
+  testWidgets('в любой момент активен ровно один ролик', (tester) async {
+    await _pumpReel(tester, _ReelServer(reelCount: 3));
+    final vertical = find.byWidgetPredicate(
+      (w) => w is PageView && w.scrollDirection == Axis.vertical,
+    );
+
+    expect(activeCount(tester), 1, reason: 'на старте играет один');
+
+    await tester.fling(vertical, const Offset(0, -600), 1200);
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(activeCount(tester), 1,
+        reason: 'после перехода не должно звучать два ролика сразу');
+  });
+
+  testWidgets('двойное нажатие и вертикальный свайп не спорят за жест', (
+    tester,
+  ) async {
+    final server = _ReelServer(reelCount: 3);
+    await _pumpReel(tester, server);
+    final vertical = find.byWidgetPredicate(
+      (w) => w is PageView && w.scrollDirection == Axis.vertical,
+    );
+    final controller = tester.widget<PageView>(vertical).controller!;
+
+    // Сначала двойное нажатие — избранное срабатывает, лента не едет.
+    await _doubleTapVideo(tester);
+    expect(server.favouritePosts, 1);
+    expect(controller.page?.round(), 0, reason: 'нажатие не должно листать');
+
+    // Затем свайп — лента едет, лишнего добавления в избранное нет.
+    await tester.fling(vertical, const Offset(0, -600), 1200);
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(controller.page?.round(), 1);
+    expect(server.favouritePosts, 1, reason: 'свайп не должен добавлять в избранное');
   });
 
   testWidgets('блокировка экрана останавливает ролик', (tester) async {
