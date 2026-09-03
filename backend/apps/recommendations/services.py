@@ -388,6 +388,30 @@ class TasteProfileService:
         # Process session events
         for ev in events:
             weight = 1.0
+            if ev.event_type == InteractionType.SEARCH:
+                weight = float(constants.WEIGHT_SEARCH_MATCH)
+                filters = ev.context.get("filters", {})
+                
+                # Apply time decay
+                is_current_session = (ev.session_id == context.session_id)
+                half_life_days = constants.SESSION_HALF_LIFE_MINUTES / 1440.0 if is_current_session else constants.DECAY_HALF_LIFE_DAYS
+                weight = _get_decayed_weight(weight, ev.created_at, half_life_days=half_life_days)
+                
+                if "district" in filters:
+                    d_id = filters["district"]
+                    profile["districts"][d_id] = profile["districts"].get(d_id, 0) + weight
+                if "rooms" in filters:
+                    r = filters["rooms"]
+                    profile["rooms"][r] = profile["rooms"].get(r, 0) + weight
+                if "price_min" in filters and "price_max" in filters:
+                    avg_p = (float(filters["price_min"]) + float(filters["price_max"])) / 2.0
+                    kind = filters.get("property_type", "apartment") # fallback
+                    profile["prices_by_kind"].setdefault(kind, []).append(avg_p)
+                if "property_type" in filters:
+                    kind = filters["property_type"]
+                    profile["types"][kind] = profile["types"].get(kind, 0) + weight
+                continue
+                
             if ev.event_type == InteractionType.FAVORITE:
                 weight = float(constants.WEIGHT_FAVORITE)
             elif ev.event_type == InteractionType.CHAT_STARTED:

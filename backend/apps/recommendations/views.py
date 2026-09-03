@@ -22,10 +22,12 @@ class RecommendationEventBatchSerializer(serializers.Serializer):
                 raise serializers.ValidationError("event_type is required")
             if ev['event_type'] not in InteractionType.values:
                 raise serializers.ValidationError(f"Invalid event_type: {ev['event_type']}")
-            if 'session_id' not in ev:
-                raise serializers.ValidationError("session_id is required")
-            if len(ev['session_id']) > 128:
-                raise serializers.ValidationError("session_id too long")
+            session_id = ev.get('session_id', '')
+            if not session_id or len(session_id) < 8 or len(session_id) > 128:
+                raise serializers.ValidationError("Valid session_id (min 8 chars) is required")
+            if not session_id.isalnum() and '-' not in session_id:
+                # Basic check: usually uuid or alphanumeric
+                pass
         return events
 
 
