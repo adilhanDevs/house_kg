@@ -160,6 +160,8 @@ def test_repeat_view_updates_timestamp_and_order(auth: APIClient, user, district
         "seen-second",
     ]
     assert ViewHistory.objects.filter(user=user).count() == 2
+    assert ViewHistory.objects.get(user=user, listing=first).view_count == 2
+    assert ViewHistory.objects.get(user=user, listing=second).view_count == 1
 
 
 @pytest.mark.django_db

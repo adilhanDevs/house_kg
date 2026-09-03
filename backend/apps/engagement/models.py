@@ -6,6 +6,7 @@
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.common.models import TimeStampedModel
 
@@ -64,6 +65,14 @@ class ViewHistory(models.Model):
         related_name="view_history",
     )
     viewed_at = models.DateTimeField("Просмотрено", auto_now=True, db_index=True)
+    # Первый просмотр отдельно от последнего: `viewed_at` перезаписывается на
+    # каждом заходе (auto_now), и без этого поля момент знакомства с объектом
+    # восстановить нельзя.
+    first_viewed_at = models.DateTimeField("Впервые просмотрено", default=timezone.now)
+    # Сколько раз пользователь возвращался к объявлению. Строка по-прежнему
+    # одна на пару: заводить запись на каждый просмотр — это таблица, растущая
+    # без предела ради счётчика.
+    view_count = models.PositiveIntegerField("Просмотров", default=1)
 
     class Meta:
         verbose_name = "Просмотр"

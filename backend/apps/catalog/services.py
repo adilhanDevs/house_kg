@@ -1102,6 +1102,9 @@ def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
         listing.old_price = listing.price
 
     previous_price = listing.price
+    # Валюта на момент «до»: снижение считается только внутри одной валюты,
+    # иначе смена USD → KGS выглядела бы обвалом цены.
+    previous_currency = listing.currency
 
     # Экспликация помещений — не поле модели, а связанный список; форма
     # присылает его целиком, поэтому прежний набор заменяется, а не
@@ -1154,10 +1157,11 @@ def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
         # новым словам и продолжает находиться по старым.
         _schedule_search_reindex(listing)
 
+    price_change_log = None
     if new_price is not None and previous_price != new_price:
         # Цена — то, ради чего объявление и открывают; её изменения должны
         # быть восстановимы по журналу, а не только по последнему значению.
-        audit(
+        price_change_log = audit(
             actor=listing.owner,
             action=AuditLog.Action.LISTING_PRICE_CHANGED,
             target=listing,
@@ -1174,7 +1178,23 @@ def update_listing(listing: Listing, data: dict[str, Any]) -> Listing:
     ):
         from apps.notifications.services import notify_listing_price_drop
 
-        transaction.on_commit(lambda: notify_listing_price_drop(listing, previous_price, new_price))
+        # Ключ события берём из журнала: каждая запись об изменении цены
+        # уникальна, поэтому падение до той же отметки во второй раз — это
+        # другое событие, и подписчик про него узнает.
+        event_key = (
+            f"price-drop:{price_change_log.pk}"
+            if price_change_log is not None
+            else f"price-drop:{listing.pk}:{previous_price}:{new_price}"
+        )
+        transaction.on_commit(
+            lambda: notify_listing_price_drop(
+                listing,
+                previous_price,
+                new_price,
+                event_key=event_key,
+                old_currency=previous_currency,
+            )
+        )
 
     return listing
 

@@ -166,18 +166,27 @@ def favourite_listings(user: Any) -> QuerySet[Listing]:
 
 
 def note_view(user: Any, listing: Listing) -> ViewHistory | None:
-    """Отмечает просмотр в истории."""
-    if not (user and user.is_authenticated):
-        from apps.users.models import User
-        user = User.objects.first()
-        if not user:
-            return None
+    """Отмечает просмотр в истории. Только для вошедшего пользователя.
 
-    history, _ = ViewHistory.objects.update_or_create(
-        user=user,
-        listing=listing,
-        defaults={"viewed_at": timezone.now()},
-    )
+    Аноним истории не заводит. Раньше на его месте подставлялся
+    `User.objects.first()` — просмотр гостя записывался случайному человеку в
+    базе, тот видел в своей истории чужие объекты и попадал в рассылку о
+    снижении цены. Общая статистика объявления считается отдельно
+    (`register_view`) и анонимов по-прежнему учитывает.
+    """
+    if not (user and getattr(user, "is_authenticated", False)):
+        return None
+
+    history, created = ViewHistory.objects.get_or_create(user=user, listing=listing)
+    if not created:
+        # UPDATE со счётчиком в самом запросе: два одновременных просмотра
+        # с разных устройств не должны перетереть инкремент друг друга.
+        # `viewed_at` проставляем явно — auto_now при .update() не срабатывает.
+        ViewHistory.objects.filter(pk=history.pk).update(
+            view_count=F("view_count") + 1,
+            viewed_at=timezone.now(),
+        )
+        history.refresh_from_db(fields=["view_count", "viewed_at"])
     return history
 
 

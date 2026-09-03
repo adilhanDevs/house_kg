@@ -19,7 +19,6 @@ from apps.catalog.views import ListingCursorPagination, ListingListView
 from apps.common.pagination import DefaultCursorPagination
 from apps.common.serializers import ErrorSerializer
 from apps.engagement.models import Collection, SavedFilter
-from apps.users.models import User
 from apps.engagement.serializers import (
     CollectionSerializer,
     FavouriteStateSerializer,
@@ -273,10 +272,7 @@ class FavouriteView(APIView):
         },
     )
     def post(self, request: Request, slug: str) -> Response:
-        user = request.user if request.user.is_authenticated else User.objects.first()
-        if not user:
-            return Response({"is_favourite": False, "favourites_count": 0})
-        is_favourite, count = add_favourite(user, self.get_listing(slug))
+        is_favourite, count = add_favourite(request.user, self.get_listing(slug))
         return Response({"is_favourite": is_favourite, "favourites_count": count})
 
     @extend_schema(
@@ -291,25 +287,19 @@ class FavouriteView(APIView):
         },
     )
     def delete(self, request: Request, slug: str) -> Response:
-        user = request.user if request.user.is_authenticated else User.objects.first()
-        if not user:
-            return Response({"is_favourite": False, "favourites_count": 0})
-        is_favourite, count = remove_favourite(user, self.get_listing(slug))
+        is_favourite, count = remove_favourite(request.user, self.get_listing(slug))
         return Response({"is_favourite": is_favourite, "favourites_count": count})
 
 
 class FavouriteListView(ListingListView):
     """GET /api/v1/favourites/ — избранное пользователя."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     filter_backends: list = []
     pagination_class = FavouritesPagination
 
     def get_queryset(self) -> QuerySet[Listing]:
-        user = self.request.user if self.request.user.is_authenticated else User.objects.first()
-        if not user:
-            return Listing.objects.none()
-        return favourite_listings(user)
+        return favourite_listings(self.request.user)
 
     @extend_schema(
         operation_id="favourites_list",
@@ -327,7 +317,7 @@ class FavouriteListView(ListingListView):
 class ViewHistoryView(APIView):
     """GET / DELETE /api/v1/view-history/ — история просмотров."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         operation_id="view_history_list",
@@ -345,9 +335,7 @@ class ViewHistoryView(APIView):
         },
     )
     def get(self, request: Request) -> Response:
-        user = request.user if request.user.is_authenticated else User.objects.first()
-        if not user:
-            return Response({"results": [], "next": None})
+        user = request.user
 
         groups, next_cursor = group_view_history(user, request.query_params.get("cursor"))
 
@@ -384,9 +372,7 @@ class ViewHistoryView(APIView):
         },
     )
     def delete(self, request: Request) -> Response:
-        user = request.user if request.user.is_authenticated else User.objects.first()
-        if not user:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        user = request.user
 
         serializer = ViewHistoryDeleteSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)

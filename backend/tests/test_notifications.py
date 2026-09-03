@@ -71,7 +71,9 @@ def test_settings_are_created_with_user() -> None:
 
 @pytest.mark.django_db
 def test_notify_creates_one_record_and_one_task(user, django_capture_on_commit_callbacks) -> None:
-    with patch("apps.notifications.tasks.send_push") as send_push_task:
+    # Патчим каноническое имя: services вызывает именно его, а send_push —
+    # лишь псевдоним для прямых вызовов, и подмена псевдонима на вызов не влияет.
+    with patch("apps.notifications.tasks.deliver_notification_push") as send_push_task:
         with django_capture_on_commit_callbacks(execute=True):
             notification = notify(
                 user,

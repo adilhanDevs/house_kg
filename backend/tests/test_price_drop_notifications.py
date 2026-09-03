@@ -6,7 +6,7 @@ import pytest
 
 from apps.catalog.enums import Currency, ListingStatus
 from apps.catalog.services import update_listing
-from apps.engagement.models import Favourite
+from apps.engagement.models import Favourite, ViewHistory
 from apps.notifications.models import Notification, NotificationType
 from apps.notifications.services import notify_listing_price_drop
 from tests.factories import CityFactory, DistrictFactory, ListingFactory, UserFactory
@@ -52,6 +52,112 @@ def test_price_drop_triggers_on_price_decrease(django_capture_on_commit_callback
     assert n.payload["rooms"] == 3
     assert n.payload["area"] == "92.00"
     assert n.payload["floor"] == 8
+    assert n.payload["drop_amount"] == "5000.00"
+    assert n.payload["drop_percent"] == "4.67"
+    assert n.payload["reason"] == "favorite"
+    assert n.payload["event_at"]
+    assert n.event_key.startswith("price-drop:")
+
+
+@pytest.mark.django_db
+def test_recent_viewer_receives_price_drop(django_capture_on_commit_callbacks):
+    owner = UserFactory()
+    viewer = UserFactory()
+    listing = ListingFactory(
+        owner=owner,
+        status=ListingStatus.ACTIVE,
+        price=Decimal("105000.00"),
+        currency=Currency.USD,
+    )
+    ViewHistory.objects.create(user=viewer, listing=listing)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        update_listing(listing, {"price": Decimal("99000.00")})
+
+    notification = Notification.objects.get(user=viewer, type=NotificationType.PRICE_DROP)
+    assert notification.payload["reason"] == "viewed"
+    assert notification.payload["drop_amount"] == "6000.00"
+    assert notification.payload["drop_percent"] == "5.71"
+
+
+@pytest.mark.django_db
+def test_favourite_and_recent_view_create_one_notification(django_capture_on_commit_callbacks):
+    owner = UserFactory()
+    follower = UserFactory()
+    listing = ListingFactory(
+        owner=owner,
+        status=ListingStatus.ACTIVE,
+        price=Decimal("105000.00"),
+        currency=Currency.USD,
+    )
+    Favourite.objects.create(user=follower, listing=listing)
+    ViewHistory.objects.create(user=follower, listing=listing)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        update_listing(listing, {"price": Decimal("99000.00")})
+
+    notifications = Notification.objects.filter(user=follower, type=NotificationType.PRICE_DROP)
+    assert notifications.count() == 1
+    assert notifications.get().payload["reason"] == "favorite_and_viewed"
+
+
+@pytest.mark.django_db
+def test_stale_viewer_does_not_receive_price_drop(django_capture_on_commit_callbacks):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    owner = UserFactory()
+    viewer = UserFactory()
+    listing = ListingFactory(
+        owner=owner,
+        status=ListingStatus.ACTIVE,
+        price=Decimal("105000.00"),
+    )
+    viewed = ViewHistory.objects.create(user=viewer, listing=listing)
+    ViewHistory.objects.filter(pk=viewed.pk).update(viewed_at=timezone.now() - timedelta(days=31))
+
+    with django_capture_on_commit_callbacks(execute=True):
+        update_listing(listing, {"price": Decimal("99000.00")})
+
+    assert not Notification.objects.filter(user=viewer, type=NotificationType.PRICE_DROP).exists()
+
+
+@pytest.mark.django_db
+def test_owner_view_does_not_receive_own_price_drop(django_capture_on_commit_callbacks):
+    owner = UserFactory()
+    listing = ListingFactory(
+        owner=owner,
+        status=ListingStatus.ACTIVE,
+        price=Decimal("105000.00"),
+    )
+    ViewHistory.objects.create(user=owner, listing=listing)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        update_listing(listing, {"price": Decimal("99000.00")})
+
+    assert not Notification.objects.filter(user=owner, type=NotificationType.PRICE_DROP).exists()
+
+
+@pytest.mark.django_db
+def test_currency_change_is_not_a_price_drop(django_capture_on_commit_callbacks):
+    owner = UserFactory()
+    follower = UserFactory()
+    listing = ListingFactory(
+        owner=owner,
+        status=ListingStatus.ACTIVE,
+        price=Decimal("100000.00"),
+        currency=Currency.USD,
+    )
+    Favourite.objects.create(user=follower, listing=listing)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        update_listing(
+            listing,
+            {"price": Decimal("95000.00"), "currency": Currency.KGS},
+        )
+
+    assert not Notification.objects.filter(user=follower, type=NotificationType.PRICE_DROP).exists()
 
 
 @pytest.mark.django_db
@@ -150,10 +256,22 @@ def test_duplicate_protection_on_re_execution():
     )
     Favourite.objects.create(user=follower, listing=listing)
 
-    first = notify_listing_price_drop(listing, Decimal("107000.00"), Decimal("102000.00"))
+    first = notify_listing_price_drop(
+        listing,
+        Decimal("107000.00"),
+        Decimal("102000.00"),
+        event_key="price-drop:audit-1",
+        old_currency=Currency.USD,
+    )
     assert len(first) == 1
 
-    second = notify_listing_price_drop(listing, Decimal("107000.00"), Decimal("102000.00"))
+    second = notify_listing_price_drop(
+        listing,
+        Decimal("107000.00"),
+        Decimal("102000.00"),
+        event_key="price-drop:audit-1",
+        old_currency=Currency.USD,
+    )
     assert len(second) == 0
 
     assert Notification.objects.filter(user=follower, type=NotificationType.PRICE_DROP).count() == 1
@@ -166,10 +284,6 @@ def test_price_drop_after_price_recovered_notifies_again(django_capture_on_commi
     Раньше защита от повтора смотрела только на конечную цену, поэтому второе
     падение до той же отметки не доходило до подписчика уже никогда.
     """
-    from django.utils import timezone
-
-    from apps.notifications.services import PRICE_DROP_DUPLICATE_WINDOW
-
     owner = UserFactory()
     follower = UserFactory()
     listing = ListingFactory(
@@ -186,9 +300,6 @@ def test_price_drop_after_price_recovered_notifies_again(django_capture_on_commi
     with django_capture_on_commit_callbacks(execute=True):
         update_listing(listing, {"price": Decimal("102000.00")})
     assert drops().count() == 1
-
-    # Первое снижение уходит за окно защиты: событие завершилось.
-    drops().update(created_at=timezone.now() - PRICE_DROP_DUPLICATE_WINDOW * 2)
 
     with django_capture_on_commit_callbacks(execute=True):
         update_listing(listing, {"price": Decimal("107000.00")})

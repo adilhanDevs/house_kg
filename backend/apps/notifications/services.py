@@ -194,23 +194,62 @@ def notify_listing_price_drop(
     old_price: Any,
     new_price: Any,
     force_notify: bool = False,
+    *,
+    event_key: str = "",
+    old_currency: Any = None,
+    event_at: Any = None,
 ) -> list[Notification]:
-    """Отправляет уведомления о снижении цены всем подписчикам (избранное) объявления."""
+    """Уведомляет о снижении цены избранное и тех, кто недавно смотрел объект.
+
+    Адресаты — объединение двух множеств минус владелец: он и так знает, что
+    сам поменял цену. Пересечение схлопывается в одно уведомление, поэтому
+    добавивший в избранное и заодно смотревший получит его один раз, а не два.
+
+    `event_key` — идентификатор самого события снижения, его передаёт
+    `update_listing`, выводя из записи журнала. Без него ключ пришлось бы
+    собирать из пары цен, и тогда «упало → выросло → упало до той же отметки»
+    выглядело бы повтором первого события и до подписчика уже не дошло бы.
+    Для прямых вызовов без ключа остаётся вывод из перехода: он стабилен и
+    гасит буквальный повтор одного и того же вызова.
+    """
     from decimal import Decimal
+
+    from django.conf import settings
+    from django.contrib.auth import get_user_model
 
     from apps.catalog.covers import listing_cover_file
     from apps.catalog.enums import ListingStatus
-    from apps.engagement.models import Favourite
+    from apps.engagement.models import Favourite, ViewHistory
 
     if listing.status != ListingStatus.ACTIVE or old_price is None or new_price is None:
         return []
-    if Decimal(str(new_price)) >= Decimal(str(old_price)):
+
+    old_amount = Decimal(str(old_price))
+    new_amount = Decimal(str(new_price))
+    if new_amount >= old_amount or old_amount <= 0:
         return []
 
-    favourites = (
-        Favourite.objects.filter(listing=listing).exclude(user=listing.owner).select_related("user")
+    # Смена валюты — не снижение цены: 100 000 USD и 95 000 KGS несравнимы, и
+    # «подешевело на 5 %» здесь было бы прямым обманом.
+    if old_currency is not None and old_currency != listing.currency:
+        return []
+
+    owner_id = listing.owner_id
+    favourite_ids = set(
+        Favourite.objects.filter(listing=listing)
+        .exclude(user_id=owner_id)
+        .values_list("user_id", flat=True)
     )
-    if not favourites.exists():
+
+    window_start = timezone.now() - timedelta(days=settings.PRICE_DROP_VIEW_WINDOW_DAYS)
+    viewer_ids = set(
+        ViewHistory.objects.filter(listing=listing, viewed_at__gte=window_start)
+        .exclude(user_id=owner_id)
+        .values_list("user_id", flat=True)
+    )
+
+    recipient_ids = favourite_ids | viewer_ids
+    if not recipient_ids:
         return []
 
     cover = listing_cover_file(listing)
@@ -223,7 +262,12 @@ def notify_listing_price_drop(
     specs = [s for s in [district_name, rooms_text] if s]
     body_text = f"Цена снизилась: {', '.join(specs)} — {listing.price_display}"
 
-    payload = {
+    drop_amount = old_amount - new_amount
+    drop_percent = (drop_amount / old_amount * 100).quantize(Decimal("0.01"))
+    moment = event_at or timezone.now()
+    key = event_key or f"price-drop:{listing.pk}:{old_amount}:{new_amount}"
+
+    base_payload = {
         "listing_id": listing.pk,
         "listing_slug": listing.slug,
         "old_price": str(old_price),
@@ -236,35 +280,49 @@ def notify_listing_price_drop(
         "floor": listing.floor,
         "floors": listing.floors,
         "cover_url": cover_url,
+        "drop_amount": f"{drop_amount:.2f}",
+        "drop_percent": f"{drop_percent:.2f}",
+        "event_at": moment.isoformat(),
     }
 
-    created_notifications: list[Notification] = []
-    for favourite in favourites:
-        user = favourite.user
-        if not force_notify:
-            # Ключ — сам переход «было → стало», а не одна конечная цена:
-            # иначе повторное падение до той же отметки замолчало бы навсегда.
-            already_notified = Notification.objects.filter(
-                user=user,
-                type=NotificationType.PRICE_DROP,
-                listing=listing,
-                payload__old_price=str(old_price),
-                payload__new_price=str(new_price),
-                created_at__gte=timezone.now() - PRICE_DROP_DUPLICATE_WINDOW,
-            ).exists()
-            if already_notified:
-                continue
+    favourites_by_user = {
+        favourite.user_id: favourite
+        for favourite in Favourite.objects.filter(listing=listing, user_id__in=recipient_ids)
+    }
+    users_by_id = {user.pk: user for user in get_user_model().objects.filter(pk__in=recipient_ids)}
 
+    created_notifications: list[Notification] = []
+    for user_id in sorted(recipient_ids):
+        user = users_by_id.get(user_id)
+        if user is None:
+            continue
+
+        in_favourites = user_id in favourite_ids
+        viewed_recently = user_id in viewer_ids
+        if in_favourites and viewed_recently:
+            reason = "favorite_and_viewed"
+        elif in_favourites:
+            reason = "favorite"
+        else:
+            reason = "viewed"
+
+        existed = Notification.objects.filter(user=user, event_key=key).exists()
         notification = notify(
             user=user,
             notification_type=NotificationType.PRICE_DROP,
             title="Цена снизилась",
             body=body_text,
-            payload=payload,
+            payload={**base_payload, "reason": reason},
             listing=listing,
+            event_key=key,
         )
-        created_notifications.append(notification)
-        if favourite.price_at_add != listing.price_usd:
+        # Ключ события уникален на пользователя: повторный прогон того же
+        # снижения вернёт существующую строку, а не создаст вторую.
+        if not existed:
+            created_notifications.append(notification)
+
+        favourite = favourites_by_user.get(user_id)
+        if favourite is not None and favourite.price_at_add != listing.price_usd:
             favourite.price_at_add = listing.price_usd
             favourite.save(update_fields=["price_at_add", "updated_at"])
 
