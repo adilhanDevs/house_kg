@@ -138,6 +138,68 @@ class DeviceToken(TimeStampedModel):
         return f"{self.get_platform_display()} · …{self.token[-6:]}"
 
 
+class PushOutboxStatus(models.TextChoices):
+    PENDING = "pending", "Ожидает"
+    PROCESSING = "processing", "В обработке"
+    SENT = "sent", "Отправлено"
+    RETRY = "retry", "Повтор"
+    FAILED = "failed", "Не удалось"
+    SKIPPED_DISABLED = "skipped_disabled", "Пропущено: push выключен"
+
+
+class PushOutbox(models.Model):
+    """Очередь доставки push прямо в PostgreSQL.
+
+    Брокера здесь нет намеренно. На сервере 458 МБ памяти, из них свободно
+    около 155; Redis и воркер Celery вдвоём съели бы больше, чем остаётся до
+    порога безопасности. Очередь в той же базе, что и уведомления, стоит
+    ноль дополнительной памяти.
+
+    Заодно это надёжнее связки «commit → положить в брокер»: там между
+    коммитом и постановкой в очередь есть щель, в которую процесс может
+    умереть, и уведомление останется недоставленным навсегда. Строка outbox
+    пишется в той же транзакции, что и само уведомление, поэтому либо есть
+    оба, либо нет ни одного.
+
+    Само уведомление остаётся источником правды: outbox знает только его
+    идентификатор и состояние доставки, копии текста здесь нет.
+    """
+
+    notification = models.OneToOneField(
+        "notifications.Notification",
+        verbose_name="Уведомление",
+        on_delete=models.CASCADE,
+        related_name="push_outbox",
+    )
+    status = models.CharField(
+        "Состояние",
+        max_length=20,
+        choices=PushOutboxStatus.choices,
+        default=PushOutboxStatus.PENDING,
+        db_index=True,
+    )
+    attempts = models.PositiveSmallIntegerField("Попыток", default=0)
+    next_attempt_at = models.DateTimeField("Следующая попытка", default=django_timezone.now)
+    # Момент захвата строки воркером. По нему подбираются записи, зависшие в
+    # processing из-за упавшего процесса: без этого они остались бы навсегда.
+    locked_at = models.DateTimeField("Взято в работу", null=True, blank=True)
+    last_error = models.CharField("Последняя ошибка", max_length=255, blank=True, default="")
+    sent_at = models.DateTimeField("Отправлено", null=True, blank=True)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    updated_at = models.DateTimeField("Обновлено", auto_now=True)
+
+    class Meta:
+        verbose_name = "Очередь push"
+        verbose_name_plural = "Очередь push"
+        ordering = ["next_attempt_at", "id"]
+        indexes = [
+            models.Index(fields=["status", "next_attempt_at"], name="push_outbox_due_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"push #{self.notification_id}: {self.get_status_display()}"
+
+
 class NotificationSettings(models.Model):
     """Что пользователь готов получать пушем.
 
@@ -183,9 +245,27 @@ class NotificationSettings(models.Model):
         NotificationType.SYSTEM: "system_enabled",
     }
 
+    #: Настройки, которые уточняют тип по поводу события. Снижение цены
+    #: приходит по двум разным причинам, и отключают их отдельно: «по
+    #: избранному» человек обычно оставляет, а «по просмотренному» — нет.
+    REASON_FIELDS = {
+        (NotificationType.PRICE_DROP, "viewed"): "price_drop_viewed_enabled",
+    }
+
     def allows(self, notification_type: str) -> bool:
         """Разрешён ли push этого типа."""
         if not self.push_enabled:
             return False
         field = self.TYPE_FIELDS.get(notification_type)
+        return bool(getattr(self, field, True)) if field else True
+
+    def allows_reason(self, notification_type: str, reason: str | None) -> bool:
+        """Разрешён ли push с учётом повода события.
+
+        Сначала общий выключатель и тип, затем уточнение по причине: у типа
+        может быть своя настройка на отдельный повод, и она строже общей.
+        """
+        if not self.allows(notification_type):
+            return False
+        field = self.REASON_FIELDS.get((notification_type, reason))
         return bool(getattr(self, field, True)) if field else True

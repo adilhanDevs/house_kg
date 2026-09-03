@@ -41,6 +41,8 @@ def test_new_message_notifies_peer_once(client_for, django_capture_on_commit_cal
         "conversation_id": str(conversation.id),
         "listing_slug": conversation.listing_slug,
         "sender_id": conversation.buyer_id,
+        "sender_name": "Айдар",
+        "preview": "З" * 140,
     }
     assert Notification.objects.count() == 1
 
@@ -72,8 +74,13 @@ def test_push_enqueue_failure_after_commit_keeps_message_and_notification(
     secret_body = "Секретный текст сообщения"
     payload = {"text": secret_body, "client_message_id": str(uuid.uuid4())}
 
+    # Очередь доставки недоступна: сообщение и уведомление всё равно должны
+    # уцелеть, а в лог не должен утечь текст сообщения или телефон.
     with (
-        patch("apps.notifications.tasks.send_push.delay", side_effect=RuntimeError("broker down")),
+        patch(
+            "apps.notifications.models.PushOutbox.objects.bulk_create",
+            side_effect=RuntimeError("очередь недоступна"),
+        ),
         caplog.at_level(logging.ERROR, logger="apps.notifications.services"),
         django_capture_on_commit_callbacks(execute=True),
     ):
