@@ -286,6 +286,7 @@ class Listing {
     this.description = '',
     this.more = const [],
     this.coverMediaId,
+    this.backendId,
     this.coverDetailUrl,
     this.videos = const [],
     this.viewsCount = 0,
@@ -463,6 +464,7 @@ class Listing {
       photo: photo,
       more: morePhotos,
       coverMediaId: coverMediaId,
+      backendId: parseIntOrNull(json['id']),
       coverDetailUrl: coverDetailUrl,
       agent: sellerName,
       sellerId: sellerId,
@@ -519,6 +521,11 @@ class Listing {
   }
 
   final String id;
+
+  /// Числовой ключ объявления на сервере. `id` здесь — слаг, он удобен
+  /// маршрутам, но события ленты рекомендаций сервер ждёт именно по ключу.
+  final int? backendId;
+
   final String district;
   final int priceUsd;
   final int rooms;

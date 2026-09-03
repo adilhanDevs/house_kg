@@ -706,6 +706,61 @@ class ListingApiClient {
     }
   }
 
+  /// Персонализированная лента роликов.
+  ///
+  /// `session_id` обязателен и не короче восьми символов — сервер иначе
+  /// отвечает 400. `feed_session_id` держит защиту от повторов внутри одного
+  /// открытия ленты.
+  Future<Map<String, dynamic>> getRecommendedReels({
+    required String sessionId,
+    required String feedSessionId,
+    String? cursor,
+    int limit = 10,
+  }) async {
+    final queryParameters = <String, String>{
+      'session_id': sessionId,
+      'feed_session_id': feedSessionId,
+      'limit': limit.toString(),
+    };
+    if (cursor != null && cursor.isNotEmpty) {
+      queryParameters['cursor'] = cursor;
+    }
+
+    final uri = Uri.parse('$baseUrl/api/v1/recommendations/reels/')
+        .replace(queryParameters: queryParameters);
+
+    try {
+      final response = await _client.get(uri, headers: {'Accept': 'application/json'});
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  /// Обратная связь для ленты: показы, досмотры, пропуски, переходы.
+  ///
+  /// Отправка пачкой — событий много, а запрос на каждое сажало бы батарею.
+  Future<void> sendRecommendationEvents(List<Map<String, dynamic>> events) async {
+    if (events.isEmpty) return;
+    final uri = Uri.parse('$baseUrl/api/v1/recommendations/events/');
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode({'events': events}),
+      );
+      _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> getReelsFeed(String? cursor) async {
     final queryParameters = <String, String>{};
     if (cursor != null && cursor.isNotEmpty) {

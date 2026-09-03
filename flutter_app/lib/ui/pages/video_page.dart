@@ -2,6 +2,8 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -10,6 +12,7 @@ import '../../app/route_observer.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
 import '../../data/listing_repository.dart';
+import '../../data/recommendation_feed.dart';
 import '../../data/listings.dart';
 import '../../data/video_download.dart';
 import '../../fig/fig.dart';
@@ -89,6 +92,14 @@ class _VideoPageState extends State<VideoPage> {
   String? _nextCursor;
   ListingRepository? _repository;
 
+  /// Сессия персонализированной ленты: живёт одно открытие экрана. Здесь же
+  /// копятся события, которыми сервер учится не показывать одно и то же.
+  RecommendationFeed? _feedSession;
+
+  /// Когда текущий ролик стал видимым — от этого считается доля просмотра.
+  DateTime? _shownAt;
+  int? _shownListingId;
+
   @override
   void initState() {
     super.initState();
@@ -102,6 +113,9 @@ class _VideoPageState extends State<VideoPage> {
     super.didChangeDependencies();
     final state = AppScope.of(context);
     _repository = ListingRepository(state.apiClient);
+    // Одна сессия на одно открытие ленты: на её идентификаторе держится
+    // защита от повторов, поэтому пересоздавать её на каждый свайп нельзя.
+    _feedSession ??= RecommendationFeed(apiClient: state.apiClient);
     if (_feed.isEmpty && !_isLoading) {
       _loadNextPage();
     }
@@ -133,7 +147,7 @@ class _VideoPageState extends State<VideoPage> {
         }
       }
 
-      final response = await repo.getReelsFeed(cursor: _nextCursor);
+      final response = await repo.getReelsFeed(cursor: _nextCursor, feed: _feedSession);
       for (final l in response.results) {
         if (!_feed.any((f) => f.listing.id == l.id)) {
           if (l.videos.isNotEmpty) {
@@ -153,10 +167,13 @@ class _VideoPageState extends State<VideoPage> {
       }
 
       if (!mounted) return;
+      final firstLoad = _shownListingId == null && _feed.isNotEmpty;
       setState(() {
         _nextCursor = response.nextCursor;
         _hasMore = response.nextCursor != null;
       });
+      // Самый первый ролик становится видимым без onPageChanged.
+      if (firstLoad) _startWatch(_feed[_listingIndex].listing.backendId);
     } catch (e) {
       debugPrint('Error loading reels: $e');
     } finally {
@@ -173,11 +190,49 @@ class _VideoPageState extends State<VideoPage> {
 
   @override
   void dispose() {
+    // Досматриваем последний ролик и отдаём накопленное, пока экран жив.
+    _finishWatch();
+    unawaited(_feedSession?.dispose());
     _verticalPages.dispose();
     for (final c in _horizontalControllers.values) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  /// Ролик стал видимым: засекаем время и отмечаем показ.
+  ///
+  /// Без числового ключа событие не отправляем: демонстрационные объекты и
+  /// старые ответы его не несут, а выдумывать идентификатор нельзя.
+  void _startWatch(int? listingId) {
+    _shownAt = listingId == null ? null : DateTime.now();
+    _shownListingId = listingId;
+    if (listingId != null) _feedSession?.impression(listingId);
+  }
+
+  /// Переход из ленты. Аналитика — по возможности: навигация её не ждёт.
+  void _sendOpen(int? listingId, {required bool seller}) {
+    if (listingId == null) return;
+    if (seller) {
+      _feedSession?.sellerOpened(listingId);
+    } else {
+      _feedSession?.listingOpened(listingId);
+    }
+  }
+
+  /// Ролик ушёл с экрана: отправляем итог. Долю считает сессия, вес ей
+  /// назначает сервер.
+  void _finishWatch() {
+    final id = _shownListingId;
+    final since = _shownAt;
+    if (id == null || since == null) return;
+    _shownListingId = null;
+    _shownAt = null;
+
+    final player = _playerKey.currentState;
+    final total = player?.totalDuration ?? Duration.zero;
+    if (total <= Duration.zero) return;
+    _feedSession?.watched(id, watched: DateTime.now().difference(since), total: total);
   }
 
   int _getSubIndex(int listingIdx) => _subVideoIndices[listingIdx] ?? 0;
@@ -299,10 +354,14 @@ class _VideoPageState extends State<VideoPage> {
               scrollDirection: Axis.vertical,
               itemCount: _feed.length + (_hasMore ? 1 : 0),
               onPageChanged: (i) {
+                // Итог предыдущего ролика подводим здесь, а не по таймеру:
+                // одно событие на просмотр вместо запроса каждую секунду.
+                _finishWatch();
                 if (i < _feed.length) {
                   setState(() {
                     _listingIndex = i;
                   });
+                  _startWatch(_feed[i].listing.backendId);
                 }
                 if (i >= _feed.length - 2) {
                   _loadNextPage();
@@ -379,6 +438,8 @@ class _VideoPageState extends State<VideoPage> {
                 videoTitle: currentSubVideo.title,
                 videoDescription: currentSubVideo.description,
                 onAgentTap: () {
+                  // Аналитика — по возможности: переход её не ждёт.
+                  _sendOpen(listing.backendId, seller: true);
                   _stopAndNavigate(() {
                     Navigator.of(context).pushNamed(
                       Routes.agentListings,
@@ -395,6 +456,7 @@ class _VideoPageState extends State<VideoPage> {
                   });
                 },
                 onDetailsTap: () {
+                  _sendOpen(listing.backendId, seller: false);
                   _stopAndNavigate(() {
                     Navigator.of(context).pushNamed(
                       Routes.listing,
@@ -670,6 +732,11 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
   bool _routeOnTop = true;
 
   bool get isPlaying => _isPlaying;
+
+  /// Длительность текущего ролика — по ней лента считает долю просмотра.
+  /// Ноль, пока плеер не готов: тогда событие просто не отправляется.
+  Duration get totalDuration =>
+      (_isInitialized && _controller != null) ? _controller!.value.duration : Duration.zero;
 
   @override
   void initState() {
