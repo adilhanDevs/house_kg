@@ -17,6 +17,20 @@ const Color _page = Color(0xfffefefe);
 /// Отступ от края экрана — тот же, что был у кадра.
 const double _gutter = 25;
 
+/// Отступ между секциями фильтра — воздуха в макете больше, чем было.
+const double _sectionGap = 28;
+
+/// Промежуток между чипами в одном ряду.
+const double _chipSpacing = 10;
+
+/// Высота ряда «Продавец» — просторнее прежнего, чтобы тумблер не жался к
+/// соседней строке.
+const double _sellerRowGap = 16;
+
+/// «Цена от/до» — заметно выше обычного поля входа, как в макете.
+const double _priceFieldHeight = 48;
+const double _priceFieldRadius = 14;
+
 class FilterPage extends StatefulWidget {
   const FilterPage({super.key});
 
@@ -121,8 +135,8 @@ class _FilterPageState extends State<FilterPage> {
                 children: [
                   _title(l10n.filterPropertyType),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: _chipSpacing,
+                    runSpacing: _chipSpacing,
                     children: [
                       for (final kind in PropertyKind.values)
                         FigChip(
@@ -130,38 +144,27 @@ class _FilterPageState extends State<FilterPage> {
                           selected: state.kinds.contains(kind),
                           onTap: () => state.toggleKind(kind),
                         ),
+                      if (visible.contains(ListingField.isSecondary))
+                        FigChip(
+                          label: l10n.filterSecondary,
+                          selected: state.secondaryOnly,
+                          onTap: () => state.setSecondaryOnly(!state.secondaryOnly),
+                        ),
+                      if (visible.contains(ListingField.series))
+                        FigChip(
+                          label: l10n.filterSeries103,
+                          selected: state.series103,
+                          onTap: () => state.setSeries103(!state.series103),
+                        ),
                     ],
                   ),
 
-                  if (visible.contains(ListingField.isSecondary) ||
-                      visible.contains(ListingField.series)) ...[
-                    const SizedBox(height: 20),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (visible.contains(ListingField.isSecondary))
-                          FigChip(
-                            label: l10n.filterSecondary,
-                            selected: state.secondaryOnly,
-                            onTap: () => state.setSecondaryOnly(!state.secondaryOnly),
-                          ),
-                        if (visible.contains(ListingField.series))
-                          FigChip(
-                            label: l10n.filterSeries103,
-                            selected: state.series103,
-                            onTap: () => state.setSeries103(!state.series103),
-                          ),
-                      ],
-                    ),
-                  ],
-
                   if (visible.contains(ListingField.rooms)) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: _sectionGap),
                     _title(l10n.filterRoomsCount),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: _chipSpacing,
+                      runSpacing: _chipSpacing,
                       children: [
                         for (var count = 1; count <= 4; count++)
                           FigChip(
@@ -173,7 +176,7 @@ class _FilterPageState extends State<FilterPage> {
                     ),
                   ],
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: _sectionGap),
                   _title(l10n.filterArea),
                   SizedBox(
                     height: FigChip.height,
@@ -198,13 +201,15 @@ class _FilterPageState extends State<FilterPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: _sectionGap),
                   _title(l10n.filterPrice),
                   Row(
                     children: [
                       Expanded(
                         child: FigInputBox(
                           width: double.infinity,
+                          height: _priceFieldHeight,
+                          radius: _priceFieldRadius,
                           controller: _from,
                           hint: l10n.filterPriceFrom,
                           keyboardType: TextInputType.number,
@@ -212,10 +217,12 @@ class _FilterPageState extends State<FilterPage> {
                           onChanged: (_) => _applyPrice(),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: _chipSpacing),
                       Expanded(
                         child: FigInputBox(
                           width: double.infinity,
+                          height: _priceFieldHeight,
+                          radius: _priceFieldRadius,
                           controller: _to,
                           hint: l10n.filterPriceTo,
                           keyboardType: TextInputType.number,
@@ -227,11 +234,11 @@ class _FilterPageState extends State<FilterPage> {
                   ),
 
                   if (visible.contains(ListingField.plotPurpose)) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: _sectionGap),
                     _title(l10n.filterPlotPurpose),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: _chipSpacing,
+                      runSpacing: _chipSpacing,
                       children: [
                         for (final entry in plotPurposeLabels.entries)
                           FigChip(
@@ -244,11 +251,11 @@ class _FilterPageState extends State<FilterPage> {
                   ],
 
                   if (visible.contains(ListingField.commercialPurpose)) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: _sectionGap),
                     _title(l10n.filterCommercialPurpose),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: _chipSpacing,
+                      runSpacing: _chipSpacing,
                       children: [
                         for (final entry in commercialPurposeLabels.entries)
                           FigChip(
@@ -261,11 +268,11 @@ class _FilterPageState extends State<FilterPage> {
                   ],
 
                   if (visible.contains(ListingField.buildingLine)) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: _sectionGap),
                     _title(l10n.filterBuildingLine),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: _chipSpacing,
+                      runSpacing: _chipSpacing,
                       children: [
                         for (final entry in buildingLineLabels.entries)
                           FigChip(
@@ -277,11 +284,11 @@ class _FilterPageState extends State<FilterPage> {
                     ),
                   ],
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: _sectionGap),
                   _title(l10n.filterSeller),
                   for (final seller in SellerKind.values)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: _sellerRowGap),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -343,14 +350,14 @@ class _FilterPageState extends State<FilterPage> {
 
   Widget _title(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: FigText(
         span: TextSpan(
           text: text,
           style: figStyle(
-            fontSize: 17.0,
+            fontSize: 18.0,
             family: FigFont.display,
-            weight: 600,
+            weight: 700,
             color: const Color(0xff000000),
           ),
         ),

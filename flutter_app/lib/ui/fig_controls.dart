@@ -327,7 +327,9 @@ class FigInputBox extends StatefulWidget {
     this.focusNode,
     this.onChanged,
     this.searchIcon = true,
-  });
+    double? height,
+    this.radius = 10.0,
+  }) : height = height ?? FigInputBox.defaultHeight;
 
   final double width;
   final TextEditingController? controller;
@@ -340,8 +342,13 @@ class FigInputBox extends StatefulWidget {
   /// «Цена от/до» в фильтре.
   final bool searchIcon;
 
+  /// Высота поля. По умолчанию — как в макетах входа и регистрации;
+  /// у «Цены» в фильтре выше поле, поэтому там передаётся своё значение.
+  final double height;
+  final double radius;
+
   /// Размеры поля из макета: 324×36 на кадре шириной 375.
-  static const double height = 36.0;
+  static const double defaultHeight = 36.0;
 
   @override
   State<FigInputBox> createState() => _FigInputBoxState();
@@ -384,12 +391,12 @@ class _FigInputBoxState extends State<FigInputBox> {
       onTap: () => _effectiveNode.requestFocus(),
       child: _Cover(
         width: widget.width,
-        height: FigInputBox.height,
+        height: widget.height,
         child: FigBox(
           width: widget.width,
-          height: FigInputBox.height,
+          height: widget.height,
           color: _fieldFill,
-          radius: 10.0,
+          radius: widget.radius,
           padding: const EdgeInsets.fromLTRB(8.0, 7.0, 8.0, 7.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
