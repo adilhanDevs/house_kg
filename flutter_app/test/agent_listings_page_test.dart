@@ -391,6 +391,64 @@ void main() {
       expect(cta.bottom, lessThanOrEqualTo(tabs.top));
     });
 
+    testWidgets('кнопка связи стоит внизу экрана, а не посреди профиля', (
+      tester,
+    ) async {
+      const size = Size(412, 915);
+      await _pumpPage(tester, server: _FakeServer(), size: size);
+
+      // Меряем видимую кнопку, а не коробку FigCta: при дефекте коробка
+      // растягивалась во весь экран, её нижняя грань оставалась у меню, и
+      // проверка по контейнеру ничего не замечала — кнопка при этом рисовалась
+      // в вертикальном центре, поверх описания продавца.
+      final button = find.descendant(
+        of: find.byType(FigCta),
+        matching: find.byType(DecoratedBox),
+      );
+      expect(button, findsOneWidget);
+
+      final rect = tester.getRect(button);
+      expect(
+        rect.center.dy / size.height,
+        greaterThan(0.65),
+        reason: 'кнопка должна быть в нижней трети, а не в середине',
+      );
+    });
+
+    testWidgets('кнопка связи не накрывает описание продавца', (tester) async {
+      await _pumpPage(tester, server: _FakeServer(), size: const Size(412, 915));
+
+      final button = tester.getRect(
+        find.descendant(
+          of: find.byType(FigCta),
+          matching: find.byType(DecoratedBox),
+        ),
+      );
+      final name = tester.getRect(find.text('Айбек'));
+
+      expect(
+        button.top,
+        greaterThan(name.bottom),
+        reason: 'шапка профиля должна оставаться читаемой',
+      );
+    });
+
+    testWidgets('кнопка связи держится над нижним меню', (tester) async {
+      await _pumpPage(tester, server: _FakeServer(), size: const Size(412, 915));
+
+      final button = tester.getRect(
+        find.descendant(
+          of: find.byType(FigCta),
+          matching: find.byType(DecoratedBox),
+        ),
+      );
+      final tabs = tester.getRect(find.byType(AppTabBar));
+
+      expect(button.bottom, lessThanOrEqualTo(tabs.top));
+      expect(tabs.top - button.bottom, lessThan(48.0),
+          reason: 'зазор должен быть аккуратным, а не белой панелью');
+    });
+
     testWidgets('CTA preserves the listing that opened the seller profile', (
       tester,
     ) async {

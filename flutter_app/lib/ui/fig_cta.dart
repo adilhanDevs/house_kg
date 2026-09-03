@@ -36,7 +36,13 @@ class FigCta extends StatelessWidget {
           ).copyWith(textScaler: TextScaler.noScaling),
           child: Padding(
             padding: EdgeInsets.only(bottom: bottomGap * scale),
-            child: Center(
+            // heightFactor, а не обычный Center: в слоте плавающей кнопки
+            // ограничения свободные, и Center растягивался на всю высоту
+            // экрана. Кнопка при этом уезжала в вертикальный центр этой
+            // коробки — то есть на середину профиля, поверх описания.
+            child: Align(
+              alignment: Alignment.center,
+              heightFactor: 1.0,
               child: Semantics(
                 button: true,
                 label: label,
