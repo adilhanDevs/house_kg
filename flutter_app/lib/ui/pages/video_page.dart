@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../app/app_state.dart';
@@ -77,7 +78,7 @@ class VideoPage extends StatefulWidget {
   State<VideoPage> createState() => _VideoPageState();
 }
 
-class _VideoPageState extends State<VideoPage> {
+class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMixin {
   final PageController _verticalPages = PageController();
   final Map<int, PageController> _horizontalControllers = {};
   final GlobalKey<_VideoPlayerItemState> _playerKey = GlobalKey<_VideoPlayerItemState>();
@@ -99,6 +100,14 @@ class _VideoPageState extends State<VideoPage> {
   /// Когда текущий ролик стал видимым — от этого считается доля просмотра.
   DateTime? _shownAt;
   int? _shownListingId;
+
+  /// Всплеск сердца по двойному нажатию. Без него добавление в избранное
+  /// оставалось незаметным: маленькая иконка в столбце справа меняла вид, а
+  /// палец в этот момент был в центре экрана.
+  late final AnimationController _heart = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
 
   @override
   void initState() {
@@ -193,6 +202,7 @@ class _VideoPageState extends State<VideoPage> {
     // Досматриваем последний ролик и отдаём накопленное, пока экран жив.
     _finishWatch();
     unawaited(_feedSession?.dispose());
+    _heart.dispose();
     _verticalPages.dispose();
     for (final c in _horizontalControllers.values) {
       c.dispose();
@@ -274,13 +284,35 @@ class _VideoPageState extends State<VideoPage> {
     action();
   }
 
+  /// Двойное нажатие по ролику — только добавление в избранное.
+  ///
+  /// Убрать объект отсюда нельзя намеренно: в ленте палец попадает по видео
+  /// случайно, и переключатель отнимал бы уже добавленное. Повторное нажатие
+  /// на добавленный объект всё равно показывает сердце — человек ждёт отклика
+  /// на своё действие, а не молчания.
   Future<void> _addToFavourites(Listing listing) async {
     final state = AppScope.read(context);
-    if (state.isFavourite(listing.id)) return;
+    // Гостю сердце не показываем: действие не выполнено, и подтверждать
+    // нечего — иначе получилось бы обещание, которого никто не сдержал.
     if (!requireAuth(context, reason: 'Войдите, чтобы добавить в избранное')) {
       return;
     }
+
+    _splashHeart();
+    if (state.isFavourite(listing.id)) return;
     await state.toggleFavourite(listing.id);
+  }
+
+  /// Проигрывает всплеск сердца заново, даже если предыдущий не закончился.
+  void _splashHeart() {
+    // Анимация первой: тактильный отклик — приятное дополнение, и его сбой
+    // не должен лишать пользователя единственного видимого подтверждения.
+    _heart.forward(from: 0);
+    try {
+      HapticFeedback.lightImpact();
+    } catch (_) {
+      // На части устройств и в тестах вибрации нет — это не ошибка.
+    }
   }
 
   Future<void> _downloadVideo(String source) async {
@@ -402,6 +434,41 @@ class _VideoPageState extends State<VideoPage> {
                   },
                 );
               },
+            ),
+          ),
+
+          // Сердце всплывает по центру кадра — там, где палец, а не в
+          // столбце кнопок сбоку. Поверх градиентов, но ниже элементов
+          // управления, и не перехватывает нажатия.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _heart,
+                  builder: (context, child) {
+                    final t = _heart.value;
+                    if (t == 0 || t == 1) return const SizedBox.shrink();
+                    // Короткий рывок вверх и плавное растворение: масштаб
+                    // перелетает единицу и возвращается, прозрачность гаснет
+                    // во второй половине.
+                    final scale = t < 0.3
+                        ? 0.5 + (t / 0.3) * 0.6
+                        : (t < 0.45 ? 1.1 - ((t - 0.3) / 0.15) * 0.1 : 1.0);
+                    final opacity = t < 0.25 ? t / 0.25 : (1 - (t - 0.25) / 0.75);
+                    return Opacity(
+                      opacity: opacity.clamp(0.0, 1.0),
+                      child: Transform.scale(scale: scale, child: child),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.favorite,
+                    key: Key('reel_double_tap_heart'),
+                    size: 110,
+                    color: Colors.white,
+                    shadows: [Shadow(color: Colors.black38, blurRadius: 24)],
+                  ),
+                ),
+              ),
             ),
           ),
 

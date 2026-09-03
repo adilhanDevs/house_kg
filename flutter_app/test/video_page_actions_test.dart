@@ -171,6 +171,25 @@ Future<void> _doubleTapVideo(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 500));
 }
 
+/// Двойное нажатие и просмотр кадров всплеска.
+///
+/// Проверять один кадр нельзя: сразу после нажатия контроллер ещё не тикнул,
+/// и сердца в дереве закономерно нет. Поэтому смотрим всю анимацию.
+Future<bool> _doubleTapAndSeeHeart(WidgetTester tester) async {
+  final video = find.byKey(const ValueKey('v_item_reel-one_0'));
+  await tester.tap(video);
+  await tester.pump(const Duration(milliseconds: 50));
+  await tester.tap(video);
+  var visible = false;
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 70));
+    final n = find.byKey(const Key('reel_double_tap_heart')).evaluate().length;
+    if (n > 0) visible = true;
+  }
+  await tester.pump(const Duration(seconds: 1));
+  return visible;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -217,6 +236,52 @@ void main() {
     expect(server.favouritePosts, 0);
     expect(find.text('Войдите, чтобы добавить в избранное'), findsOneWidget);
     expect(observer.pushedRoutes, contains(Routes.welcome));
+  });
+
+  testWidgets('двойное нажатие показывает сердце как подтверждение', (
+    tester,
+  ) async {
+    final server = _ReelServer();
+    await _pumpReel(tester, server);
+
+    expect(find.byKey(const Key('reel_double_tap_heart')), findsNothing);
+    expect(await _doubleTapAndSeeHeart(tester), isTrue);
+    // Всплеск заканчивается сам и не остаётся висеть поверх кадра.
+    expect(find.byKey(const Key('reel_double_tap_heart')), findsNothing);
+  });
+
+  testWidgets('уже добавленный объект тоже даёт отклик, но не запрос', (
+    tester,
+  ) async {
+    final server = _ReelServer(initiallyFavourite: true);
+    final state = await _pumpReel(tester, server);
+
+    expect(await _doubleTapAndSeeHeart(tester), isTrue);
+    expect(server.favouritePosts, 0, reason: 'убирать из избранного нельзя');
+    expect(state.isFavourite('reel-one'), isTrue);
+  });
+
+  testWidgets('гостю сердце не показываем: действие не выполнено', (
+    tester,
+  ) async {
+    final server = _ReelServer();
+    final state = await _pumpReel(tester, server, authenticated: false);
+
+    expect(await _doubleTapAndSeeHeart(tester), isFalse);
+    expect(server.favouritePosts, 0);
+    expect(state.isFavourite('reel-one'), isFalse);
+  });
+
+  testWidgets('серия быстрых нажатий не множит запросы', (tester) async {
+    final server = _ReelServer();
+    await _pumpReel(tester, server);
+
+    await _doubleTapVideo(tester);
+    await _doubleTapVideo(tester);
+    await _doubleTapVideo(tester);
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(server.favouritePosts, 1);
   });
 
   testWidgets('download requests the current video and ignores repeated taps', (
