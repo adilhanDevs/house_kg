@@ -37,6 +37,7 @@ class RecommendationEvent(models.Model):
         related_name="recommendation_events"
     )
     session_id = models.CharField("Session ID", max_length=128, db_index=True)
+    feed_session_id = models.CharField("Feed Session ID", max_length=128, blank=True, db_index=True)
     
     listing = models.ForeignKey(
         "catalog.Listing",
@@ -52,12 +53,22 @@ class RecommendationEvent(models.Model):
     # e.g., watch_ratio for REEL_WATCH, or search parameters for SEARCH
     context = models.JSONField(default=dict, blank=True)
     
+    # For idempotency from client
+    client_event_id = models.UUIDField("Client Event ID", null=True, blank=True, db_index=True)
+    
     created_at = models.DateTimeField("Created at", default=timezone.now, db_index=True)
 
     class Meta:
         verbose_name = "Recommendation Event"
         verbose_name_plural = "Recommendation Events"
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client_event_id"],
+                condition=models.Q(client_event_id__isnull=False),
+                name="recommendation_event_unique_client_id"
+            )
+        ]
         indexes = [
             models.Index(fields=["user", "created_at"]),
             models.Index(fields=["session_id", "created_at"]),

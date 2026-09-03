@@ -76,6 +76,9 @@ def test_immediate_skip_negative_penalty():
     listing_skipped = Listing.objects.create(
         owner=owner, rooms=2, kind=PropertyKind.HOUSE, price=250000, status=ListingStatus.ACTIVE, published_at=timezone.now()
     )
+    listing_similar = Listing.objects.create(
+        owner=owner, rooms=2, kind=PropertyKind.HOUSE, price=260000, status=ListingStatus.ACTIVE, published_at=timezone.now()
+    )
     listing_other = Listing.objects.create(
         owner=owner, rooms=2, kind=PropertyKind.APARTMENT, price=100000, status=ListingStatus.ACTIVE, published_at=timezone.now()
     )
@@ -89,5 +92,8 @@ def test_immediate_skip_negative_penalty():
     features, _ = get_recommended_listings(context)
     
     scores = {f.listing.id: f.total_score for f in features}
-    # Skipped listing should have much lower score due to negative penalty
-    assert scores[listing_skipped.id] < scores[listing_other.id]
+    
+    # Similar listing in same cluster (HOUSE) should have lower score than APARTMENT
+    assert listing_similar.id in scores
+    assert listing_other.id in scores
+    assert scores[listing_similar.id] < scores[listing_other.id]

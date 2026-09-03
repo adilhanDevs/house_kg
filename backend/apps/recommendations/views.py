@@ -11,7 +11,8 @@ from apps.recommendations.models import RecommendationEvent, InteractionType
 
 class RecommendationEventBatchSerializer(serializers.Serializer):
     events = serializers.ListField(
-        child=serializers.DictField()
+        child=serializers.DictField(),
+        max_length=50
     )
 
     def validate_events(self, events):
@@ -23,6 +24,8 @@ class RecommendationEventBatchSerializer(serializers.Serializer):
                 raise serializers.ValidationError(f"Invalid event_type: {ev['event_type']}")
             if 'session_id' not in ev:
                 raise serializers.ValidationError("session_id is required")
+            if len(ev['session_id']) > 128:
+                raise serializers.ValidationError("session_id too long")
         return events
 
 
@@ -39,9 +42,12 @@ class ListingRecommendationsView(APIView):
         limit = int(request.query_params.get("limit", 20))
         cursor = request.query_params.get("cursor", None)
         
+        feed_session_id = request.query_params.get("feed_session_id", session_id)
+        
         context = RecommendationContext(
             user=request.user if request.user.is_authenticated else None,
             session_id=session_id,
+            feed_session_id=feed_session_id,
             limit=limit,
             cursor=cursor
         )
@@ -70,9 +76,12 @@ class ReelsRecommendationsView(APIView):
         limit = int(request.query_params.get("limit", 10))
         cursor = request.query_params.get("cursor", None)
         
+        feed_session_id = request.query_params.get("feed_session_id", session_id)
+        
         context = RecommendationContext(
             user=request.user if request.user.is_authenticated else None,
             session_id=session_id,
+            feed_session_id=feed_session_id,
             limit=limit,
             cursor=cursor,
             require_video=True
@@ -106,9 +115,11 @@ class RecommendationEventBatchView(APIView):
             objs.append(RecommendationEvent(
                 user=user,
                 session_id=ev['session_id'],
+                feed_session_id=ev.get('feed_session_id', ''),
                 event_type=ev['event_type'],
                 listing_id=ev.get('listing_id'),
-                context=ev.get('context', {})
+                context=ev.get('context', {}),
+                client_event_id=ev.get('client_event_id')
             ))
             
         RecommendationEvent.objects.bulk_create(objs, ignore_conflicts=True)

@@ -4,6 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import List, Optional, Dict, Any, Tuple
 
+from django.db import models
 from django.db.models import QuerySet, Q, F, Count, ExpressionWrapper, FloatField
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
@@ -17,6 +18,7 @@ from apps.recommendations import constants
 class RecommendationContext:
     user: Optional[AbstractUser]
     session_id: str
+    feed_session_id: str = "default"
     limit: int = 20
     cursor: Optional[str] = None
     # For Reels
@@ -44,53 +46,47 @@ class CandidateGenerator:
         self.context = context
 
     def get_candidates(self) -> QuerySet[Listing]:
-        # Start with hard eligibility rules
-        base_qs = Listing.objects.alive().filter(
-            status=ListingStatus.ACTIVE
-        )
+        """Generate base pool of valid listings."""
+        base_qs = Listing.objects.filter(status=ListingStatus.ACTIVE)
         
         if self.context.require_video:
-            base_qs = base_qs.filter(media__kind='video').distinct()
-        
-        # Don't show owner's own listings
-        if not self.context.is_anonymous:
+            base_qs = base_qs.filter(media__kind="video").distinct()
+            
+        if self.context.user:
             base_qs = base_qs.exclude(owner=self.context.user)
-
-        # Exclude already explicitly disliked in this session/user
-        if not self.context.is_anonymous:
-            disliked = RecommendationEvent.objects.filter(
-                user=self.context.user,
-                event_type=InteractionType.NOT_INTERESTED
+            
+        # Exclude seen or rejected items in this specific feed session
+        # This guarantees stable sequencing without duplicates if client requests page 2
+        # Or across the broader session for NOT_INTERESTED/SKIPS
+        excluded_ids = set()
+        
+        # 1. Broad session exclusions (skips, not interested)
+        q_session = models.Q(session_id=self.context.session_id)
+        if self.context.user:
+            q_session |= models.Q(user=self.context.user)
+            
+        excluded_ids.update(
+            RecommendationEvent.objects.filter(
+                q_session,
+                event_type__in=[InteractionType.NOT_INTERESTED, InteractionType.REEL_SKIP],
+                listing__isnull=False
             ).values_list('listing_id', flat=True)
-            base_qs = base_qs.exclude(id__in=disliked)
-        else:
-            disliked = RecommendationEvent.objects.filter(
-                session_id=self.context.session_id,
-                event_type=InteractionType.NOT_INTERESTED
-            ).values_list('listing_id', flat=True)
-            base_qs = base_qs.exclude(id__in=disliked)
-
-        # For V1, we get a mix of fresh listings and some popularity
-        # Real candidate generation would UNION different segments.
-        # Since we cannot fetch everything, we fetch N latest and some random/diverse.
+        )
         
-        # Fetch fresh
-        fresh_qs = base_qs.order_by('-published_at')[:constants.MAX_CANDIDATES // 2]
-        
-        # Fetch promoted
-        now = timezone.now()
-        promoted_qs = base_qs.filter(promoted_until__gt=now).order_by('-bumped_at', '-published_at')[:constants.MAX_CANDIDATES // 4]
-        
-        # We can also do a broad search if active_filters are provided
-        # (omitted for brevity, assume fresh + promoted + popular is the base pool)
-        # To avoid performance issues in V1 without vector DB, we rely on the DB ordering.
-        
-        # Combine them (using union or |)
-        combined = (fresh_qs | promoted_qs).distinct()
-        
-        # If we have less than MAX_CANDIDATES, add some older ones (exploration)
-        # Actually, let's just query base_qs ordered by "-created_at" up to MAX_CANDIDATES.
-        # It's simple and fast enough for V1.
+        # 2. Feed session specific seen
+        if self.context.feed_session_id and self.context.feed_session_id != "default":
+            excluded_ids.update(
+                RecommendationEvent.objects.filter(
+                    feed_session_id=self.context.feed_session_id,
+                    event_type__in=[InteractionType.REEL_IMPRESSION, InteractionType.VIEW_LISTING],
+                    listing__isnull=False
+                ).values_list('listing_id', flat=True)
+            )
+            
+        if excluded_ids:
+            base_qs = base_qs.exclude(id__in=excluded_ids)
+            
+        # Fetch fresh and bumped items
         qs = base_qs.order_by('-bumped_at', '-published_at')[:constants.MAX_CANDIDATES]
         
         return qs.select_related('district', 'city', 'owner', 'series').prefetch_related('media')
@@ -158,12 +154,17 @@ class FeatureBuilder:
         if listing.is_promoted:
             features.promotion_score = 1.0
             
+        # Popularity (Saturated)
+        if hasattr(listing, 'views') and listing.views:
+            features.popularity_score = math.log1p(listing.views) / 10.0 # Normalize roughly
+            if features.popularity_score > 1.0:
+                features.popularity_score = 1.0
+                
         # Personal Match Features
         # Price Match
-        pref_prices = self.user_profile.get("prices", [])
+        pref_prices = self.user_profile.get("prices_by_kind", {}).get(listing.kind, [])
         if pref_prices and listing.price_usd:
             avg_price = sum(pref_prices) / len(pref_prices)
-            # Soft distance: if distance is 0, score is 1. If distance is large, score is 0.
             distance = abs(float(listing.price_usd) - avg_price) / avg_price
             features.price_match = max(0.0, 1.0 - distance)
             
@@ -213,18 +214,29 @@ class Diversifier:
     """
     Ensures diversity in the final ranked list.
     Limits streaks of same seller, district, etc.
-    Adds exploration candidates.
+    Adds explicit deterministic exploration candidates.
     """
-    def apply(self, ranked_features: List[ListingFeatures], limit: int) -> List[ListingFeatures]:
+    def apply(self, ranked_features: List[ListingFeatures], limit: int, context: RecommendationContext) -> List[ListingFeatures]:
+        import hashlib
+        
         result = []
+        exploration_slots = int(limit * constants.EXPLORATION_RATIO)
+        core_limit = limit - exploration_slots
         
         seller_counts = {}
         district_counts = {}
         
-        exploration_slots = int(limit * constants.EXPLORATION_RATIO)
+        exploration_pool = []
+        core_pool = []
         
-        for feat in ranked_features:
-            if len(result) >= limit:
+        # Split ranked features roughly by score threshold or top N
+        top_n = max(core_limit * 2, len(ranked_features) // 3)
+        core_candidates = ranked_features[:top_n]
+        exploration_candidates = ranked_features[top_n:]
+        
+        # Select core
+        for feat in core_candidates:
+            if len(core_pool) >= core_limit:
                 break
                 
             seller_id = feat.listing.owner_id
@@ -239,20 +251,53 @@ class Diversifier:
             if d_count >= constants.DIVERSITY_DISTRICT_STREAK_LIMIT:
                 continue
                 
-            # Accept candidate
-            result.append(feat)
             seller_counts[seller_id] = s_count + 1
-            if district_id:
-                district_counts[district_id] = d_count + 1
+            district_counts[district_id] = d_count + 1
+            core_pool.append(feat)
+            
+        # Select exploration deterministically
+        if exploration_candidates:
+            seed_str = f"{context.user.id if context.user else 'anon'}:{context.feed_session_id}"
+            seed = int(hashlib.md5(seed_str.encode()).hexdigest()[:8], 16)
+            
+            # Sort deterministically using the seed and listing id
+            exploration_candidates.sort(
+                key=lambda f: (hashlib.md5(f"{seed}:{f.listing.id}".encode()).hexdigest(), f.total_score),
+                reverse=True
+            )
+            
+            for feat in exploration_candidates:
+                if len(exploration_pool) >= exploration_slots:
+                    break
+                    
+                seller_id = feat.listing.owner_id
+                district_id = feat.listing.district_id
                 
-        # If we are short (because we skipped too many), just fill with whatever we skipped
+                s_count = seller_counts.get(seller_id, 0)
+                d_count = district_counts.get(district_id, 0)
+                
+                if s_count >= constants.DIVERSITY_SELLER_STREAK_LIMIT:
+                    continue
+                    
+                if d_count >= constants.DIVERSITY_DISTRICT_STREAK_LIMIT:
+                    continue
+                    
+                seller_counts[seller_id] = s_count + 1
+                district_counts[district_id] = d_count + 1
+                exploration_pool.append(feat)
+        
+        # Mix them
+        result = core_pool + exploration_pool
+        
+        # We might have less than limit, if so fill from remaining
         if len(result) < limit:
-            added = set(f.listing.id for f in result)
+            seen_ids = {f.listing.id for f in result}
             for feat in ranked_features:
                 if len(result) >= limit:
                     break
-                if feat.listing.id not in added:
+                if feat.listing.id not in seen_ids:
                     result.append(feat)
+                    seen_ids.add(feat.listing.id)
                     
         return result
 
@@ -264,7 +309,7 @@ class TasteProfileService:
         Builds a lightweight in-memory taste profile from recent events.
         """
         profile = {
-            "prices": [],
+            "prices_by_kind": {},
             "districts": {},
             "rooms": {},
             "types": {},
@@ -272,21 +317,85 @@ class TasteProfileService:
         }
         
         # Fetch events
-        qs = RecommendationEvent.objects.select_related('listing').order_by('-created_at')
-        if not context.is_anonymous:
-            qs = qs.filter(user=context.user)
-        else:
-            qs = qs.filter(session_id=context.session_id)
-            
-        # Limit to recent history to avoid heavy processing
-        events = qs[:100]
+        from apps.engagement.models import Favourite, ViewHistory
         
+        event_qs = RecommendationEvent.objects.all()
+        if context.user:
+            event_qs = event_qs.filter(
+                models.Q(user=context.user) | models.Q(session_id=context.session_id)
+            )
+        else:
+            event_qs = event_qs.filter(session_id=context.session_id)
+            
+        # Get raw events
+        events = event_qs.select_related('listing', 'listing__district').order_by('-created_at')[:500]
+        
+        # Aggregate real domain signals for users
+        domain_favorites = []
+        domain_views = []
+        if context.user:
+            # Add canonical favorites
+            domain_favorites = list(Favourite.objects.filter(user=context.user).select_related('listing', 'listing__district')[:100])
+            # Add canonical views
+            domain_views = list(ViewHistory.objects.filter(user=context.user).select_related('listing', 'listing__district').order_by('-viewed_at')[:100])
+            
+        import math
+        from django.utils import timezone
+        
+        now = timezone.now()
+        
+        def _get_decayed_weight(base_w, dt, half_life_days=constants.DECAY_HALF_LIFE_DAYS):
+            if not dt:
+                return base_w
+            days_old = (now - dt).total_seconds() / 86400.0
+            if days_old < 0:
+                days_old = 0
+            decay = math.pow(0.5, days_old / half_life_days)
+            return base_w * decay
+            
+        for fav in domain_favorites:
+            listing = fav.listing
+            weight = _get_decayed_weight(float(constants.WEIGHT_FAVORITE), fav.created_at)
+            if listing.price_usd:
+                profile["prices_by_kind"].setdefault(listing.kind, []).append(float(listing.price_usd))
+            
+            d_id = listing.district_id
+            if d_id:
+                profile["districts"][d_id] = profile["districts"].get(d_id, 0) + weight
+                
+            r = listing.rooms
+            if r:
+                profile["rooms"][r] = profile["rooms"].get(r, 0) + weight
+                
+            profile["types"][listing.kind] = profile["types"].get(listing.kind, 0) + weight
+            
+        for view in domain_views:
+            listing = view.listing
+            weight = _get_decayed_weight(float(constants.WEIGHT_VIEW_LISTING), view.viewed_at)
+            if listing.price_usd:
+                profile["prices_by_kind"].setdefault(listing.kind, []).append(float(listing.price_usd))
+            
+            d_id = listing.district_id
+            if d_id:
+                profile["districts"][d_id] = profile["districts"].get(d_id, 0) + weight
+                
+            r = listing.rooms
+            if r:
+                profile["rooms"][r] = profile["rooms"].get(r, 0) + weight
+                
+            profile["types"][listing.kind] = profile["types"].get(listing.kind, 0) + weight
+            
+        # Process session events
         for ev in events:
             weight = 1.0
             if ev.event_type == InteractionType.FAVORITE:
                 weight = float(constants.WEIGHT_FAVORITE)
             elif ev.event_type == InteractionType.CHAT_STARTED:
                 weight = float(constants.WEIGHT_CHAT_STARTED)
+            elif ev.event_type == InteractionType.CONTACT:
+                weight = float(constants.WEIGHT_CONTACT)
+            elif ev.event_type == InteractionType.VIEW_LISTING:
+                weight = float(constants.WEIGHT_VIEW_LISTING)
             elif ev.event_type == InteractionType.REEL_WATCH:
                 ratio = ev.context.get("watch_ratio", 0)
                 if ratio >= 0.9:
@@ -298,10 +407,19 @@ class TasteProfileService:
             elif ev.event_type == InteractionType.REEL_SKIP:
                 profile["skipped_listings"].add(ev.listing_id)
                 weight = -1.0 # Will be used for negative decay
+                
+            # Apply time decay
+            is_current_session = (ev.session_id == context.session_id)
+            if is_current_session:
+                half_life_days = constants.SESSION_HALF_LIFE_MINUTES / 1440.0
+            else:
+                half_life_days = constants.DECAY_HALF_LIFE_DAYS
+                
+            weight = _get_decayed_weight(weight, ev.created_at, half_life_days=half_life_days)
             
             if ev.listing:
                 if ev.listing.price_usd and weight > 0:
-                    profile["prices"].append(float(ev.listing.price_usd))
+                    profile["prices_by_kind"].setdefault(ev.listing.kind, []).append(float(ev.listing.price_usd))
                     
                 dist_id = ev.listing.district_id
                 if dist_id:
@@ -342,13 +460,12 @@ def get_recommended_listings(context: RecommendationContext) -> Tuple[List[Listi
     scored = scorer.score(candidates)
     
     diversifier = Diversifier()
-    final = diversifier.apply(scored, context.limit)
+    final = diversifier.apply(scored, context.limit, context)
     
-    # Cursor logic for V1: since we rerank a dynamic pool, cursor could just be offset.
-    # A real cursor would probably store the seen IDs in the session.
-    # For now, just offset.
+    # Cursor logic: since we exclude seen items in CandidateGenerator for the feed session,
+    # we don't need offset.
     next_cursor = None
     if len(final) == context.limit:
-        next_cursor = "next_page" # Dummy for now
+        next_cursor = "next"
         
     return final, next_cursor
