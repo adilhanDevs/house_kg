@@ -25,7 +25,7 @@ class Command(BaseCommand):
         now = timezone.now()
         
         # Create 50 listings
-        for i in range(50):
+        for i in range(200):
             owner = owner1 if i % 2 == 0 else owner2
             dist = district_asanbay if i % 3 == 0 else district_center
             kind = PropertyKind.APARTMENT if i % 5 != 0 else PropertyKind.HOUSE
@@ -64,4 +64,4 @@ class Command(BaseCommand):
                 order=0
             )
             
-        self.stdout.write("Created 50 listings.")
+        self.stdout.write(self.style.SUCCESS("Created 200 listings."))
