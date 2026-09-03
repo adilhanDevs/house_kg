@@ -7,7 +7,8 @@
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
+from django.db.models import Q
+from django.utils import timezone as django_timezone
 
 from apps.common.models import TimeStampedModel
 
@@ -25,6 +26,11 @@ class NotificationType(models.TextChoices):
 class DevicePlatform(models.TextChoices):
     ANDROID = "android", "Android"
     IOS = "ios", "iOS"
+
+
+class DeviceLocale(models.TextChoices):
+    RU = "ru", "Русский"
+    KY = "ky", "Кыргызча"
 
 
 class Notification(TimeStampedModel):
@@ -46,6 +52,13 @@ class Notification(TimeStampedModel):
     title = models.CharField("Заголовок", max_length=140)
     body = models.TextField("Текст", blank=True)
     payload = models.JSONField("Данные", default=dict, blank=True)
+    event_key = models.CharField(
+        "Ключ доменного события",
+        max_length=160,
+        blank=True,
+        default="",
+        help_text="Идемпотентность fan-out: один пользователь получает событие один раз.",
+    )
     listing = models.ForeignKey(
         "catalog.Listing",
         verbose_name="Объявление",
@@ -67,6 +80,13 @@ class Notification(TimeStampedModel):
                 name="notification_user_unread_idx",
             ),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "event_key"],
+                condition=~Q(event_key=""),
+                name="notification_user_event_unique",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.get_type_display()}: {self.title}"
@@ -85,11 +105,25 @@ class DeviceToken(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="devices",
     )
-    token = models.CharField("Токен", max_length=255, unique=True)
+    token = models.CharField("Токен", max_length=512, unique=True)
     platform = models.CharField("Платформа", max_length=16, choices=DevicePlatform.choices)
+    device_id = models.CharField(
+        "ID установки",
+        max_length=64,
+        unique=True,
+        blank=True,
+        null=True,
+    )
     app_version = models.CharField("Версия приложения", max_length=32, blank=True)
+    locale = models.CharField(
+        "Язык",
+        max_length=8,
+        choices=DeviceLocale.choices,
+        default=DeviceLocale.RU,
+    )
+    timezone = models.CharField("Часовой пояс", max_length=64, default="Asia/Bishkek")
     is_active = models.BooleanField("Активен", default=True, db_index=True)
-    last_seen_at = models.DateTimeField("Последняя активность", default=timezone.now)
+    last_seen_at = models.DateTimeField("Последняя активность", default=django_timezone.now)
 
     class Meta:
         verbose_name = "Устройство"
@@ -121,6 +155,10 @@ class NotificationSettings(models.Model):
 
     new_message_enabled = models.BooleanField("Новые сообщения", default=True)
     price_drop_enabled = models.BooleanField("Снижение цены", default=True)
+    price_drop_viewed_enabled = models.BooleanField(
+        "Снижение цены просмотренных объектов",
+        default=True,
+    )
     saved_filter_enabled = models.BooleanField("Новые объекты по фильтру", default=True)
     listing_moderated_enabled = models.BooleanField("Модерация объявлений", default=True)
     promotion_expiring_enabled = models.BooleanField("Продвижение заканчивается", default=True)

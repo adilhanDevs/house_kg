@@ -4,6 +4,8 @@ import json
 import logging
 from bisect import bisect_right
 from collections import defaultdict
+from typing import Any
+
 try:
     from itertools import batched
 except ImportError:
@@ -15,7 +17,7 @@ except ImportError:
         it = iter(iterable)
         while batch := tuple(islice(it, n)):
             yield batch
-from typing import Any
+
 
 from celery import shared_task
 from django.utils import timezone

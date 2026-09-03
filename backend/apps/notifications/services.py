@@ -30,11 +30,11 @@ PRICE_DROP_DUPLICATE_WINDOW = timedelta(hours=1)
 
 
 def _enqueue_push(notification_ids: list[int]) -> None:
-    from apps.notifications.tasks import send_push
+    from apps.notifications.tasks import deliver_notification_push
 
     for notification_id in notification_ids:
         try:
-            send_push.delay(notification_id)
+            deliver_notification_push.delay(notification_id)
         except Exception as exc:  # noqa: BLE001 - ошибка брокера уже после commit
             logger.error(
                 "Не удалось поставить push в очередь: notification_id=%s, error=%s",
@@ -50,19 +50,29 @@ def notify(
     body: str = "",
     payload: dict[str, Any] | None = None,
     listing: Any = None,
+    event_key: str = "",
 ) -> Notification:
     """Создаёт уведомление и ставит задачу на push."""
-    notification = Notification.objects.create(
-        user=user,
-        type=notification_type,
-        title=title,
-        body=body,
-        payload=payload or {},
-        listing=listing,
-    )
+    values = {
+        "type": notification_type,
+        "title": title,
+        "body": body,
+        "payload": payload or {},
+        "listing": listing,
+    }
+    if event_key:
+        notification, created = Notification.objects.get_or_create(
+            user=user,
+            event_key=event_key,
+            defaults=values,
+        )
+    else:
+        notification = Notification.objects.create(user=user, **values)
+        created = True
 
     # После коммита: до него задача не увидит запись.
-    transaction.on_commit(lambda: _enqueue_push([notification.pk]))
+    if created:
+        transaction.on_commit(lambda: _enqueue_push([notification.pk]))
     return notification
 
 
@@ -99,22 +109,54 @@ def register_device(
     token: str,
     platform: str,
     app_version: str = "",
+    device_id: str | None = None,
+    locale: str = "ru",
+    timezone_name: str = "Asia/Bishkek",
 ) -> DeviceToken:
     """Регистрирует или обновляет устройство.
 
     Токен принадлежит устройству: если на телефоне сменился пользователь,
     токен переезжает к новому, иначе push уходил бы прежнему владельцу.
     """
-    device, created = DeviceToken.objects.update_or_create(
-        token=token,
-        defaults={
-            "user": user,
-            "platform": platform,
-            "app_version": app_version,
-            "is_active": True,
-            "last_seen_at": timezone.now(),
-        },
-    )
+    device_id = (device_id or "").strip() or None
+    values = {
+        "user": user,
+        "token": token,
+        "platform": platform,
+        "device_id": device_id,
+        "app_version": app_version,
+        "locale": locale,
+        "timezone": timezone_name,
+        "is_active": True,
+        "last_seen_at": timezone.now(),
+    }
+    with transaction.atomic():
+        device = None
+        if device_id:
+            device = DeviceToken.objects.select_for_update().filter(device_id=device_id).first()
+        if device is None:
+            device = DeviceToken.objects.select_for_update().filter(token=token).first()
+
+        created = device is None
+        if device is None:
+            device = DeviceToken.objects.create(**values)
+        else:
+            conflict = (
+                DeviceToken.objects.select_for_update()
+                .filter(token=token)
+                .exclude(pk=device.pk)
+                .first()
+            )
+            if conflict is not None:
+                conflict.delete()
+            for field, value in values.items():
+                setattr(device, field, value)
+            device.save(
+                update_fields=[
+                    *values.keys(),
+                    "updated_at",
+                ]
+            )
     logger.info(
         "Устройство %s %s для пользователя %s",
         device.pk,
@@ -128,6 +170,23 @@ def deactivate_device(user: Any, token: str) -> bool:
     """Гасит устройство при выходе из аккаунта."""
     updated = DeviceToken.objects.filter(user=user, token=token).update(is_active=False)
     return bool(updated)
+
+
+def deactivate_current_device(
+    user: Any,
+    *,
+    device_id: str = "",
+    token: str = "",
+) -> bool:
+    """Гасит только установку, принадлежащую текущему пользователю."""
+    queryset = DeviceToken.objects.filter(user=user, is_active=True)
+    if device_id:
+        queryset = queryset.filter(device_id=device_id)
+    elif token:
+        queryset = queryset.filter(token=token)
+    else:
+        return False
+    return bool(queryset.update(is_active=False, last_seen_at=timezone.now()))
 
 
 def notify_listing_price_drop(

@@ -25,6 +25,8 @@ READ_URL = "/api/v1/notifications/read/"
 SETTINGS_URL = "/api/v1/notifications/settings/"
 DEVICES_URL = "/api/v1/devices/"
 DEVICE_URL = "/api/v1/devices/{token}/"
+CANONICAL_DEVICES_URL = "/api/v1/notifications/devices/"
+CURRENT_DEVICE_URL = "/api/v1/notifications/devices/current/"
 FAVOURITE_URL = "/api/v1/listings/{slug}/favourite/"
 
 
@@ -82,6 +84,32 @@ def test_notify_creates_one_record_and_one_task(user, django_capture_on_commit_c
     assert Notification.objects.count() == 1
     assert notification.payload == {"kind": "test"}
     send_push_task.delay.assert_called_once_with(notification.pk)
+
+
+@pytest.mark.django_db
+def test_notify_event_key_is_idempotent_per_user(user, django_capture_on_commit_callbacks) -> None:
+    """A retried domain event must not create or enqueue a second notification."""
+    with patch("apps.notifications.tasks.deliver_notification_push") as task:
+        with django_capture_on_commit_callbacks(execute=True):
+            first = notify(user, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:7")
+            second = notify(user, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:7")
+
+    assert first.pk == second.pk
+    assert Notification.objects.filter(user=user, event_key="price-drop:7").count() == 1
+    task.delay.assert_called_once_with(first.pk)
+
+
+@pytest.mark.django_db
+def test_notify_event_key_can_be_reused_for_another_recipient(
+    user, django_capture_on_commit_callbacks
+) -> None:
+    other = UserFactory()
+
+    with django_capture_on_commit_callbacks(execute=False):
+        notify(user, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:8")
+        notify(other, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:8")
+
+    assert Notification.objects.filter(event_key="price-drop:8").count() == 2
 
 
 @pytest.mark.django_db
@@ -252,6 +280,8 @@ def test_settings_read_and_update(auth: APIClient, user) -> None:
     body = auth.get(SETTINGS_URL).json()
     assert body["push_enabled"] is True
     assert body["new_message_enabled"] is True
+    assert body["price_drop_viewed_enabled"] is True
+    assert body["new_listing_match_enabled"] is True
 
     response = auth.patch(
         SETTINGS_URL,
@@ -264,6 +294,20 @@ def test_settings_read_and_update(auth: APIClient, user) -> None:
     assert response.json()["new_message_enabled"] is False
     assert NotificationSettings.objects.get(user=user).price_drop_enabled is False
     assert NotificationSettings.objects.get(user=user).new_message_enabled is False
+
+
+@pytest.mark.django_db
+def test_new_listing_match_setting_keeps_legacy_alias(auth: APIClient, user) -> None:
+    response = auth.patch(
+        SETTINGS_URL,
+        {"new_listing_match_enabled": False},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["new_listing_match_enabled"] is False
+    assert response.json()["saved_filter_enabled"] is False
+    assert NotificationSettings.objects.get(user=user).saved_filter_enabled is False
 
 
 @pytest.mark.django_db
@@ -294,6 +338,117 @@ def test_device_token_moves_to_current_user(user) -> None:
     assert DeviceToken.objects.count() == 1
     assert device.user == user
     assert device.is_active is True
+
+
+@pytest.mark.django_db
+def test_device_id_refresh_replaces_token_without_leaving_old_active(user) -> None:
+    original = register_device(
+        user,
+        "old-token",
+        "android",
+        device_id="installation-1",
+        locale="ru",
+    )
+
+    refreshed = register_device(
+        user,
+        "new-token",
+        "android",
+        device_id="installation-1",
+        locale="ky",
+        timezone_name="Asia/Bishkek",
+    )
+
+    assert refreshed.pk == original.pk
+    assert DeviceToken.objects.count() == 1
+    assert refreshed.token == "new-token"
+    assert refreshed.locale == "ky"
+    assert refreshed.is_active is True
+
+
+@pytest.mark.django_db
+def test_device_id_account_switch_reassigns_the_installation(user) -> None:
+    previous_owner = UserFactory()
+    original = register_device(
+        previous_owner,
+        "old-account-token",
+        "ios",
+        device_id="installation-2",
+    )
+
+    moved = register_device(
+        user,
+        "new-account-token",
+        "ios",
+        device_id="installation-2",
+    )
+
+    assert moved.pk == original.pk
+    assert moved.user == user
+    assert moved.token == "new-account-token"
+    assert DeviceToken.objects.filter(user=previous_owner, is_active=True).count() == 0
+
+
+@pytest.mark.django_db
+def test_canonical_device_api_and_current_deactivation(auth: APIClient, user) -> None:
+    registered = auth.post(
+        CANONICAL_DEVICES_URL,
+        {
+            "token": "canonical-token",
+            "platform": "android",
+            "device_id": "installation-3",
+            "locale": "ru",
+            "timezone": "Asia/Bishkek",
+        },
+        format="json",
+    )
+    deactivated = auth.delete(
+        CURRENT_DEVICE_URL,
+        {"device_id": "installation-3"},
+        format="json",
+    )
+
+    assert registered.status_code == 200
+    assert registered.json()["device_id"] == "installation-3"
+    assert deactivated.status_code == 204
+    assert DeviceToken.objects.get(user=user, device_id="installation-3").is_active is False
+
+
+@pytest.mark.django_db
+def test_current_device_deactivation_cannot_touch_another_user(auth: APIClient) -> None:
+    stranger_device = register_device(
+        UserFactory(),
+        "stranger-token",
+        "android",
+        device_id="stranger-installation",
+    )
+
+    response = auth.delete(
+        CURRENT_DEVICE_URL,
+        {"device_id": "stranger-installation"},
+        format="json",
+    )
+
+    assert response.status_code == 404
+    stranger_device.refresh_from_db()
+    assert stranger_device.is_active is True
+
+
+@pytest.mark.django_db
+def test_device_registration_rejects_unknown_timezone(auth: APIClient) -> None:
+    response = auth.post(
+        CANONICAL_DEVICES_URL,
+        {
+            "token": "bad-timezone-token",
+            "platform": "android",
+            "device_id": "installation-4",
+            "locale": "ru",
+            "timezone": "Moon/Sea_of_Tranquility",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
 
 
 @pytest.mark.django_db

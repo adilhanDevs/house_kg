@@ -3,6 +3,7 @@
 from django.urls import path
 
 from apps.notifications.views import (
+    CurrentDeviceDeactivateView,
     DeviceDeactivateView,
     DeviceRegisterView,
     MarkReadView,
@@ -26,6 +27,16 @@ urlpatterns = [
         "notifications/settings/",
         NotificationSettingsView.as_view(),
         name="notifications-settings",
+    ),
+    path(
+        "notifications/devices/current/",
+        CurrentDeviceDeactivateView.as_view(),
+        name="notifications-device-current",
+    ),
+    path(
+        "notifications/devices/",
+        DeviceRegisterView.as_view(),
+        name="notifications-devices",
     ),
     path("notifications/<int:pk>/", NotificationDeleteView.as_view(), name="notification"),
     path("devices/", DeviceRegisterView.as_view(), name="devices"),

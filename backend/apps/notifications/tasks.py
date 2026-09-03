@@ -12,8 +12,8 @@ PRICE_DROP_THRESHOLD = Decimal("0.03")
 PRICE_DROP_BATCH = 500
 
 
-@shared_task(name="notifications.send_push", ignore_result=True, max_retries=2)
-def send_push(notification_id: int) -> int:
+@shared_task(name="notifications.deliver_notification_push", ignore_result=True, max_retries=2)
+def deliver_notification_push(notification_id: int) -> int:
     """Отправляет push по уже созданному уведомлению."""
     from apps.notifications.models import Notification
     from apps.notifications.push import send_to_user
@@ -24,6 +24,11 @@ def send_push(notification_id: int) -> int:
         return 0
 
     return send_to_user(notification.user, notification)
+
+
+# Python API compatibility for existing callers/tests. Celery registers only the
+# canonical task name above.
+send_push = deliver_notification_push
 
 
 def _price_drop_body(listing: object, percent: int) -> str:

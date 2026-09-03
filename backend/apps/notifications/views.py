@@ -21,6 +21,7 @@ from apps.common.pagination import DefaultCursorPagination
 from apps.common.serializers import ErrorSerializer
 from apps.notifications.models import Notification, NotificationSettings
 from apps.notifications.serializers import (
+    DeviceDeactivateSerializer,
     DeviceTokenSerializer,
     MarkReadResponseSerializer,
     MarkReadSerializer,
@@ -29,6 +30,7 @@ from apps.notifications.serializers import (
     UnreadCountSerializer,
 )
 from apps.notifications.services import (
+    deactivate_current_device,
     deactivate_device,
     mark_read,
     register_device,
@@ -186,6 +188,9 @@ class DeviceRegisterView(GenericAPIView):
             token=serializer.validated_data["token"],
             platform=serializer.validated_data["platform"],
             app_version=serializer.validated_data.get("app_version", ""),
+            device_id=serializer.validated_data.get("device_id"),
+            locale=serializer.validated_data.get("locale", "ru"),
+            timezone_name=serializer.validated_data.get("timezone", "Asia/Bishkek"),
         )
 
         return Response(DeviceTokenSerializer(device).data)
@@ -210,4 +215,34 @@ class DeviceDeactivateView(APIView):
 
             raise NotFound("Устройство не найдено.")
 
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CurrentDeviceDeactivateView(GenericAPIView):
+    """DELETE /api/v1/notifications/devices/current/ — logout текущей установки."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = DeviceDeactivateSerializer
+
+    @extend_schema(
+        operation_id="notifications_devices_deactivate_current",
+        summary="Деактивировать текущую установку",
+        request=DeviceDeactivateSerializer,
+        responses={
+            status.HTTP_204_NO_CONTENT: None,
+            status.HTTP_400_BAD_REQUEST: ErrorSerializer,
+            status.HTTP_404_NOT_FOUND: ErrorSerializer,
+        },
+    )
+    def delete(self, request: Request) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if not deactivate_current_device(
+            request.user,
+            device_id=serializer.validated_data.get("device_id", ""),
+            token=serializer.validated_data.get("token", ""),
+        ):
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("Устройство не найдено.")
         return Response(status=status.HTTP_204_NO_CONTENT)
