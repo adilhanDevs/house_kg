@@ -41,6 +41,8 @@ def test_new_message_notifies_peer_once(client_for, django_capture_on_commit_cal
         "conversation_id": str(conversation.id),
         "listing_slug": conversation.listing_slug,
         "sender_id": conversation.buyer_id,
+        "sender_name": "Айдар",
+        "preview": "З" * 140,
     }
     assert Notification.objects.count() == 1
 

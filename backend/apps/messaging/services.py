@@ -83,6 +83,11 @@ def send_message(
                 "conversation_id": str(locked.id),
                 "listing_slug": locked.listing_slug,
                 "sender_id": user.pk,
+                # Имя и превью кладём в payload явно, а не только в заголовок
+                # и текст: экран уведомлений и push собирают строку сами, и
+                # разбирать её обратно из title/body — лишняя связность.
+                "sender_name": user.name.strip(),
+                "preview": message.text[:140],
             },
         )
     return message, created

@@ -183,9 +183,27 @@ class NotificationSettings(models.Model):
         NotificationType.SYSTEM: "system_enabled",
     }
 
+    #: Настройки, которые уточняют тип по поводу события. Снижение цены
+    #: приходит по двум разным причинам, и отключают их отдельно: «по
+    #: избранному» человек обычно оставляет, а «по просмотренному» — нет.
+    REASON_FIELDS = {
+        (NotificationType.PRICE_DROP, "viewed"): "price_drop_viewed_enabled",
+    }
+
     def allows(self, notification_type: str) -> bool:
         """Разрешён ли push этого типа."""
         if not self.push_enabled:
             return False
         field = self.TYPE_FIELDS.get(notification_type)
+        return bool(getattr(self, field, True)) if field else True
+
+    def allows_reason(self, notification_type: str, reason: str | None) -> bool:
+        """Разрешён ли push с учётом повода события.
+
+        Сначала общий выключатель и тип, затем уточнение по причине: у типа
+        может быть своя настройка на отдельный повод, и она строже общей.
+        """
+        if not self.allows(notification_type):
+            return False
+        field = self.REASON_FIELDS.get((notification_type, reason))
         return bool(getattr(self, field, True)) if field else True
