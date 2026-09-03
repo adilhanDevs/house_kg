@@ -9,11 +9,11 @@ import '../../app/app_state.dart';
 import '../../app/route_observer.dart';
 import '../../app/routes.dart';
 import '../../app/stage.dart';
-import '../../data/api_client.dart';
-import '../../data/api_config.dart';
 import '../../data/listing_repository.dart';
 import '../../data/listings.dart';
+import '../../data/video_download.dart';
 import '../../fig/fig.dart';
+import '../auth_guard.dart';
 import '../widgets/safe_image.dart';
 import 'agent_listings_page.dart';
 
@@ -56,11 +56,19 @@ class _ListingFeedItem {
   });
 }
 
+typedef SaveVideoCallback = Future<void> Function(String source);
+
 class VideoPage extends StatefulWidget {
-  const VideoPage({super.key, required this.id, this.initialVideoIndex = 0});
+  const VideoPage({
+    super.key,
+    required this.id,
+    this.initialVideoIndex = 0,
+    this.saveVideo,
+  });
 
   final String id;
   final int initialVideoIndex;
+  final SaveVideoCallback? saveVideo;
 
   @override
   State<VideoPage> createState() => _VideoPageState();
@@ -76,6 +84,7 @@ class _VideoPageState extends State<VideoPage> {
   int _listingIndex = 0;
   bool _isMuted = false;
   bool _isLoading = false;
+  bool _isDownloading = false;
   bool _hasMore = true;
   String? _nextCursor;
   ListingRepository? _repository;
@@ -210,6 +219,38 @@ class _VideoPageState extends State<VideoPage> {
     action();
   }
 
+  Future<void> _addToFavourites(Listing listing) async {
+    final state = AppScope.read(context);
+    if (state.isFavourite(listing.id)) return;
+    if (!requireAuth(context, reason: 'Войдите, чтобы добавить в избранное')) {
+      return;
+    }
+    await state.toggleFavourite(listing.id);
+  }
+
+  Future<void> _downloadVideo(String source) async {
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final saveVideo = widget.saveVideo ??
+          VideoDownloadService(AppScope.read(context).apiClient).saveToGallery;
+      await saveVideo(source);
+      if (mounted) {
+        messenger.showSnackBar(const SnackBar(content: Text('Видео сохранено')));
+      }
+    } catch (error) {
+      debugPrint('Video download failed: $error');
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить видео')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_feed.isEmpty) {
@@ -297,6 +338,7 @@ class _VideoPageState extends State<VideoPage> {
                       isActive: isActive,
                       isMuted: _isMuted,
                       onTap: _togglePlayPause,
+                      onDoubleTap: () => _addToFavourites(listingItem.listing),
                     );
                   },
                 );
@@ -397,7 +439,12 @@ class _VideoPageState extends State<VideoPage> {
                         spacing: 6,
                         children: [
                           _MuteButton(isMuted: _isMuted, onTap: _toggleMute),
-                          const _DownloadVideoPill(),
+                          _DownloadVideoPill(
+                            isDownloading: _isDownloading,
+                            onTap: _isDownloading
+                                ? null
+                                : () => _downloadVideo(currentSubVideo.asset),
+                          ),
                           _HeartButton(
                             filled: favourite,
                             onTap: () => state.toggleFavourite(listing.id),
@@ -597,7 +644,7 @@ class _VideoPlayerItem extends StatefulWidget {
     required this.isActive,
     required this.isMuted,
     required this.onTap,
-    this.videoItem,
+    required this.onDoubleTap,
   });
 
   final String asset;
@@ -605,7 +652,7 @@ class _VideoPlayerItem extends StatefulWidget {
   final bool isActive;
   final bool isMuted;
   final VoidCallback onTap;
-  final dynamic videoItem;
+  final VoidCallback onDoubleTap;
 
   @override
   State<_VideoPlayerItem> createState() => _VideoPlayerItemState();
@@ -616,7 +663,6 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
   bool _isInitialized = false;
   bool _isPlaying = true;
   bool _userPaused = false;
-  bool _forceFill = false;
 
   /// Экран рилсов сейчас наверху стека. Пока это не так, автовозобновление
   /// в [_onControllerUpdate] запрещено — иначе видео играет под открытой
@@ -850,17 +896,11 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
     // Горизонтальные, квадратные или промежуточные (16:9, 4:3, 1:1) отображаются по центру с сохранением
     // оригинальных пропорций, а вокруг создаётся мягкий размытый фон из самого видео (как в Instagram Reels).
     final bool isVertical = rawRatio <= 0.65;
-    final bool useFill = isVertical || _forceFill;
+    final bool useFill = isVertical;
 
     return GestureDetector(
       onTap: togglePlayPause,
-      onDoubleTap: () {
-        if (!isVertical) {
-          setState(() {
-            _forceFill = !_forceFill;
-          });
-        }
-      },
+      onDoubleTap: widget.onDoubleTap,
       behavior: HitTestBehavior.opaque,
       child: Stack(
         fit: StackFit.expand,
@@ -947,47 +987,6 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
               ),
             ),
 
-          // Кнопка быстрого переключения оригинального соотношения / заполнения (как в Reels)
-          if (_isInitialized && !isVertical)
-            Positioned(
-              right: 16,
-              bottom: 120,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  setState(() {
-                    _forceFill = !_forceFill;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0x73000000),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0x40ffffff), width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _forceFill ? Icons.aspect_ratio : Icons.fullscreen,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _forceFill ? 'Оригинал' : 'Заполнить',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -1286,35 +1285,55 @@ class _Dot extends StatelessWidget {
 }
 
 class _DownloadVideoPill extends StatelessWidget {
-  const _DownloadVideoPill();
+  const _DownloadVideoPill({required this.isDownloading, required this.onTap});
+
+  final bool isDownloading;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return FigBox(
-      color: const Color(0x4dffffff),
-      radius: 20.0,
-      blur: 27.0,
-      padding: const EdgeInsets.fromLTRB(10.0, 3.0, 10.0, 5.0),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        spacing: 4.0,
-        children: [
-          const Icon(Icons.videocam_outlined, size: 14, color: _white),
-          FigText(
-            noWrap: true,
-            span: TextSpan(
-              text: 'Скачать видео',
-              style: figStyle(
-                fontSize: 10.0,
-                family: FigFont.display,
-                weight: 500,
-                height: 1.0,
-                color: _white,
+    final label = isDownloading ? 'Скачивание…' : 'Скачать видео';
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: FigBox(
+          color: const Color(0x4dffffff),
+          radius: 20.0,
+          blur: 27.0,
+          padding: const EdgeInsets.fromLTRB(10.0, 3.0, 10.0, 5.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            spacing: 4.0,
+            children: [
+              if (isDownloading)
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: _white),
+                )
+              else
+                const Icon(Icons.videocam_outlined, size: 14, color: _white),
+              FigText(
+                noWrap: true,
+                span: TextSpan(
+                  text: label,
+                  style: figStyle(
+                    fontSize: 10.0,
+                    family: FigFont.display,
+                    weight: 500,
+                    height: 1.0,
+                    color: _white,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

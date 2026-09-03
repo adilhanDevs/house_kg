@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
+import '../../app/stage.dart';
 import '../../data/ad_media.dart';
 import '../../data/api_client.dart';
 import '../add_media.dart';
@@ -58,19 +59,25 @@ class _AdVideoPageState extends State<AdVideoPage> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
       builder: (ctx) {
-        return Padding(
+        final keyboardInset = MediaQuery.viewInsetsOf(ctx).bottom;
+        final safeBottom = bottomSafeInset(ctx);
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
           padding: EdgeInsets.fromLTRB(
             24.0,
-            16.0,
+            12.0,
             24.0,
-            MediaQuery.of(ctx).viewInsets.bottom + 24.0,
+            keyboardInset + safeBottom + 16.0,
           ),
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +92,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 12.0),
                 const Text(
                   'Информация о видео',
                   style: TextStyle(
@@ -99,13 +106,16 @@ class _AdVideoPageState extends State<AdVideoPage> {
                   'Укажите заголовок и краткое описание для REELS',
                   style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                 ),
-                const SizedBox(height: 20.0),
+                const SizedBox(height: 16.0),
                 TextFormField(
                   controller: titleCtrl,
                   maxLength: 100,
+                  maxLines: 1,
                   decoration: InputDecoration(
                     labelText: 'Заголовок видео',
                     hintText: 'Например, обзор дома',
+                    counterText: '',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
                     filled: true,
                     fillColor: const Color(0xfff8f8fa),
                     border: OutlineInputBorder(
@@ -125,10 +135,12 @@ class _AdVideoPageState extends State<AdVideoPage> {
                 const SizedBox(height: 12.0),
                 TextFormField(
                   controller: descCtrl,
+                  minLines: 3,
                   maxLines: 3,
                   decoration: InputDecoration(
                     labelText: 'Описание видео',
                     hintText: 'Расскажите подробнее о видео...',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
                     filled: true,
                     fillColor: const Color(0xfff8f8fa),
                     border: OutlineInputBorder(
@@ -145,7 +157,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20.0),
+                const SizedBox(height: 16.0),
                 SizedBox(
                   width: double.infinity,
                   height: 48.0,

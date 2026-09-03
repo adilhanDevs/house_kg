@@ -1,0 +1,267 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:house_kgz/app/app_state.dart';
+import 'package:house_kgz/app/routes.dart';
+import 'package:house_kgz/data/api_client.dart';
+import 'package:house_kgz/ui/pages/video_page.dart';
+
+class _ReelServer extends http.BaseClient {
+  _ReelServer({this.initiallyFavourite = false});
+
+  final bool initiallyFavourite;
+  int favouritePosts = 0;
+
+  Map<String, dynamic> get listing => {
+    'slug': 'reel-one',
+    'kind': 'apartment',
+    'district': {'id': 1, 'name': 'Асанбай', 'slug': 'asanbay'},
+    'price': '85000.00',
+    'currency': 'USD',
+    'rooms': 2,
+    'area': 64,
+    'floor': 4,
+    'floors': 9,
+    'cover_url': '',
+    'seller_kind': 'owner',
+    'owner_id': 42,
+    'address': 'Тестовая квартира',
+    'description': 'Описание',
+    'is_favourite': initiallyFavourite,
+    'videos': [
+      {
+        'id': 7,
+        'kind': 'video',
+        'url': 'https://test.local/media/reel-one.mp4',
+        'title': 'Обзор',
+        'description': 'Вид из окна',
+      },
+    ],
+    'seller': {
+      'id': 42,
+      'name': 'Айбек',
+      'kind': 'owner',
+      'phone': '',
+      'avatar_url': null,
+      'listings_count': 1,
+      'member_since': '2024-01-01T00:00:00Z',
+    },
+  };
+
+  http.StreamedResponse _json(Object body, [int status = 200]) =>
+      http.StreamedResponse(
+        Stream.value(utf8.encode(jsonEncode(body))),
+        status,
+        headers: {'content-type': 'application/json'},
+      );
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final path = request.url.path;
+    if (request.method == 'GET' && path == '/media/reel-one.mp4') {
+      return http.StreamedResponse(
+        Stream.value(const [0, 1, 2, 3]),
+        200,
+        headers: {'content-type': 'video/mp4'},
+      );
+    }
+    if (request.method == 'GET' && path == '/api/v1/listings/reel-one/') {
+      return _json(listing);
+    }
+    if (request.method == 'GET' && path == '/api/v1/listings/reels/') {
+      return _json({
+        'count': 1,
+        'next': null,
+        'previous': null,
+        'results': [listing],
+      });
+    }
+    if (request.method == 'GET' && path == '/api/v1/favourites/') {
+      return _json({
+        'count': initiallyFavourite ? 1 : 0,
+        'next': null,
+        'previous': null,
+        'results': [
+          if (initiallyFavourite) {'slug': 'reel-one'},
+        ],
+      });
+    }
+    if (request.method == 'POST' &&
+        path == '/api/v1/listings/reel-one/favourite/') {
+      favouritePosts++;
+      return _json({'is_favourite': true});
+    }
+    if (request.method == 'GET' && path == '/api/v1/tariffs/') {
+      return _json({'results': const []});
+    }
+    return _json({
+      'count': 0,
+      'next': null,
+      'previous': null,
+      'results': const [],
+    });
+  }
+}
+
+class _RouteObserver extends NavigatorObserver {
+  final List<String?> pushedRoutes = [];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    pushedRoutes.add(route.settings.name);
+    super.didPush(route, previousRoute);
+  }
+}
+
+Future<AppState> _pumpReel(
+  WidgetTester tester,
+  _ReelServer server, {
+  bool authenticated = true,
+  Future<void> Function(String source)? saveVideo,
+  NavigatorObserver? navigatorObserver,
+}) async {
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  SharedPreferences.setMockInitialValues({
+    if (authenticated) 'access_token': 'test-access',
+  });
+
+  final apiClient = ListingApiClient(
+    baseUrl: 'https://test.local',
+    client: server,
+  );
+  final state = AppState(apiClient: apiClient);
+  await state.authInitialized;
+
+  await tester.pumpWidget(
+    AppScope(
+      state: state,
+      child: MaterialApp(
+        navigatorObservers: [?navigatorObserver],
+        routes: {
+          Routes.welcome: (_) => const Scaffold(body: Text('WelcomePage')),
+        },
+        home: VideoPage(id: 'reel-one', saveVideo: saveVideo),
+      ),
+    ),
+  );
+  for (
+    var attempt = 0;
+    attempt < 10 &&
+        find.byKey(const ValueKey('v_item_reel-one_0')).evaluate().isEmpty;
+    attempt++
+  ) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  return state;
+}
+
+Future<void> _doubleTapVideo(WidgetTester tester) async {
+  final video = find.byKey(const ValueKey('v_item_reel-one_0'));
+  expect(video, findsOneWidget);
+  await tester.tap(video);
+  await tester.pump(const Duration(milliseconds: 50));
+  await tester.tap(video);
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('double tap adds the current listing to favourites once', (
+    tester,
+  ) async {
+    final server = _ReelServer();
+    final state = await _pumpReel(tester, server);
+
+    await _doubleTapVideo(tester);
+
+    expect(server.favouritePosts, 1);
+    expect(state.isFavourite('reel-one'), isTrue);
+    expect(find.bySemanticsLabel('Убрать из избранного'), findsOneWidget);
+  });
+
+  testWidgets('double tap never removes an already favourite listing', (
+    tester,
+  ) async {
+    final server = _ReelServer(initiallyFavourite: true);
+    final state = await _pumpReel(tester, server);
+
+    await _doubleTapVideo(tester);
+
+    expect(server.favouritePosts, 0);
+    expect(state.isFavourite('reel-one'), isTrue);
+  });
+
+  testWidgets('guest double tap uses the existing authentication flow', (
+    tester,
+  ) async {
+    final server = _ReelServer();
+    final observer = _RouteObserver();
+    final state = await _pumpReel(
+      tester,
+      server,
+      authenticated: false,
+      navigatorObserver: observer,
+    );
+    expect(state.isAuthenticated, isFalse);
+
+    await _doubleTapVideo(tester);
+
+    expect(server.favouritePosts, 0);
+    expect(find.text('Войдите, чтобы добавить в избранное'), findsOneWidget);
+    expect(observer.pushedRoutes, contains(Routes.welcome));
+  });
+
+  testWidgets('download requests the current video and ignores repeated taps', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final server = _ReelServer();
+    final requestedSources = <String>[];
+    await _pumpReel(
+      tester,
+      server,
+      saveVideo: (source) async {
+        requestedSources.add(source);
+        await gate.future;
+      },
+    );
+
+    final download = find.text('Скачать видео');
+    await tester.tap(download);
+    await tester.pump();
+    await tester.tap(find.text('Скачивание…'));
+    await tester.pump();
+
+    expect(requestedSources, ['https://test.local/media/reel-one.mp4']);
+    expect(find.text('Скачивание…'), findsOneWidget);
+
+    gate.complete();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Видео сохранено'), findsOneWidget);
+  });
+
+  testWidgets('download failure is reported without leaving the Reel', (
+    tester,
+  ) async {
+    final server = _ReelServer();
+    await _pumpReel(
+      tester,
+      server,
+      saveVideo: (_) => Future<void>.error(StateError('save failed')),
+    );
+
+    await tester.tap(find.text('Скачать видео'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Не удалось сохранить видео'), findsOneWidget);
+    expect(find.byType(VideoPage), findsOneWidget);
+  });
+}

@@ -44,9 +44,16 @@ class _UploadClient extends http.BaseClient {
   }
 }
 
-Future<AppState> _openVideoPage(WidgetTester tester, _UploadClient client) async {
+Future<AppState> _openVideoPage(
+  WidgetTester tester,
+  _UploadClient client, {
+  FakeViewPadding viewPadding = FakeViewPadding.zero,
+  FakeViewPadding viewInsets = FakeViewPadding.zero,
+}) async {
   tester.view.physicalSize = const Size(430, 1000);
   tester.view.devicePixelRatio = 1.0;
+  tester.view.viewPadding = viewPadding;
+  tester.view.viewInsets = viewInsets;
   addTearDown(tester.view.reset);
 
   final state = AppState(
@@ -104,5 +111,48 @@ void main() {
         reason: 'показываем настоящую причину, а не «нет связи с сервером»');
     expect(find.text('Экран продвижения'), findsNothing,
         reason: 'без ролика дальше идти незачем');
+  });
+
+  testWidgets('кнопка метаданных остаётся выше Android navigation bar', (
+    tester,
+  ) async {
+    await _openVideoPage(
+      tester,
+      _UploadClient(),
+      viewPadding: const FakeViewPadding(bottom: 48),
+    );
+
+    await tester.tap(find.text('REELS'));
+    await tester.pumpAndSettle();
+
+    final saveButton = tester.getRect(find.widgetWithText(ElevatedButton, 'Сохранить'));
+    expect(saveButton.bottom, lessThanOrEqualTo(1000 - 48));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('поля и Save доступны при открытой клавиатуре', (tester) async {
+    await _openVideoPage(
+      tester,
+      _UploadClient(),
+      viewPadding: const FakeViewPadding(bottom: 48),
+    );
+
+    await tester.tap(find.text('REELS'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextFormField, 'Описание видео'));
+    tester.view.viewInsets = const FakeViewPadding(bottom: 360);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextFormField, 'Заголовок видео'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Описание видео'), findsOneWidget);
+    final saveButton = find.widgetWithText(ElevatedButton, 'Сохранить');
+    await tester.ensureVisible(saveButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.getRect(saveButton).bottom, lessThanOrEqualTo(1000 - 360));
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
+    expect(saveButton, findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

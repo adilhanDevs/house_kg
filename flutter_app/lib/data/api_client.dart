@@ -18,6 +18,9 @@ class AuthInterceptorClient extends http.BaseClient {
   TokenRefreshCallback? onTokenExpired;
   bool _isRefreshing = false;
 
+  Future<http.StreamedResponse> sendWithoutAuth(http.BaseRequest request) =>
+      _inner.send(request);
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final isAuthEndpoint = request.url.path.contains('/auth/refresh') ||
@@ -721,6 +724,36 @@ class ListingApiClient {
     } on SocketException {
       throw NetworkException('Отсутствует подключение к сети');
     } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
+  /// Потоково скачивает media через тот же auth-aware HTTP client.
+  ///
+  /// Так защищённые media URL получают Bearer token и refresh, а
+  /// большой ролик не копируется целиком в RAM.
+  Future<void> downloadFile(String url, String outputPath) async {
+    final rawUri = Uri.parse(url);
+    final uri = rawUri.hasScheme ? rawUri : Uri.parse(baseUrl).resolveUri(rawUri);
+    final request = http.Request('GET', uri)
+      ..headers['Accept'] = 'video/*,application/octet-stream';
+    final output = File(outputPath);
+
+    try {
+      final apiOrigin = Uri.parse(baseUrl).origin;
+      final response = uri.origin == apiOrigin
+          ? await _client.send(request)
+          : await _client.sendWithoutAuth(request);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _processResponse(await http.Response.fromStream(response));
+        throw NetworkException('Не удалось скачать видео');
+      }
+      await response.stream.pipe(output.openWrite());
+    } catch (e) {
+      if (await output.exists()) {
+        await output.delete();
+      }
       if (e is ApiException || e is NetworkException) rethrow;
       throw NetworkException(e.toString());
     }

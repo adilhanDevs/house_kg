@@ -76,6 +76,8 @@
 	<string>Нужен доступ к микрофону, чтобы записать видеообзор со звуком.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Нужен доступ к галерее, чтобы приложить фотографии и видео к объявлению.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Нужен доступ, чтобы сохранять видеообзоры в галерею.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
