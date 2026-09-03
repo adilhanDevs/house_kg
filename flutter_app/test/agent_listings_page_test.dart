@@ -26,7 +26,13 @@ class _FakeServer extends http.BaseClient {
     this.activeListingsCount = 3,
     this.soldListingsCount = 2,
     this.about = 'Опытный специалист по недвижимости',
+    this.listingCount = 2,
   });
+
+  /// Сколько объявлений отдаёт сервер: чтобы проверить прокрутку, контент
+  /// должен переполнять экран, иначе прокручивать нечего и тест ничего не
+  /// доказывает.
+  final int listingCount;
 
   final String sellerKind;
   final String sellerName;
@@ -64,42 +70,27 @@ class _FakeServer extends http.BaseClient {
         path.startsWith('/api/v1/sellers/') &&
         path.endsWith('/listings/')) {
       return _json({
-        'count': 2,
+        'count': listingCount,
         'next': null,
         'previous': null,
         'results': [
-          {
-            'slug': 'test-listing-1',
-            'kind': 'apartment',
-            'district': {'name': 'Первомайский'},
-            'price': '85000',
-            'currency': 'USD',
-            'rooms': 2,
-            'area': 65,
-            'floor': 4,
-            'floors': 9,
-            'cover_url': null,
-            'owner_id': 42,
-            'seller_kind': sellerKind,
-            'is_favourite': false,
-            'status': 'active',
-          },
-          {
-            'slug': 'test-listing-2',
-            'kind': 'new_building',
-            'district': {'name': 'Октябрьский'},
-            'price': '120000',
-            'currency': 'USD',
-            'rooms': 3,
-            'area': 90,
-            'floor': 7,
-            'floors': 12,
-            'cover_url': null,
-            'owner_id': 42,
-            'seller_kind': sellerKind,
-            'is_favourite': true,
-            'status': 'active',
-          },
+          for (var i = 1; i <= listingCount; i++)
+            {
+              'slug': 'test-listing-$i',
+              'kind': i.isEven ? 'new_building' : 'apartment',
+              'district': {'name': i.isEven ? 'Октябрьский' : 'Первомайский'},
+              'price': '${85000 + i * 1000}',
+              'currency': 'USD',
+              'rooms': 2 + (i % 3),
+              'area': 65 + i,
+              'floor': 4,
+              'floors': 9,
+              'cover_url': null,
+              'owner_id': 42,
+              'seller_kind': sellerKind,
+              'is_favourite': false,
+              'status': 'active',
+            },
         ],
       });
     }
@@ -389,6 +380,27 @@ void main() {
       final cta = tester.getRect(find.byType(FigCta));
       final tabs = tester.getRect(find.byType(AppTabBar));
       expect(cta.bottom, lessThanOrEqualTo(tabs.top));
+    });
+
+    testWidgets('профиль продавца прокручивается', (tester) async {
+      await _pumpPage(
+        tester,
+        server: _FakeServer(listingCount: 12),
+        size: const Size(412, 915),
+      );
+
+      final controller =
+          tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller!;
+      expect(controller.offset, 0);
+      expect(controller.position.maxScrollExtent, greaterThan(0),
+          reason: 'контент обязан переполнять экран, иначе тест бессмыслен');
+
+      // Тянем в середине экрана, подальше от кнопки внизу.
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -250));
+      await tester.pumpAndSettle();
+
+      expect(controller.offset, greaterThan(0),
+          reason: 'вертикальный жест обязан прокручивать профиль');
     });
 
     testWidgets('кнопка связи стоит внизу экрана, а не посреди профиля', (
