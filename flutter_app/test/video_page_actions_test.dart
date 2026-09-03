@@ -284,6 +284,52 @@ void main() {
     expect(server.favouritePosts, 1);
   });
 
+  testWidgets('блокировка экрана останавливает ролик', (tester) async {
+    await _pumpReel(tester, _ReelServer());
+
+    // Состояние плеера приватное, поэтому берём его как State и обращаемся
+    // динамически — тест проверяет поведение, а не внутренний тип.
+    final dynamic player = tester.state<State>(
+      find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == '_VideoPlayerItem',
+      ),
+    );
+    // Плеер в тестах не инициализируется (платформенного канала нет), поэтому
+    // проверяем сам контракт: уход в фон помечается и гасит воспроизведение.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(player.isPlaying, isFalse);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    expect(player.isPlaying, isFalse);
+  });
+
+  testWidgets('после разблокировки ролик не включается сам, если его ставили на паузу', (
+    tester,
+  ) async {
+    await _pumpReel(tester, _ReelServer());
+
+    // Состояние плеера приватное, поэтому берём его как State и обращаемся
+    // динамически — тест проверяет поведение, а не внутренний тип.
+    final dynamic player = tester.state<State>(
+      find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == '_VideoPlayerItem',
+      ),
+    );
+
+    // Пользователь сам остановил ролик, затем погасил экран.
+    player.pauseVideo();
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    expect(player.isPlaying, isFalse,
+        reason: 'разблокировка не должна включать видео против воли человека');
+  });
+
   testWidgets('download requests the current video and ignores repeated taps', (
     tester,
   ) async {

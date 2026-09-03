@@ -787,7 +787,8 @@ class _VideoPlayerItem extends StatefulWidget {
   State<_VideoPlayerItem> createState() => _VideoPlayerItemState();
 }
 
-class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
+class _VideoPlayerItemState extends State<_VideoPlayerItem>
+    with RouteAware, WidgetsBindingObserver {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _isPlaying = true;
@@ -797,6 +798,16 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
   /// в [_onControllerUpdate] запрещено — иначе видео играет под открытой
   /// поверх карточкой объявления.
   bool _routeOnTop = true;
+
+  /// Приложение свёрнуто или экран телефона погашен. Пока это так, ролик не
+  /// играет и не возобновляется сам: без этого звук продолжал идти из
+  /// заблокированного телефона.
+  bool _appInBackground = false;
+
+  /// Играл ли ролик в момент ухода в фон. По нему отличаем «погасили экран
+  /// кнопкой» от «пользователь сам нажал паузу»: во втором случае
+  /// разблокировка не должна включать видео против его воли.
+  bool _wasPlayingBeforeBackground = false;
 
   bool get isPlaying => _isPlaying;
 
@@ -808,7 +819,42 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initController();
+  }
+
+  /// Блокировка экрана и сворачивание приложения гасят звук немедленно.
+  ///
+  /// `inactive` приходит раньше `paused` — реагируем уже на него, иначе между
+  /// нажатием кнопки блокировки и остановкой остаётся слышимая задержка.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        if (!_appInBackground) {
+          _wasPlayingBeforeBackground =
+              _isInitialized && (_controller?.value.isPlaying ?? false);
+          _appInBackground = true;
+        }
+        pauseVideo();
+      case AppLifecycleState.resumed:
+        _appInBackground = false;
+        // Возобновляем только то, что играло само: ролик, поставленный на
+        // паузу пальцем, после разблокировки остаётся на паузе.
+        if (_wasPlayingBeforeBackground &&
+            _routeOnTop &&
+            widget.isActive &&
+            !_userPaused &&
+            _isInitialized &&
+            _controller != null) {
+          _playWithAutoplayFallback(_controller!);
+        }
+        _wasPlayingBeforeBackground = false;
+    }
   }
 
   Future<void> _initController() async {
@@ -903,7 +949,12 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
   void _onControllerUpdate() {
     if (_controller == null || !mounted) return;
     final isPlaying = _controller!.value.isPlaying;
-    if (_routeOnTop && widget.isActive && !_userPaused && !isPlaying && _isInitialized) {
+    if (_routeOnTop &&
+        !_appInBackground &&
+        widget.isActive &&
+        !_userPaused &&
+        !isPlaying &&
+        _isInitialized) {
       _controller!.play();
     }
     if (_isPlaying != isPlaying) {
@@ -982,6 +1033,7 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> with RouteAware {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     appRouteObserver.unsubscribe(this);
     _controller?.removeListener(_onControllerUpdate);
     _controller?.dispose();
