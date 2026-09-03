@@ -10,6 +10,9 @@ import '../../fig/fig.dart';
 import '../fig_controls.dart';
 import '../widgets/finik_payment_flow.dart';
 
+/// Какое действие отправляет объявление: публикация с продвижением или без.
+enum _PromoAction { next, skip }
+
 class AdPromoPage extends StatefulWidget {
   const AdPromoPage({super.key});
 
@@ -65,7 +68,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
     super.dispose();
   }
 
-  bool _isPublishing = false;
+  /// Какое из двух действий сейчас выполняется.
+  ///
+  /// Раньше здесь стоял общий флаг, а индикатор жил только на «Далее» — и
+  /// нажатие «Продолжить без продвижения» крутило колесо на соседней кнопке.
+  /// Человек не понимал, что именно делает приложение.
+  _PromoAction? _submitting;
+
+  bool get _isPublishing => _submitting != null;
 
   /// Списывает кирпичи за продвижение. При нехватке открывает пополнение
   /// через Finik на недостающую сумму и повторяет попытку.
@@ -126,8 +136,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
     );
   }
 
-  Future<void> _publishListing({required bool withPromo}) async {
-    setState(() => _isPublishing = true);
+  Future<void> _publishListing({
+    required bool withPromo,
+    _PromoAction action = _PromoAction.next,
+  }) async {
+    // Обе кнопки заперты на время отправки: второе нажатие не должно
+    // отправить объявление дважды.
+    if (_isPublishing) return;
+    setState(() => _submitting = action);
     final state = AppScope.read(context);
     final slug = state.draftSlug ?? 'draft-slug';
     try {
@@ -208,7 +224,8 @@ class _AdPromoPageState extends State<AdPromoPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isPublishing = false);
+        // Сбрасываем и после ошибки: обе кнопки должны вернуться.
+        setState(() => _submitting = null);
       }
     }
   }
@@ -224,6 +241,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
   @override
   Widget build(BuildContext context) {
     const orangeColor = Color(0xffea812e);
+
+    // Кадр макета не знает про системную навигацию Android, и нижние кнопки
+    // упирались в неё: на 412x915 «Продолжить без продвижения» кончалась в
+    // 20 px от края, а жестовая полоса занимает больше. Поднимаем блок
+    // действий ровно на величину этой полосы, пересчитанную в координаты
+    // макета — раскладка остаётся прежней, кнопки перестают уходить под неё.
+    final stageScale = MediaQuery.sizeOf(context).width / kDesignWidth;
+    final safeLift = stageScale > 0 ? bottomSafeInset(context) / stageScale : 0.0;
 
     final sumText = _sumController.text.trim().replaceAll(' ', '');
     final int sumValue = int.tryParse(sumText) ?? 0;
@@ -570,18 +595,18 @@ class _AdPromoPageState extends State<AdPromoPage> {
         ),
 
         // Маска для скрытия нарисованной на фоне кнопки "Далее"
-        const Positioned(
+        Positioned(
           left: 20.0,
-          top: 710.0,
+          top: 710.0 - safeLift,
           width: 335.0,
           height: 60.0,
-          child: ColoredBox(color: Color(0xffffffff)),
+          child: const ColoredBox(color: Color(0xffffffff)),
         ),
 
         // Кнопка «Далее» (Завершить создание и опубликовать)
         Positioned(
           left: 25.0,
-          top: 690.0,
+          top: 690.0 - safeLift,
           width: 325.0,
           height: 44.0,
           child: ElevatedButton(
@@ -593,7 +618,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                 borderRadius: BorderRadius.circular(12.0),
               ),
             ),
-            child: _isPublishing
+            child: _submitting == _PromoAction.next
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Text(
                     'Далее',
@@ -609,25 +634,39 @@ class _AdPromoPageState extends State<AdPromoPage> {
         // Кнопка «Продолжить без продвижения»
         Positioned(
           left: 25.0,
-          top: 744.0,
+          top: 744.0 - safeLift,
           width: 325.0,
           height: 44.0,
           child: OutlinedButton(
-            onPressed: _isPublishing ? null : () => _publishListing(withPromo: false),
+            onPressed: _isPublishing
+                ? null
+                : () => _publishListing(
+                      withPromo: false,
+                      action: _PromoAction.skip,
+                    ),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: orangeColor),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.0),
               ),
             ),
-            child: const Text(
-              'Продолжить без продвижения',
-              style: TextStyle(
-                fontSize: 15.0,
-                fontWeight: FontWeight.bold,
-                color: orangeColor,
-              ),
-            ),
+            child: _submitting == _PromoAction.skip
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: orangeColor,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Продолжить без продвижения',
+                    style: TextStyle(
+                      fontSize: 15.0,
+                      fontWeight: FontWeight.bold,
+                      color: orangeColor,
+                    ),
+                  ),
           ),
         ),
       ],
