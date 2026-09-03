@@ -317,6 +317,11 @@ FINIK_TEST_USER_IDS = env.list("FINIK_TEST_USER_IDS", default=[])
 # ----------------------------------------------------------------------------
 # Push-уведомления (FCM)
 # ----------------------------------------------------------------------------
+# Главный выключатель push-транспорта. С нулём уведомления по-прежнему
+# создаются и лежат в базе — не уходит только отправка, и креды Firebase при
+# этом не читаются вовсе. Прод стартует именно так, пока нет service-account.
+PUSH_ENABLED = env.bool("PUSH_ENABLED", default=False)
+
 FCM_CREDENTIALS_FILE = env.str("FCM_CREDENTIALS_FILE", default="")
 FCM_CREDENTIALS_BASE64 = env.str("FCM_CREDENTIALS_BASE64", default="")
 

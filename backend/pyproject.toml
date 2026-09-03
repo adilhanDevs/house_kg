@@ -31,13 +31,20 @@ dependencies = [
     "cryptography>=43",
     "defusedxml>=0.7",
     "qrcode>=8.0",
+    # Push-транспорт. Переехал из extras в основные зависимости: воркер
+    # push-очереди работает на проде постоянно, и ставить пакет отдельным
+    # шагом деплоя — лишняя развилка. Импортируется лениво и только при
+    # PUSH_ENABLED=1, поэтому без кредов ничего не подгружается.
+    "firebase-admin>=6.5",
 ]
 
 [project.optional-dependencies]
-# Sentry и FCM импортируются лениво и только когда заданы SENTRY_DSN /
-# кредлы FCM (apps/common/observability.py, apps/notifications/push.py).
-# Без этих extras включённая интеграция падает с ImportError.
+# Sentry импортируется лениво и только когда задан SENTRY_DSN
+# (apps/common/observability.py). Без extra включённая интеграция падает
+# с ImportError.
 sentry = ["sentry-sdk>=2.0"]
+# Сохранён для совместимости со старыми командами установки: сам пакет уже
+# в основных зависимостях.
 push = ["firebase-admin>=6.5"]
 dev = [
     "pytest>=8.3",

@@ -23,6 +23,7 @@ except ImportError:
         while batch := tuple(islice(it, n)):
             yield batch
 
+
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -60,8 +61,16 @@ def _load_credentials() -> dict[str, Any] | None:
 
 
 def get_fcm_app() -> Any:
-    """Инициализирует firebase-admin один раз на процесс."""
+    """Инициализирует firebase-admin один раз на процесс.
+
+    Проверка выключателя стоит до чтения кредов: с PUSH_ENABLED=0 файл
+    service-account не открывается и firebase_admin не импортируется, поэтому
+    прод поднимается без единого секрета на диске.
+    """
     global _fcm_app, _fcm_checked
+
+    if not settings.PUSH_ENABLED:
+        return None
 
     if _fcm_checked:
         return _fcm_app
@@ -137,7 +146,7 @@ def send_to_user(user: Any, notification: Any) -> int:
 
     Возвращает количество доставленных сообщений.
     """
-    from apps.notifications.models import DeviceToken, NotificationSettings
+    from apps.notifications.models import DeviceToken, NotificationSettings, NotificationType
 
     preferences = getattr(user, "notification_settings", None)
     if preferences is None:
@@ -145,6 +154,17 @@ def send_to_user(user: Any, notification: Any) -> int:
 
     if preferences is not None and not preferences.allows(notification.type):
         logger.info("Push типа %s отключён пользователем %s", notification.type, user.pk)
+        return 0
+
+    # Снижение цены приходит по двум разным поводам, и отключают их отдельно:
+    # «по избранному» человек обычно оставляет, а «по просмотренному» — нет.
+    if (
+        preferences is not None
+        and notification.type == NotificationType.PRICE_DROP
+        and (notification.payload or {}).get("reason") == "viewed"
+        and not preferences.price_drop_viewed_enabled
+    ):
+        logger.info("Push о снижении цены по просмотрам отключён пользователем %s", user.pk)
         return 0
 
     # Порядок фиксируем: по нему сопоставляются ответы FCM с токенами.
