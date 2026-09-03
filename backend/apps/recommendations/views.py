@@ -46,12 +46,22 @@ class ListingRecommendationsView(APIView):
 
         feed_session_id = request.query_params.get("feed_session_id", session_id)
 
+        # Параметры фильтра приезжают теми же именами, что и в каталоге:
+        # клиент шлёт один и тот же набор, а какой эндпоинт его обслуживает —
+        # его дело. Служебные ключи ленты в фильтр не попадают.
+        active_filters = {
+            key: value
+            for key, value in request.query_params.items()
+            if key not in {"session_id", "feed_session_id", "limit", "cursor"}
+        }
+
         context = RecommendationContext(
             user=request.user if request.user.is_authenticated else None,
             session_id=session_id,
             feed_session_id=feed_session_id,
             limit=limit,
             cursor=cursor,
+            active_filters=active_filters or None,
         )
 
         features_list, next_cursor = get_recommended_listings(context)

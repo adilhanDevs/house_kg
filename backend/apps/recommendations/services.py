@@ -48,6 +48,21 @@ class CandidateGenerator:
         """Generate base pool of valid listings."""
         base_qs = Listing.objects.filter(status=ListingStatus.ACTIVE)
 
+        # Фильтры пользователя — жёсткие, и применяются ДО всякого
+        # ранжирования. Человек, попросивший однокомнатную до 60 тысяч, не
+        # должен увидеть двухкомнатную за сто только потому, что она хорошо
+        # ложится в его вкусы. Персонализация переставляет подходящее, а не
+        # расширяет выборку.
+        #
+        # Условия строит тот же ListingFilterSet, что и каталог: своя копия
+        # правил разъехалась бы с ним на первой же правке.
+        if self.context.active_filters:
+            from apps.catalog.filters import ListingFilterSet
+
+            filterset = ListingFilterSet(self.context.active_filters, queryset=base_qs)
+            if filterset.is_valid():
+                base_qs = filterset.qs
+
         if self.context.require_video:
             # Именно обработанное видео: у объявления может лежать ролик,
             # который ещё не прошёл обработку, и лента показала бы карточку
