@@ -10,11 +10,78 @@ class ListingRepository {
 
   final ListingApiClient _apiClient;
 
-  Future<PaginatedResponse<Listing>> getListings({Map<String, dynamic>? filters, String? cursor}) async {
-    final data = await _apiClient.getListings(filters: filters, cursor: cursor);
+  /// Выдача объявлений: по умолчанию персонализированная.
+  ///
+  /// Фильтры пользователя уходят на сервер как есть — он применяет их строго
+  /// и ранжирует уже подходящее. Персонализация меняет порядок, а не состав
+  /// выборки, поэтому строгость фильтра не страдает.
+  ///
+  /// `sessionId` не задан — берём обычный каталог: это явный выбор
+  /// вызывающего (например, пользователь сам выбрал сортировку по цене, и
+  /// перетасовывать её нельзя).
+  Future<PaginatedResponse<Listing>> getListings({
+    Map<String, dynamic>? filters,
+    String? cursor,
+    String? sessionId,
+  }) async {
+    // Курсор принадлежит той ленте, что его выдала: токен рекомендаций для
+    // обычного каталога — мусор, и наоборот. Поэтому источник следующей
+    // страницы определяет не догадка, а метка на самом курсоре.
+    final isPagingLegacy = cursor != null &&
+        cursor.isNotEmpty &&
+        !cursor.startsWith(_recommendedCursorPrefix);
+
+    if (sessionId != null && sessionId.isNotEmpty && !isPagingLegacy) {
+      try {
+        final data = await _apiClient.getRecommendedListings(
+          sessionId: sessionId,
+          filters: filters,
+          cursor: cursor?.substring(_recommendedCursorPrefix.length),
+        );
+        final page = _listingsFromRecommendations(data);
+        // Пустая первая страница — тупик для экрана: показываем обычную
+        // выдачу, чтобы человек не остался с пустым каталогом.
+        if (page.results.isNotEmpty || (cursor != null && cursor.isNotEmpty)) {
+          return page;
+        }
+        debugPrint('Персональная выдача пуста на первой странице — беру обычную');
+      } on ApiException catch (e) {
+        if (!_shouldFallBack(e.statusCode)) rethrow;
+        debugPrint('Персональная выдача недоступна (${e.statusCode}) — беру обычную');
+      } on NetworkException catch (e) {
+        debugPrint('Персональная выдача недоступна ($e) — беру обычную');
+      }
+    }
+
+    final data = await _apiClient.getListings(
+      filters: filters,
+      cursor: isPagingLegacy ? cursor : null,
+    );
     return PaginatedResponse<Listing>.fromJson(
       data,
       (json) => Listing.fromJson(json),
+    );
+  }
+
+  /// Метка на курсоре персональной выдачи: по ней видно, какой ленте
+  /// принадлежит страница. Наружу курсор и так непрозрачный — экраны просто
+  /// возвращают его обратно.
+  static const String _recommendedCursorPrefix = 'rec:';
+
+  /// У рекомендаций `next` — непрозрачный токен, а не ссылка со страницей.
+  static PaginatedResponse<Listing> _listingsFromRecommendations(
+    Map<String, dynamic> data,
+  ) {
+    final results = (data['results'] as List<dynamic>?)
+            ?.map((e) => Listing.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        <Listing>[];
+    final next = data['next'] as String?;
+    return PaginatedResponse<Listing>(
+      results: results,
+      nextCursor: (next != null && next.isNotEmpty)
+          ? '$_recommendedCursorPrefix$next'
+          : null,
     );
   }
 

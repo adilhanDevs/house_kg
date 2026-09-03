@@ -706,6 +706,44 @@ class ListingApiClient {
     }
   }
 
+  /// Персонализированная выдача объявлений.
+  ///
+  /// Принимает те же параметры фильтра, что и каталог: сервер применяет их
+  /// строго и только потом ранжирует подходящее. Клиенту не нужно знать,
+  /// какой эндпоинт обслуживает запрос — набор параметров один.
+  Future<Map<String, dynamic>> getRecommendedListings({
+    required String sessionId,
+    Map<String, dynamic>? filters,
+    String? cursor,
+    int limit = 20,
+  }) async {
+    final queryParameters = <String, String>{
+      'session_id': sessionId,
+      'limit': limit.toString(),
+    };
+    filters?.forEach((key, value) {
+      if (value != null && value.toString().isNotEmpty) {
+        queryParameters[key] = value.toString();
+      }
+    });
+    if (cursor != null && cursor.isNotEmpty) {
+      queryParameters['cursor'] = cursor;
+    }
+
+    final uri = Uri.parse('$baseUrl/api/v1/recommendations/listings/')
+        .replace(queryParameters: queryParameters);
+
+    try {
+      final response = await _client.get(uri, headers: {'Accept': 'application/json'});
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
+  }
+
   /// Персонализированная лента роликов.
   ///
   /// `session_id` обязателен и не короче восьми символов — сервер иначе

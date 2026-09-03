@@ -88,16 +88,34 @@ void _ignoreOverflow() {
 }
 
 /// Запросы каталога в порядке отправки.
+///
+/// Каталог ходит за персонализированной выдачей, а на обычную откатывается
+/// при отказе сервера. Для этих тестов это один и тот же запрос каталога:
+/// проверяется, что фильтр доехал, а не какой эндпоинт его обслужил.
 class _Recorder {
   final List<Uri> catalog = [];
   final List<Uri> count = [];
 
+  static const _catalogPaths = {
+    '/api/v1/listings/',
+    '/api/v1/recommendations/listings/',
+  };
+
+  /// Служебные параметры выдачи — не фильтр, и в проверках фильтра лишние.
+  static const _service = {'session_id', 'feed_session_id', 'limit', 'cursor'};
+
   void add(Uri url) {
-    if (url.path == '/api/v1/listings/') catalog.add(url);
+    if (_catalogPaths.contains(url.path)) catalog.add(url);
     if (url.path == '/api/v1/listings/count/') count.add(url);
   }
 
   Uri get lastCatalog => catalog.last;
+
+  /// Только параметры фильтра последнего запроса каталога.
+  Map<String, String> get lastFilters => {
+        for (final e in lastCatalog.queryParameters.entries)
+          if (!_service.contains(e.key)) e.key: e.value,
+      };
 }
 
 Future<void> _pumpCatalog(WidgetTester tester, AppState state) async {
@@ -158,7 +176,7 @@ void main() {
       await _pumpCatalog(tester, state);
 
       expect(recorder.catalog, isNotEmpty);
-      expect(recorder.lastCatalog.queryParameters, isEmpty);
+      expect(recorder.lastFilters, isEmpty);
     });
 
     testWidgets('чип «103 серия» уходит параметром series', (tester) async {

@@ -83,9 +83,14 @@ class _HomePageState extends State<HomePage> {
       _isLoading = true;
     });
     try {
-      final response = await _repository.getListings(filters: {
-        'kind': _tab == PropertyKind.newBuilding ? 'new_building' : _tab.name,
-      });
+      // Тип недвижимости — жёсткий фильтр вкладки; персонализация лишь
+      // расставляет внутри него то, что человеку ближе.
+      final response = await _repository.getListings(
+        filters: {
+          'kind': _tab == PropertyKind.newBuilding ? 'new_building' : _tab.name,
+        },
+        sessionId: AppScope.read(context).recommendationSessionId,
+      );
       if (mounted) {
         AppScope.read(context).syncFavourites(response.results);
         setState(() {

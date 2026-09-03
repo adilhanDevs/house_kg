@@ -136,6 +136,7 @@ class _CatalogPageState extends State<CatalogPage> {
       final response = await _repository.getListings(
         filters: filters,
         cursor: refresh ? null : _nextCursor,
+        sessionId: _appState.recommendationSessionId,
       );
 
       // Ответ на устаревший запрос применять нельзя: фильтр уже другой.

@@ -807,6 +807,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Идентификатор сессии для персонализированной выдачи.
+  ///
+  /// Живёт столько же, сколько запуск приложения: по нему сервер собирает
+  /// краткосрочный интерес и не показывает одно и то же дважды. Новый
+  /// идентификатор на каждый запрос обнулял бы и то, и другое.
+  late final String recommendationSessionId = 'session-${const Uuid().v4().replaceAll('-', '')}';
+
   Map<String, dynamic> get filterParams {
     final params = <String, dynamic>{};
     if (_query.isNotEmpty) params['search'] = _query;
