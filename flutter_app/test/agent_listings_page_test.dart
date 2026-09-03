@@ -15,6 +15,7 @@ import 'package:house_kgz/ui/app_tab_bar.dart';
 import 'package:house_kgz/ui/fig_cta.dart';
 import 'package:house_kgz/ui/object_card.dart';
 import 'package:house_kgz/ui/pages/agent_listings_page.dart';
+import 'package:house_kgz/ui/widgets/profile_identity.dart';
 import 'package:house_kgz/ui/pages/chat_page.dart';
 
 class _FakeServer extends http.BaseClient {
@@ -380,6 +381,41 @@ void main() {
       final cta = tester.getRect(find.byType(FigCta));
       final tabs = tester.getRect(find.byType(AppTabBar));
       expect(cta.bottom, lessThanOrEqualTo(tabs.top));
+    });
+
+    testWidgets('аватар продавца квадратный и того же размера, что в профиле', (
+      tester,
+    ) async {
+      // 68 px — размер ProfileAvatar на обычном экране профиля
+      // (profile_page.dart). Публичный профиль обязан выглядеть так же.
+      for (final width in <double>[360, 412, 430]) {
+        await _pumpPage(tester, server: _FakeServer(), size: Size(width, 915));
+
+        final box = tester.getRect(find.byKey(const ValueKey('agent-avatar')));
+        expect(box.width, closeTo(box.height, 0.01),
+            reason: 'на ширине $width аватар перестал быть квадратным');
+        expect(box.width, greaterThanOrEqualTo(64.0));
+
+        // Рамка обязана занимать всю коробку: иначе изображение сжимается
+        // под свои пропорции и превращается в узкую полосу.
+        final frame = tester.getRect(find.descendant(
+          of: find.byKey(const ValueKey('agent-avatar')),
+          matching: find.byType(Container),
+        ).first);
+        expect(frame.width, closeTo(box.width, 0.01),
+            reason: 'рамка аватара не растянута на всю ширину коробки');
+        expect(frame.height, closeTo(box.height, 0.01),
+            reason: 'рамка аватара не растянута на всю высоту коробки');
+
+        // Само изображение — тот же виджет, что и в профиле.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('agent-avatar')),
+            matching: find.byType(ProfileAvatar),
+          ),
+          findsOneWidget,
+        );
+      }
     });
 
     testWidgets('профиль продавца прокручивается', (tester) async {

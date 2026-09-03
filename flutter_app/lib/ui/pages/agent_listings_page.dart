@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../app_tab_bar.dart';
 import '../fig_cta.dart';
 import '../object_card.dart';
+import '../widgets/profile_identity.dart';
 import '../widgets/safe_image.dart';
 import 'chat_page.dart';
 
@@ -514,21 +515,27 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.white, width: 3),
-                      color: const Color(0xfffdf1e8),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: (avatarUrl != null && avatarUrl.isNotEmpty)
-                          ? buildSafeNetworkImage(
-                              url: avatarUrl,
-                              fit: BoxFit.cover,
-                              fallback: _avatarPlaceholder(avatarSize),
-                            )
-                          : _avatarPlaceholder(avatarSize),
+                  // Рамка растянута на всю коробку явно. Раньше её Container
+                  // не имел размеров и в Stack сжимался под пропорции самой
+                  // картинки: портретное фото давало узкую полосу вместо
+                  // квадрата — тот самый «узкий аватар». Заглушка при этом
+                  // была фиксированного размера, поэтому тесты видели квадрат
+                  // и дефект не ловили.
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.white, width: 3),
+                        color: const Color(0xfffdf1e8),
+                      ),
+                      // Тот же виджет, что и на обычном профиле: он держит
+                      // квадрат сам и кадрирует изображение по стороне.
+                      child: ProfileAvatar(
+                        url: avatarUrl,
+                        initials: sellerName.isNotEmpty ? sellerName[0] : '',
+                        size: avatarSize - 6,
+                        radius: 12,
+                      ),
                     ),
                   ),
                   if (isVerified)
@@ -700,19 +707,6 @@ class _AgentListingsPageState extends State<AgentListingsPage> {
             onFavourite: () => state.toggleFavourite(listingKey),
           );
         },
-      ),
-    );
-  }
-
-  /// Заглушка аватара — та же, что в профиле: персиковый фон, оранжевая фигура.
-  Widget _avatarPlaceholder(double size) {
-    return Container(
-      color: const Color(0xfffdf1e8),
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.person_outline,
-        size: size * 0.5,
-        color: const Color(0xffea812e),
       ),
     );
   }
