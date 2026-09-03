@@ -49,7 +49,14 @@ class CandidateGenerator:
         base_qs = Listing.objects.filter(status=ListingStatus.ACTIVE)
 
         if self.context.require_video:
-            base_qs = base_qs.filter(media__kind="video").distinct()
+            # Именно обработанное видео: у объявления может лежать ролик,
+            # который ещё не прошёл обработку, и лента показала бы карточку
+            # без единого воспроизводимого файла.
+            from apps.catalog.enums import MediaKind, MediaStatus
+
+            base_qs = base_qs.filter(
+                media__kind=MediaKind.VIDEO, media__status=MediaStatus.READY
+            ).distinct()
 
         if self.context.user:
             base_qs = base_qs.exclude(owner=self.context.user)

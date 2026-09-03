@@ -92,6 +92,27 @@ class ReelsRecommendationsView(APIView):
         features_list, next_cursor = get_recommended_listings(context)
         listings = [f.listing for f in features_list]
 
+        # ListingReelsSerializer читает поле videos из атрибута
+        # processed_videos, который навешивает Prefetch. Без него DRF отдавал
+        # videos: null на каждый ролик, и лента в приложении оставалась
+        # пустой: клиент отбрасывает карточки без единого видео.
+        from django.db.models import Prefetch, prefetch_related_objects
+
+        from apps.catalog.enums import MediaKind, MediaStatus
+        from apps.catalog.models import ListingMedia
+
+        if listings:
+            prefetch_related_objects(
+                listings,
+                Prefetch(
+                    "media",
+                    queryset=ListingMedia.objects.filter(
+                        kind=MediaKind.VIDEO, status=MediaStatus.READY
+                    ).order_by("order", "id"),
+                    to_attr="processed_videos",
+                ),
+            )
+
         serializer = ListingReelsSerializer(listings, many=True, context={"request": request})
 
         return Response({"results": serializer.data, "next": next_cursor})
