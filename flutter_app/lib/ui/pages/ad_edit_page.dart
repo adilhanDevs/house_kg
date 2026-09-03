@@ -231,7 +231,13 @@ class _AdEditPageState extends State<AdEditPage> {
   Future<void> _pickPhotos() async {
     try {
       final picker = ImagePicker();
-      final pickedFiles = await picker.pickMultiImage();
+      // Те же пределы, что и при создании объявления: сервер всё равно не
+      // раздаёт ничего крупнее 2560 по большей стороне.
+      final pickedFiles = await picker.pickMultiImage(
+        maxWidth: kPhotoMaxSide.toDouble(),
+        maxHeight: kPhotoMaxSide.toDouble(),
+        imageQuality: kPhotoQuality,
+      );
       if (pickedFiles.isNotEmpty) {
         setState(() {
           _newPhotoFiles.addAll(pickedFiles);

@@ -405,13 +405,17 @@ def _store_upload(
     приложение — оно и так открывает ролик в плеере. Раньше ради этого прямо в
     запросе писалась временная копия файла и запускались ffprobe и ffmpeg.
     """
+    import time
+
     from django.db import transaction
 
     from apps.catalog.media import source_extension, validate_photo, validate_video
     from apps.catalog.tasks import process_media, verify_video_duration
 
+    t0 = time.monotonic()
     data = upload.read()
     upload.seek(0)
+    t_read = time.monotonic()
 
     extra: dict[str, Any] = {
         "size_bytes": len(data),
@@ -432,6 +436,8 @@ def _store_upload(
         if height:
             extra.setdefault("height", int(height))
 
+    t_validate = time.monotonic()
+
     media = ListingMedia(
         listing=listing,
         kind=kind,
@@ -445,9 +451,11 @@ def _store_upload(
     # Имя файла с телефона отбрасывается: оно может содержать ПДн, а попадёт
     # в публичный URL. Ключ собирается из UUID объявления и записи.
     media.file.save(f"{media.uuid}_source.{source_extension(data, kind)}", upload, save=False)
+    t_store = time.monotonic()
 
     if kind == MediaKind.VIDEO and thumbnail is not None:
         _store_video_poster(media, thumbnail)
+    t_poster = time.monotonic()
 
     # Длительность назвал клиент, а верить ему на слово нельзя: занизив её,
     # можно залить двухчасовой ролик. Файл уже в хранилище, поэтому ffprobe
@@ -455,7 +463,26 @@ def _store_upload(
     # которых проверку когда-то унесли с сервера, здесь нет.
     verify_later = kind == MediaKind.VIDEO and not _enforce_video_duration(media)
 
+    t_probe = time.monotonic()
+
     media.save()
+    t_db = time.monotonic()
+
+    # Разбор по стадиям: без него нельзя отличить «медленный сервер» от
+    # «медленной сети» — со стороны клиента и то и другое выглядит ожиданием.
+    logger.info(
+        "MEDIA_STORE kind=%s bytes=%s read_ms=%.0f validate_ms=%.0f storage_ms=%.0f "
+        "poster_ms=%.0f probe_ms=%.0f db_ms=%.0f total_ms=%.0f",
+        kind,
+        len(data),
+        (t_read - t0) * 1000,
+        (t_validate - t_read) * 1000,
+        (t_store - t_validate) * 1000,
+        (t_poster - t_store) * 1000,
+        (t_probe - t_poster) * 1000,
+        (t_db - t_probe) * 1000,
+        (t_db - t0) * 1000,
+    )
 
     if kind == MediaKind.PHOTO:
         transaction.on_commit(lambda: process_media.delay(media.pk))

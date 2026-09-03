@@ -132,6 +132,22 @@ class AdMedia {
   }
 }
 
+/// Насколько ужимается снимок перед отправкой.
+///
+/// 2560 — не произвольное число: это `LISTING_ORIGINAL_SIZE` бэкенда, самый
+/// большой вариант, который он вообще собирает и раздаёт. Всё, что шире,
+/// сервер выбрасывает сам (`_process_photo` уменьшает до 2560 и кодирует в
+/// WebP), поэтому лишние пиксели с телефона едут только затем, чтобы быть
+/// отброшенными. Замер: снимок 4032×3024 весит 3.9 МБ, он же в 2560 — 1.1 МБ.
+///
+/// Уменьшает платформенный код фотовыбора (Core Graphics на iOS, native на
+/// Android), а не Dart: главный изолят на этом не стоит.
+const int kPhotoMaxSide = 2560;
+
+/// Качество JPEG при пережатии. 85 — то же, чем сервер кодирует свой JPEG-
+/// фолбэк (`LISTING_JPEG_QUALITY`), так что на выдаче разницы не появляется.
+const int kPhotoQuality = 85;
+
 /// Откуда приложение берёт файлы. За этим стоит системный выбор из галереи и
 /// камера; в тестах на это место встаёт заглушка.
 abstract class MediaSource {
@@ -151,10 +167,19 @@ class DeviceMedia implements MediaSource {
     final picker = ImagePicker();
     final List<XFile> files;
     if (camera) {
-      final shot = await picker.pickImage(source: ImageSource.camera);
+      final shot = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: kPhotoMaxSide.toDouble(),
+        maxHeight: kPhotoMaxSide.toDouble(),
+        imageQuality: kPhotoQuality,
+      );
       files = shot == null ? const [] : [shot];
     } else {
-      files = await picker.pickMultiImage();
+      files = await picker.pickMultiImage(
+        maxWidth: kPhotoMaxSide.toDouble(),
+        maxHeight: kPhotoMaxSide.toDouble(),
+        imageQuality: kPhotoQuality,
+      );
     }
     return [for (final file in files) await _read(file, video: false)];
   }

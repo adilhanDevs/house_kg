@@ -19,6 +19,12 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
   bool _isSaving = false;
   bool _initialized = false;
 
+  /// Сколько снимков уже ушло и сколько их всего в этой отправке. Пока здесь
+  /// крутился безымянный спиннер, десять фотографий выглядели как зависший
+  /// экран: пользователю не с чем было сверить, идёт что-то или нет.
+  int _uploadDone = 0;
+  int _uploadTotal = 0;
+
   Future<void> _uploadPhotosAndNext(AppState state) async {
     final slug = state.draftSlug;
     if (slug == null) {
@@ -37,28 +43,40 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
         'allow_media_download': _allowDownload,
       });
 
-      for (int i = 0; i < state.draftGallery.length; i++) {
+      // Отправляем только то, чего ещё нет на сервере: уже загруженные при
+      // повторной попытке второй раз не поедут.
+      final pending = <int>[
+        for (int i = 0; i < state.draftGallery.length; i++)
+          if (state.draftGallery[i].id == null && state.draftGallery[i].bytes != null) i,
+      ];
+      if (mounted) {
+        setState(() {
+          _uploadDone = 0;
+          _uploadTotal = pending.length;
+        });
+      }
+
+      for (final i in pending) {
         final photo = state.draftGallery[i];
-        if (photo.id == null && photo.bytes != null) {
-          try {
-            final res = await state.apiClient.uploadMedia(
-              slug,
-              bytes: photo.bytes,
-              filename: photo.name,
-              kind: 'photo',
-            );
-            final mediaList = res['media'] as List<dynamic>?;
-            if (mediaList != null && mediaList.isNotEmpty) {
-              final newId = mediaList[0]['id'] as int?;
-              if (newId != null) {
-                state.draftGallery[i] = photo.copyWith(id: newId);
-              }
+        try {
+          final res = await state.apiClient.uploadMedia(
+            slug,
+            bytes: photo.bytes,
+            filename: photo.name,
+            kind: 'photo',
+          );
+          final mediaList = res['media'] as List<dynamic>?;
+          if (mediaList != null && mediaList.isNotEmpty) {
+            final newId = mediaList[0]['id'] as int?;
+            if (newId != null) {
+              state.draftGallery[i] = photo.copyWith(id: newId);
             }
-          } catch (e) {
-            debugPrint('Failed to upload photo $i: $e');
-            failures.add(_uploadErrorText(e));
           }
+        } catch (e) {
+          debugPrint('Failed to upload photo $i: $e');
+          failures.add(_uploadErrorText(e));
         }
+        if (mounted) setState(() => _uploadDone++);
       }
       if (!mounted) return;
 
@@ -82,7 +100,11 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isSaving = false);
+        setState(() {
+          _isSaving = false;
+          _uploadTotal = 0;
+          _uploadDone = 0;
+        });
       }
     }
   }
@@ -264,10 +286,31 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                     ),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            const SizedBox(width: 12.0),
+                            Text(
+                              _uploadTotal > 0
+                                  ? 'Загрузка '
+                                      '${_uploadDone < _uploadTotal ? _uploadDone + 1 : _uploadTotal}'
+                                      ' из $_uploadTotal'
+                                  : 'Сохранение…',
+                              style: const TextStyle(
+                                fontSize: 15.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         )
                       : const Text(
                           'Далее',

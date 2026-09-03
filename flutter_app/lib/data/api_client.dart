@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -71,6 +72,42 @@ class AuthInterceptorClient extends http.BaseClient {
       return req;
     }
     return request;
+  }
+}
+
+/// Сколько байт запроса уже ушло в сокет.
+typedef UploadProgress = void Function(int sent, int total);
+
+/// Multipart-запрос, который отсчитывает отданные байты.
+///
+/// Ролик на 30 МБ уходит около минуты, и всё это время экран показывал
+/// безымянный кружок — по нему нельзя отличить работающую загрузку от
+/// зависшей. Считаем по мере отдачи тела: `finalize()` возвращает поток,
+/// который HTTP-клиент вычитывает по мере готовности сокета.
+class _ProgressMultipartRequest extends http.MultipartRequest {
+  _ProgressMultipartRequest(super.method, super.url, {this.onProgress});
+
+  final UploadProgress? onProgress;
+
+  @override
+  http.ByteStream finalize() {
+    final report = onProgress;
+    final stream = super.finalize();
+    if (report == null) return stream;
+
+    final total = contentLength;
+    var sent = 0;
+    return http.ByteStream(
+      stream.transform(
+        StreamTransformer<List<int>, List<int>>.fromHandlers(
+          handleData: (chunk, sink) {
+            sent += chunk.length;
+            report(sent, total);
+            sink.add(chunk);
+          },
+        ),
+      ),
+    );
   }
 }
 
@@ -780,12 +817,13 @@ class ListingApiClient {
     int? durationSeconds,
     int? width,
     int? height,
+    UploadProgress? onProgress,
   }) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$listingSlug/media/');
 
     try {
       final defaultName = kind == 'photo' ? 'photo.jpg' : 'upload.mp4';
-      final request = http.MultipartRequest('POST', uri)
+      final request = _ProgressMultipartRequest('POST', uri, onProgress: onProgress)
         ..headers['Accept'] = 'application/json'
         ..fields['kind'] = kind;
 

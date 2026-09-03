@@ -19,6 +19,15 @@ class _AdVideoPageState extends State<AdVideoPage> {
   bool _useInfo = true;
   bool _isSaving = false;
 
+  /// Доля отправленного ролика, 0..1. Ролик — один большой файл, «N из M» тут
+  /// бесполезно: минуту подряд было бы «1 из 1». Показываем проценты по
+  /// реально отданным байтам.
+  double? _uploadFraction;
+
+  /// Какой по счёту ролик отправляется, когда их несколько.
+  int _videoIndex = 0;
+  int _videoTotal = 0;
+
   @override
   void initState() {
     super.initState();
@@ -177,10 +186,31 @@ class _AdVideoPageState extends State<AdVideoPage> {
     );
   }
 
+  /// Подпись на кнопке во время отправки.
+  String _uploadLabel() {
+    if (_videoTotal == 0) return 'Сохранение…';
+    final percent = _uploadFraction == null ? '' : ' ${(_uploadFraction! * 100).round()}%';
+    if (_videoTotal == 1) return 'Загрузка видео$percent';
+    return 'Видео $_videoIndex из $_videoTotal$percent';
+  }
+
   Future<void> _saveAndNext(AppState state) async {
-    setState(() => _isSaving = true);
     final apiClient = state.apiClient;
     final failures = <String>[];
+
+    // Сколько роликов реально поедет — по ним и считаем «ролик N из M».
+    final pendingVideos = state.draftVideoList.where((video) {
+      final hasFile = (video.path != null && video.path!.isNotEmpty) ||
+          (video.bytes != null && video.bytes!.isNotEmpty);
+      return video.asset == null && hasFile && video.id == null;
+    }).length;
+
+    setState(() {
+      _isSaving = true;
+      _uploadFraction = null;
+      _videoIndex = 0;
+      _videoTotal = pendingVideos;
+    });
 
     try {
       final realSlug = state.draftSlug ?? 'draft-slug';
@@ -200,6 +230,12 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     video.name.toLowerCase().endsWith('.mov')
                 ? video.name
                 : 'video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+            if (mounted) {
+              setState(() {
+                _videoIndex++;
+                _uploadFraction = 0;
+              });
+            }
             final uploadResponse = await apiClient.uploadMedia(
               realSlug,
               filePath: video.path,
@@ -210,6 +246,18 @@ class _AdVideoPageState extends State<AdVideoPage> {
               durationSeconds: video.durationSeconds,
               width: video.width,
               height: video.height,
+              onProgress: (sent, total) {
+                if (!mounted || total <= 0) return;
+                final next = sent / total;
+                // Перерисовываем по целым процентам: коллбэк приходит на
+                // каждый кусок сокета, а кнопке хватает сотни обновлений.
+                if (_uploadFraction != null &&
+                    (next - _uploadFraction!).abs() < 0.01 &&
+                    next < 1.0) {
+                  return;
+                }
+                setState(() => _uploadFraction = next);
+              },
             );
             final mediaList = uploadResponse['media'] as List?;
             if (mediaList != null && mediaList.isNotEmpty) {
@@ -260,7 +308,12 @@ class _AdVideoPageState extends State<AdVideoPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isSaving = false);
+        setState(() {
+          _isSaving = false;
+          _uploadFraction = null;
+          _videoIndex = 0;
+          _videoTotal = 0;
+        });
       }
     }
   }
@@ -449,10 +502,30 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     ),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                                // Пока байты не пошли — кружок крутится без
+                                // деления, дальше показывает реальную долю.
+                                value: _uploadFraction,
+                              ),
+                            ),
+                            const SizedBox(width: 12.0),
+                            Text(
+                              _uploadLabel(),
+                              style: const TextStyle(
+                                fontSize: 15.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         )
                       : const Text(
                           'Далее',
