@@ -13,6 +13,7 @@ from apps.notifications.models import (
     Notification,
     NotificationSettings,
     NotificationType,
+    PushOutbox,
 )
 from apps.notifications.push import send_to_user
 from apps.notifications.services import notify, register_device
@@ -70,35 +71,30 @@ def test_settings_are_created_with_user() -> None:
 
 
 @pytest.mark.django_db
-def test_notify_creates_one_record_and_one_task(user, django_capture_on_commit_callbacks) -> None:
-    # Патчим каноническое имя: services вызывает именно его, а send_push —
-    # лишь псевдоним для прямых вызовов, и подмена псевдонима на вызов не влияет.
-    with patch("apps.notifications.tasks.deliver_notification_push") as send_push_task:
-        with django_capture_on_commit_callbacks(execute=True):
-            notification = notify(
-                user,
-                NotificationType.SYSTEM,
-                title="Заголовок",
-                body="Текст",
-                payload={"kind": "test"},
-            )
+def test_notify_creates_one_record_and_one_outbox_row(user) -> None:
+    """Доставка ставится строкой в базе, в той же транзакции, что и событие."""
+    notification = notify(
+        user,
+        NotificationType.SYSTEM,
+        title="Заголовок",
+        body="Текст",
+        payload={"kind": "test"},
+    )
 
     assert Notification.objects.count() == 1
     assert notification.payload == {"kind": "test"}
-    send_push_task.delay.assert_called_once_with(notification.pk)
+    assert PushOutbox.objects.filter(notification=notification).count() == 1
 
 
 @pytest.mark.django_db
-def test_notify_event_key_is_idempotent_per_user(user, django_capture_on_commit_callbacks) -> None:
-    """A retried domain event must not create or enqueue a second notification."""
-    with patch("apps.notifications.tasks.deliver_notification_push") as task:
-        with django_capture_on_commit_callbacks(execute=True):
-            first = notify(user, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:7")
-            second = notify(user, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:7")
+def test_notify_event_key_is_idempotent_per_user(user) -> None:
+    """Повторное доменное событие не создаёт ни второго уведомления, ни второй доставки."""
+    first = notify(user, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:7")
+    second = notify(user, NotificationType.PRICE_DROP, "Цена", event_key="price-drop:7")
 
     assert first.pk == second.pk
     assert Notification.objects.filter(user=user, event_key="price-drop:7").count() == 1
-    task.delay.assert_called_once_with(first.pk)
+    assert PushOutbox.objects.filter(notification=first).count() == 1
 
 
 @pytest.mark.django_db

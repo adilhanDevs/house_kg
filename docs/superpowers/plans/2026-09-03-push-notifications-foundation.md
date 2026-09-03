@@ -1,5 +1,11 @@
 # House Push Notifications Production Foundation Implementation Plan
 
+> **Транспорт изменён после замеров на проде (2026-09-03).** Задачи ниже
+> описывают доставку через Redis и очередь Celery `push`. На боевом сервере
+> эта связка не помещается в память, поэтому доставка переведена на очередь
+> в PostgreSQL (`PushOutbox`) и процесс `manage.py run_push_worker`.
+> Действующее описание — в `backend/README.md`; план сохранён как история.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build and deploy the complete House push foundation through a disabled production Firebase transport.

@@ -21,6 +21,7 @@ api_v1_patterns = [
     path("", include("apps.notifications.urls")),
     path("", include("apps.billing.urls")),
     path("", include("apps.messaging.urls")),
+    path("", include("apps.recommendations.urls")),
     # versioning_class=None — чтобы в info.version была ровно "1.0.0",
     # без автоматического суффикса " (v1)" от URLPathVersioning.
     path("schema/", SpectacularAPIView.as_view(versioning_class=None), name="schema"),

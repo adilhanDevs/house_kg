@@ -11,7 +11,7 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
-from apps.notifications.models import DeviceToken, Notification, NotificationType
+from apps.notifications.models import DeviceToken, Notification, NotificationType, PushOutbox
 
 logger = logging.getLogger(__name__)
 
@@ -29,18 +29,30 @@ logger = logging.getLogger(__name__)
 PRICE_DROP_DUPLICATE_WINDOW = timedelta(hours=1)
 
 
-def _enqueue_push(notification_ids: list[int]) -> None:
-    from apps.notifications.tasks import deliver_notification_push
+def _enqueue_push(notifications: list[Notification]) -> None:
+    """Ставит уведомления в очередь доставки — строкой в той же базе.
 
-    for notification_id in notification_ids:
-        try:
-            deliver_notification_push.delay(notification_id)
-        except Exception as exc:  # noqa: BLE001 - ошибка брокера уже после commit
-            logger.error(
-                "Не удалось поставить push в очередь: notification_id=%s, error=%s",
-                notification_id,
-                type(exc).__name__,
-            )
+    Пишется в транзакции вместе с самим уведомлением, а не после коммита:
+    брокера нет, поэтому нет и щели между «уведомление сохранено» и
+    «доставка поставлена», в которую мог бы провалиться упавший процесс.
+    Либо есть обе строки, либо нет ни одной.
+
+    Ошибка здесь не должна ронять отправку сообщения или изменение цены:
+    push — доставка по возможности, а само событие уже произошло.
+    """
+    if not notifications:
+        return
+    try:
+        PushOutbox.objects.bulk_create(
+            [PushOutbox(notification=item) for item in notifications],
+            ignore_conflicts=True,
+        )
+    except Exception as exc:  # noqa: BLE001 - доставка не важнее самого события
+        logger.error(
+            "Не удалось поставить push в очередь: notifications=%s, error=%s",
+            [item.pk for item in notifications],
+            type(exc).__name__,
+        )
 
 
 def notify(
@@ -70,9 +82,10 @@ def notify(
         notification = Notification.objects.create(user=user, **values)
         created = True
 
-    # После коммита: до него задача не увидит запись.
+    # В той же транзакции: строка доставки живёт ровно столько же, сколько
+    # само уведомление, и откат уносит обе.
     if created:
-        transaction.on_commit(lambda: _enqueue_push([notification.pk]))
+        _enqueue_push([notification])
     return notification
 
 
@@ -86,8 +99,7 @@ def notify_many(notifications: list[Notification]) -> list[Notification]:
         return []
 
     created = Notification.objects.bulk_create(notifications)
-    ids = [item.pk for item in created]
-    transaction.on_commit(lambda: _enqueue_push(ids))
+    _enqueue_push(created)
     return created
 
 
