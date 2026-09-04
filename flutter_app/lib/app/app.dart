@@ -56,6 +56,23 @@ import 'app_state.dart';
 import 'routes.dart';
 import 'stage.dart';
 
+/// Убирает дефолтную анимацию перехода между экранами (маршрутами) —
+/// новый экран появляется сразу, без слайда/зума платформы по умолчанию.
+class _NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoAnimationPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 class HouseKgzAppScope extends StatefulWidget {
   const HouseKgzAppScope({
     super.key,
@@ -198,6 +215,12 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> with WidgetsBinding
           supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData(
             useMaterial3: true,
+            pageTransitionsTheme: PageTransitionsTheme(
+              builders: {
+                for (final platform in TargetPlatform.values)
+                  platform: const _NoAnimationPageTransitionsBuilder(),
+              },
+            ),
             scaffoldBackgroundColor: FigColors.page,
             dialogBackgroundColor: const Color(0xffffffff),
             dialogTheme: const DialogThemeData(
