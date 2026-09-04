@@ -414,6 +414,13 @@ SMS_TIMEOUT = env.int("SMS_TIMEOUT", default=10)
 SMS_RETRIES = env.int("SMS_RETRIES", default=2)
 SMS_RETRY_BACKOFF = env.float("SMS_RETRY_BACKOFF", default=1.0)
 
+# WhatsApp OTP через Chatflow
+CHATFLOW_BASE_URL = env.str("CHATFLOW_BASE_URL", default="https://app.chatflow.kz")
+CHATFLOW_TOKEN = env.str("CHATFLOW_TOKEN", default="")
+CHATFLOW_FLOW_ID = env.str("CHATFLOW_FLOW_ID", default="")
+CHATFLOW_INSTANCE_ID = env.str("CHATFLOW_INSTANCE_ID", default="")
+CHATFLOW_TIMEOUT_SECONDS = env.float("CHATFLOW_TIMEOUT_SECONDS", default=15)
+
 # Telegram Gateway API
 TELEGRAM_GATEWAY_TOKEN = env.str("TELEGRAM_GATEWAY_TOKEN", default="")
 TELEGRAM_GATEWAY_BASE_URL = env.str(

@@ -4,6 +4,7 @@
 - `console`: вывод в лог (для локальной разработки)
 - `http`: отправка через классический HTTP-шлюз SMS
 - `telegram`: отправка через официальный Telegram Gateway API (https://gatewayapi.telegram.org)
+- `chatflow`: WhatsApp через Chatflow (Flow ID или legacy instance ID)
 
 Открытый код нигде не логируется в production — исключение только одно:
 ConsoleSmsProvider в режиме DEBUG.
@@ -393,8 +394,77 @@ class TelegramGatewayProvider:
         )
 
 
+class ChatflowProvider:
+    """WhatsApp OTP по контракту Safa-app-backend/apps/users/chatflow.py.
+
+    Повторы выполняет существующая Celery-задача. Ответ не возвращает request_id:
+    в текущей модели это поле используется для отчётов именно Telegram Gateway.
+    """
+
+    def __init__(self) -> None:
+        self.token = settings.CHATFLOW_TOKEN.strip()
+        self.flow_id = settings.CHATFLOW_FLOW_ID.strip()
+        self.instance_id = settings.CHATFLOW_INSTANCE_ID.strip()
+        self.base_url = settings.CHATFLOW_BASE_URL.strip().rstrip("/")
+        self.timeout = settings.CHATFLOW_TIMEOUT_SECONDS
+        if not self.token:
+            raise ImproperlyConfigured("CHATFLOW_TOKEN не задан, а SMS_PROVIDER=chatflow.")
+        if not self.flow_id and not self.instance_id:
+            raise ImproperlyConfigured("Задайте CHATFLOW_FLOW_ID или CHATFLOW_INSTANCE_ID.")
+        if not self.base_url.startswith("https://") or self.timeout <= 0:
+            raise ImproperlyConfigured("Chatflow требует HTTPS URL и положительный таймаут.")
+
+    def send(self, phone: str, text: str, **kwargs: Any) -> None:
+        try:
+            recipient = normalize_phone(phone).lstrip("+")
+        except ValidationError:
+            raise OtpDeliveryError("Некорректный номер телефона для Chatflow.") from None
+
+        headers = {"Accept": "application/json"}
+        if self.flow_id:
+            path = "/api/v1/n8n/action/text"
+            params = {"flow_id": self.flow_id, "recipient": recipient, "msg": text}
+            headers["Authorization"] = f"Bearer {self.token}"
+        else:
+            path = "/api/v1/send-text"
+            params = {
+                "token": self.token,
+                "instance_id": self.instance_id,
+                "jid": f"{recipient}@c.us",
+                "msg": text,
+            }
+
+        try:
+            response = requests.get(
+                f"{self.base_url}{path}",
+                params=params,
+                headers=headers,
+                timeout=self.timeout,
+                allow_redirects=False,
+            )
+        except requests.RequestException:
+            # URL содержит OTP (и legacy token): исключение requests не должно
+            # попасть в traceback Celery вместе с query string.
+            raise OtpDeliveryError("Chatflow временно недоступен.") from None
+
+        if not 200 <= response.status_code < 300:
+            raise OtpDeliveryError(f"Chatflow вернул HTTP {response.status_code}.")
+        try:
+            data = response.json()
+        except ValueError:
+            raise OtpDeliveryError("Некорректный ответ Chatflow.") from None
+        if data is True or (isinstance(data, dict) and data.get("success") is not False):
+            return
+        # Провайдер может вернуть исходный текст в ошибке: не раскрываем его.
+        raise OtpDeliveryError("Chatflow отклонил отправку OTP.")
+
+    def send_code(self, phone: str, code: str, ttl: int | None = None) -> None:
+        # Chatflow отправляет текст; срок действия проверяет наш OTP-сервис.
+        self.send(phone, settings.OTP_SMS_TEMPLATE.format(code=code))
+
+
 def get_sms_provider() -> SmsProvider:
-    """Провайдер по настройке SMS_PROVIDER / OTP_PROVIDER: console | http | telegram."""
+    """Провайдер по SMS_PROVIDER / OTP_PROVIDER: console | http | telegram | chatflow."""
     name = (
         getattr(settings, "SMS_PROVIDER", None)
         or getattr(settings, "OTP_PROVIDER", None)
@@ -407,7 +477,9 @@ def get_sms_provider() -> SmsProvider:
         return HttpSmsProvider()
     if name == "telegram":
         return TelegramGatewayProvider()
+    if name == "chatflow":
+        return ChatflowProvider()
 
     raise ImproperlyConfigured(
-        f"Неизвестный SMS_PROVIDER: {name!r}. Ожидается console, http или telegram."
+        f"Неизвестный SMS_PROVIDER: {name!r}. Ожидается console, http, telegram или chatflow."
     )

@@ -361,6 +361,38 @@ Celery-задачей `common.notify_support_ticket`; если брокер не
 - **Чистка**: Celery Beat раз в сутки (03:15) запускает `users.purge_old_otp_codes` —
   удаляет коды старше `OTP_RETENTION_DAYS` (7 дней).
 
+### WhatsApp OTP через Chatflow
+
+Интеграция использует тот же API, что `Safa-app-backend/apps/users/chatflow.py`.
+В кабинете Chatflow подключите WhatsApp-канал и создайте для него n8n integration.
+Скопируйте API token из **Settings → API Access** и Flow ID этой интеграции.
+В окружении backend и Celery worker задайте:
+
+```dotenv
+SMS_PROVIDER=chatflow
+CHATFLOW_BASE_URL=https://app.chatflow.kz
+CHATFLOW_TOKEN=your-api-token
+CHATFLOW_FLOW_ID=your-flow-id
+CHATFLOW_TIMEOUT_SECONDS=15
+```
+
+После настройки перезапустите backend и Celery worker. Ключ хранится только
+в окружении backend, во Flutter его добавлять не нужно. Отправка использует
+`GET /api/v1/n8n/action/text` с Bearer-токеном и параметрами `flow_id`,
+`recipient` (номер без `+`), `msg`. Код формируется по `OTP_SMS_TEMPLATE`;
+его срок действия и проверка остаются на нашем backend. Сетевые ошибки
+обрабатываются существующими повторами Celery.
+
+Для legacy-кабинета задайте `CHATFLOW_BASE_URL=https://lk.chatflow.kz`,
+пустой `CHATFLOW_FLOW_ID` и `CHATFLOW_INSTANCE_ID`: используется
+`GET /api/v1/send-text` с `token`, `instance_id`, `jid`, `msg`.
+
+Для проверки реальной доставки нужен `DEBUG=False` и номер, отсутствующий в
+`OTP_TEST_PHONES`: в отладке и для тестовых номеров отправка отключена.
+Запросите код через `POST /api/v1/auth/otp/request/`, проверьте получение
+в WhatsApp и подтвердите его через `/api/v1/auth/otp/verify/`.
+Не включайте логирование исходящих URL с query string: Chatflow передаёт в них код.
+
 ### Telegram Gateway OTP
 
 Интеграция с официальным шлюзом [Telegram Gateway](https://gateway.telegram.org) для отправки OTP-кодов верификации в мессенджер Telegram.
