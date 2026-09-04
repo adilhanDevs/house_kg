@@ -70,10 +70,10 @@ class _ProProfilePageState extends State<ProProfilePage> {
   }
 
   List<(PropertyKind, String)> _getCategoryTabs(AppLocalizations l10n) => [
-        (PropertyKind.newBuilding, l10n.kindNewBuilding),
-        (PropertyKind.apartment, l10n.kindApartment),
-        (PropertyKind.commercial, l10n.kindCommercial),
-      ];
+    (PropertyKind.newBuilding, l10n.kindNewBuilding),
+    (PropertyKind.apartment, l10n.kindApartment),
+    (PropertyKind.commercial, l10n.kindCommercial),
+  ];
 
   String _emptyMessageForKind(PropertyKind kind, AppLocalizations l10n) {
     return switch (kind) {
@@ -105,7 +105,10 @@ class _ProProfilePageState extends State<ProProfilePage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Выйти', style: TextStyle(color: _danger)),
+            child: Text(
+              l10n.profileLogout,
+              style: const TextStyle(color: _danger),
+            ),
           ),
         ],
       ),
@@ -234,7 +237,10 @@ class _ProProfilePageState extends State<ProProfilePage> {
                     ),
                     const SizedBox(width: 12.0),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 7.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14.0,
+                        vertical: 7.0,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xffe8f1ff),
                         borderRadius: BorderRadius.circular(6.0),
@@ -280,14 +286,20 @@ class _ProProfilePageState extends State<ProProfilePage> {
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4.0,
+                                ),
                                 child: Text(
                                   label,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 14.0,
-                                    fontWeight: _selectedKind == kind ? FontWeight.w600 : FontWeight.w500,
-                                    color: _selectedKind == kind ? _accent : const Color(0xff8e8e93),
+                                    fontWeight: _selectedKind == kind
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: _selectedKind == kind
+                                        ? _accent
+                                        : const Color(0xff8e8e93),
                                   ),
                                 ),
                               ),
@@ -306,17 +318,27 @@ class _ProProfilePageState extends State<ProProfilePage> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
-                    if (!requireAuth(context, reason: l10n.adMustSelectCategory)) return;
+                    if (!requireAuth(
+                      context,
+                      reason: l10n.adMustSelectCategory,
+                    ))
+                      return;
                     Navigator.of(context).pushNamed(Routes.ad);
                   },
                   child: Container(
                     width: double.infinity,
                     constraints: const BoxConstraints(minHeight: 68.0),
-                    padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18.0,
+                      vertical: 12.0,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xffffffff),
                       borderRadius: BorderRadius.circular(14.0),
-                      border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+                      border: Border.all(
+                        color: const Color(0xffe5e5ea),
+                        width: 1.0,
+                      ),
                       boxShadow: const [
                         BoxShadow(
                           color: Color(0x06000000),
@@ -384,9 +406,13 @@ class _ProProfilePageState extends State<ProProfilePage> {
               SizedBox(
                 height: 208.0,
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: _accent))
+                    ? const Center(
+                        child: CircularProgressIndicator(color: _accent),
+                      )
                     : () {
-                        final filtered = _listings.where((l) => l.kind == _selectedKind).toList();
+                        final filtered = _listings
+                            .where((l) => l.kind == _selectedKind)
+                            .toList();
                         if (filtered.isEmpty) {
                           return Center(
                             child: Text(
@@ -403,16 +429,16 @@ class _ProProfilePageState extends State<ProProfilePage> {
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           itemCount: filtered.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 14.0),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 14.0),
                           itemBuilder: (context, index) {
                             final l = filtered[index];
                             return ObjectCard(
                               listing: l,
                               favourite: state.isFavourite(l.id),
-                              onTap: () => Navigator.of(context).pushNamed(
-                                Routes.adPreview,
-                                arguments: l.slug,
-                              ),
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pushNamed(Routes.adPreview, arguments: l.slug),
                               onFavourite: () => state.toggleFavourite(l.id),
                             );
                           },
@@ -436,11 +462,11 @@ class _ProProfilePageState extends State<ProProfilePage> {
               const SizedBox(height: 24.0),
 
               // 7. Секция «Настройки» с просторным ритмом и тёплыми иконками (Reference 1)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Text(
-                  'Настройки',
-                  style: TextStyle(
+                  l10n.profileSettingsTitle,
+                  style: const TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
                     letterSpacing: -0.2,
@@ -457,22 +483,26 @@ class _ProProfilePageState extends State<ProProfilePage> {
                     _ProSettingRow(
                       icon: Icons.star_border,
                       label: l10n.profileTariffsRow,
-                      onTap: () => Navigator.of(context).pushNamed(Routes.tariffs),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(Routes.tariffs),
                     ),
                     _ProSettingRow(
                       icon: Icons.notifications_none,
                       label: l10n.profileNotificationsRow,
-                      onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(Routes.notifications),
                     ),
                     _ProSettingRow(
                       icon: Icons.person_outline,
                       label: l10n.profileAccountRow,
-                      onTap: () => Navigator.of(context).pushNamed(Routes.account),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(Routes.account),
                     ),
                     _ProSettingRow(
                       icon: Icons.phone_in_talk_outlined,
                       label: l10n.profileSupportRow,
-                      onTap: () => Navigator.of(context).pushNamed(Routes.support),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(Routes.support),
                     ),
 
                     // Строка переключателя языка
@@ -480,7 +510,11 @@ class _ProProfilePageState extends State<ProProfilePage> {
                       padding: const EdgeInsets.symmetric(vertical: 11.0),
                       child: Row(
                         children: [
-                          const Icon(Icons.language, size: 22.0, color: _accent),
+                          const Icon(
+                            Icons.language,
+                            size: 22.0,
+                            color: _accent,
+                          ),
                           const SizedBox(width: 14.0),
                           Expanded(
                             child: Text(
@@ -502,7 +536,9 @@ class _ProProfilePageState extends State<ProProfilePage> {
                       const SizedBox(height: 6.0),
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: _isLoggingOut ? null : () => _confirmLogOut(context),
+                        onTap: _isLoggingOut
+                            ? null
+                            : () => _confirmLogOut(context),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 11.0),
                           child: Row(
@@ -533,7 +569,9 @@ class _ProProfilePageState extends State<ProProfilePage> {
                               const SizedBox(width: 12.0),
                               Expanded(
                                 child: Text(
-                                  _isLoggingOut ? l10n.profileLoggingOut : l10n.profileLogout,
+                                  _isLoggingOut
+                                      ? l10n.profileLoggingOut
+                                      : l10n.profileLogout,
                                   style: const TextStyle(
                                     fontSize: 15.0,
                                     fontWeight: FontWeight.w500,
@@ -608,10 +646,7 @@ class _ProSettingRow extends StatelessWidget {
 }
 
 class _AddListingIcon extends StatelessWidget {
-  const _AddListingIcon({
-    this.size = 34.0,
-    required this.color,
-  });
+  const _AddListingIcon({this.size = 34.0, required this.color});
 
   final double size;
   final Color color;
@@ -621,9 +656,7 @@ class _AddListingIcon extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(
-        painter: _AddListingIconPainter(color: color),
-      ),
+      child: CustomPaint(painter: _AddListingIconPainter(color: color)),
     );
   }
 }
@@ -649,7 +682,10 @@ class _AddListingIconPainter extends CustomPainter {
     final tl = Path()
       ..moveTo(0, cornerLen)
       ..lineTo(0, radius)
-      ..arcToPoint(const Offset(radius, 0), radius: const Radius.circular(radius))
+      ..arcToPoint(
+        const Offset(radius, 0),
+        radius: const Radius.circular(radius),
+      )
       ..lineTo(cornerLen, 0);
     canvas.drawPath(tl, paint);
 
@@ -686,5 +722,6 @@ class _AddListingIconPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _AddListingIconPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _AddListingIconPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

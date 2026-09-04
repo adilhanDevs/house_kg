@@ -14,7 +14,8 @@ String formatNotificationPrice(String? rawPrice, String? rawCurrency) {
   if (rawPrice == null || rawPrice.trim().isEmpty) return '';
   final cleaned = rawPrice.replaceAll(' ', '').trim();
   final numVal = double.tryParse(cleaned);
-  final isUsd = (rawCurrency ?? '').toUpperCase() == 'USD' || rawCurrency == r'$';
+  final isUsd =
+      (rawCurrency ?? '').toUpperCase() == 'USD' || rawCurrency == r'$';
 
   String formatted;
   if (numVal != null) {
@@ -55,11 +56,11 @@ class PriceDropNotificationTile extends StatelessWidget {
   final VoidCallback onTap;
   final Color? backgroundColor;
 
-  String _formatSpecs() {
+  String _formatSpecs(AppLocalizations l10n) {
     final parts = <String>[];
     final rooms = notification.rooms;
     if (rooms != null && rooms > 0) {
-      parts.add('$rooms-комн.');
+      parts.add(l10n.cardRoomsShort(rooms));
     }
     final rawArea = notification.area;
     if (rawArea != null && rawArea.isNotEmpty) {
@@ -68,14 +69,14 @@ class PriceDropNotificationTile extends StatelessWidget {
         final areaStr = numArea == numArea.roundToDouble()
             ? numArea.toInt().toString()
             : numArea.toString();
-        parts.add('$areaStr м²');
+        parts.add('${l10n.cardAreaMeters(areaStr)}²');
       } else {
-        parts.add('$rawArea м²');
+        parts.add('${l10n.cardAreaMeters(rawArea)}²');
       }
     }
     final floor = notification.floor;
     if (floor != null && floor > 0) {
-      parts.add('$floor эт.');
+      parts.add(l10n.cardFloor(floor));
     }
     return parts.join(' • ');
   }
@@ -105,19 +106,28 @@ class PriceDropNotificationTile extends StatelessWidget {
     final coverUrl = _resolveCoverUrl(context, notification.coverUrl);
     final titleText = notification.districtName?.isNotEmpty == true
         ? notification.districtName!
-        : (notification.title.isNotEmpty ? notification.title : 'Объявление');
-    final specsText = _formatSpecs();
+        : (notification.title.isNotEmpty
+              ? notification.title
+              : l10n.notificationFallbackTitle);
+    final specsText = _formatSpecs(l10n);
 
-    final oldPriceFormatted =
-        formatNotificationPrice(notification.oldPrice, notification.currency);
-    final newPriceFormatted =
-        formatNotificationPrice(notification.newPrice, notification.currency);
+    final oldPriceFormatted = formatNotificationPrice(
+      notification.oldPrice,
+      notification.currency,
+    );
+    final newPriceFormatted = formatNotificationPrice(
+      notification.newPrice,
+      notification.currency,
+    );
 
     return InkWell(
       onTap: onTap,
       child: Container(
-        color: backgroundColor ??
-            (notification.isRead ? Colors.transparent : const Color(0x0fea812e)),
+        color:
+            backgroundColor ??
+            (notification.isRead
+                ? Colors.transparent
+                : const Color(0x0fea812e)),
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,13 +144,19 @@ class PriceDropNotificationTile extends StatelessWidget {
                         url: coverUrl,
                         fit: BoxFit.cover,
                         fallback: const Center(
-                          child: Icon(Icons.home_outlined,
-                              size: 26.0, color: _muted),
+                          child: Icon(
+                            Icons.home_outlined,
+                            size: 26.0,
+                            color: _muted,
+                          ),
                         ),
                       )
                     : const Center(
-                        child: Icon(Icons.home_outlined,
-                            size: 26.0, color: _muted),
+                        child: Icon(
+                          Icons.home_outlined,
+                          size: 26.0,
+                          color: _muted,
+                        ),
                       ),
               ),
             ),
@@ -196,7 +212,8 @@ class PriceDropNotificationTile extends StatelessWidget {
                         color: _muted,
                       ),
                     ),
-                  ] else if (notification.body.isNotEmpty && oldPriceFormatted.isEmpty) ...[
+                  ] else if (notification.body.isNotEmpty &&
+                      oldPriceFormatted.isEmpty) ...[
                     const SizedBox(height: 4.0),
                     Text(
                       notification.body,
@@ -226,16 +243,17 @@ class PriceDropNotificationTile extends StatelessWidget {
                     oldPriceFormatted,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: figStyle(
-                      fontSize: 13.0,
-                      family: FigFont.display,
-                      weight: 500,
-                      height: 1.2,
-                      color: _muted,
-                    ).copyWith(
-                      decoration: TextDecoration.lineThrough,
-                      decorationColor: _muted,
-                    ),
+                    style:
+                        figStyle(
+                          fontSize: 13.0,
+                          family: FigFont.display,
+                          weight: 500,
+                          height: 1.2,
+                          color: _muted,
+                        ).copyWith(
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: _muted,
+                        ),
                   ),
                 if (newPriceFormatted.isNotEmpty) ...[
                   const SizedBox(height: 2.0),

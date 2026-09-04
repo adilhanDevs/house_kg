@@ -24,6 +24,7 @@ class _SupportPageState extends State<SupportPage> {
   void _sendMessage() {
     final text = _msgController.text.trim();
     if (text.isEmpty) return;
+    final l10n = context.l10n;
 
     setState(() => _isSending = true);
     Future.delayed(const Duration(milliseconds: 600), () {
@@ -34,16 +35,18 @@ class _SupportPageState extends State<SupportPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text('Сообщение отправлено! Ответим в течение 5 минут.'),
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.supportSent)),
             ],
           ),
           backgroundColor: const Color(0xff34c759),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     });
@@ -58,9 +61,10 @@ class _SupportPageState extends State<SupportPage> {
     }
 
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось открыть ссылку')),
-      );
+      final l10n = context.l10n;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.supportOpenLinkError)));
     }
   }
 
@@ -73,7 +77,11 @@ class _SupportPageState extends State<SupportPage> {
         backgroundColor: const Color(0xffffffff),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(0xff000000)),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: Color(0xff000000),
+          ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
@@ -103,7 +111,10 @@ class _SupportPageState extends State<SupportPage> {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(18.0),
-                  border: Border.all(color: const Color(0x33ea812e), width: 1.0),
+                  border: Border.all(
+                    color: const Color(0x33ea812e),
+                    width: 1.0,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -121,28 +132,32 @@ class _SupportPageState extends State<SupportPage> {
                       ),
                     ),
                     const SizedBox(width: 16.0),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
                               Text(
-                                'Мы на связи 24/7',
-                                style: TextStyle(
+                                l10n.supportOnlineTitle,
+                                style: const TextStyle(
                                   fontSize: 17.0,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xff000000),
                                 ),
                               ),
-                              SizedBox(width: 6.0),
-                              Icon(Icons.circle, size: 10, color: Color(0xff34c759)),
+                              const SizedBox(width: 6.0),
+                              const Icon(
+                                Icons.circle,
+                                size: 10,
+                                color: Color(0xff34c759),
+                              ),
                             ],
                           ),
-                          SizedBox(height: 4.0),
+                          const SizedBox(height: 4.0),
                           Text(
-                            'Оперативно ответим на любые вопросы по объектам, балансу кирпичей и PRO подписке',
-                            style: TextStyle(
+                            l10n.supportOnlineBody,
+                            style: const TextStyle(
                               fontSize: 12.0,
                               color: Color(0xff555555),
                               height: 1.3,
@@ -158,9 +173,9 @@ class _SupportPageState extends State<SupportPage> {
               const SizedBox(height: 24.0),
 
               // Раздел: Способы быстрой связи
-              const Text(
-                'Быстрая связь',
-                style: TextStyle(
+              Text(
+                l10n.supportQuickContact,
+                style: const TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.bold,
                   color: Color(0xff000000),
@@ -185,7 +200,7 @@ class _SupportPageState extends State<SupportPage> {
                     child: _buildContactCard(
                       icon: Icons.phone_in_talk_rounded,
                       iconColor: const Color(0xff34c759),
-                      title: 'Позвонить',
+                      title: l10n.supportCallShort,
                       subtitle: '+996 (312) 998-877',
                       onTap: () => _openUrl(Uri.parse('tel:+996312998877')),
                     ),
@@ -196,9 +211,9 @@ class _SupportPageState extends State<SupportPage> {
               const SizedBox(height: 24.0),
 
               // Написать нам напрямую
-              const Text(
-                'Задать вопрос напрямую',
-                style: TextStyle(
+              Text(
+                l10n.supportDirectQuestion,
+                style: const TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.bold,
                   color: Color(0xff000000),
@@ -211,16 +226,22 @@ class _SupportPageState extends State<SupportPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xffffffff),
                   borderRadius: BorderRadius.circular(14.0),
-                  border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+                  border: Border.all(
+                    color: const Color(0xffe5e5ea),
+                    width: 1.0,
+                  ),
                 ),
                 child: Column(
                   children: [
                     TextField(
                       controller: _msgController,
                       maxLines: 4,
-                      decoration: const InputDecoration.collapsed(
-                        hintText: 'Опишите вашу проблему или вопрос...',
-                        hintStyle: TextStyle(fontSize: 14.0, color: Color(0xffa2a2a7)),
+                      decoration: InputDecoration.collapsed(
+                        hintText: l10n.supportMessageHint,
+                        hintStyle: const TextStyle(
+                          fontSize: 14.0,
+                          color: Color(0xffa2a2a7),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12.0),
@@ -236,7 +257,10 @@ class _SupportPageState extends State<SupportPage> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10.0),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20.0,
+                              vertical: 10.0,
+                            ),
                           ),
                           icon: _isSending
                               ? const SizedBox(
@@ -248,7 +272,9 @@ class _SupportPageState extends State<SupportPage> {
                                   ),
                                 )
                               : const Icon(Icons.send_outlined, size: 18),
-                          label: Text(_isSending ? 'Отправка...' : 'Отправить'),
+                          label: Text(
+                            _isSending ? l10n.supportSending : l10n.supportSend,
+                          ),
                         ),
                       ],
                     ),
@@ -259,9 +285,9 @@ class _SupportPageState extends State<SupportPage> {
               const SizedBox(height: 28.0),
 
               // Раздел FAQ
-              const Text(
-                'Часто задаваемые вопросы',
-                style: TextStyle(
+              Text(
+                l10n.supportFaq,
+                style: const TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.bold,
                   color: Color(0xff000000),
@@ -270,19 +296,16 @@ class _SupportPageState extends State<SupportPage> {
               const SizedBox(height: 12.0),
 
               _buildFaqItem(
-                question: 'Как пополнить баланс кирпичей?',
-                answer:
-                    'Перейдите на вкладку «Профиль», нажмите на кнопку «Пополнить» на панели баланса и выберите удобный способ оплаты (MBANK, Элсом, Visa, О!Деньги).',
+                question: l10n.supportFaqBalanceQuestion,
+                answer: l10n.supportFaqBalanceAnswer,
               ),
               _buildFaqItem(
-                question: 'Как получить статус PRO агентства?',
-                answer:
-                    'Пройдите быструю верификацию в профиле, загрузив фото вашего риелторского удостоверения или паспорта.',
+                question: l10n.supportFaqProQuestion,
+                answer: l10n.supportFaqProAnswer,
               ),
               _buildFaqItem(
-                question: 'Сколько списывается кирпичей за публикацию?',
-                answer:
-                    'Списание зависит от категории объекта и дополнительных опций (выделение цветом, топ списка, автоподъем).',
+                question: l10n.supportFaqBricksQuestion,
+                answer: l10n.supportFaqBricksAnswer,
               ),
             ],
           ),
@@ -307,7 +330,11 @@ class _SupportPageState extends State<SupportPage> {
           borderRadius: BorderRadius.circular(14.0),
           border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
           boxShadow: const [
-            BoxShadow(color: Color(0x08000000), blurRadius: 8.0, offset: Offset(0, 3)),
+            BoxShadow(
+              color: Color(0x08000000),
+              blurRadius: 8.0,
+              offset: Offset(0, 3),
+            ),
           ],
         ),
         child: Column(
@@ -342,36 +369,42 @@ class _SupportPageState extends State<SupportPage> {
   }
 
   Widget _buildFaqItem({required String question, required String answer}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10.0),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0),
+      child: Material(
         color: const Color(0xffffffff),
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
-      ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-        childrenPadding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 14.0),
-        iconColor: const Color(0xffea812e),
-        collapsedIconColor: const Color(0xff7d7d7d),
-        title: Text(
-          question,
-          style: const TextStyle(
-            fontSize: 14.0,
-            fontWeight: FontWeight.w600,
-            color: Color(0xff000000),
-          ),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          side: const BorderSide(color: Color(0xffe5e5ea), width: 1.0),
         ),
-        children: [
-          Text(
-            answer,
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 4.0,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 14.0),
+          iconColor: const Color(0xffea812e),
+          collapsedIconColor: const Color(0xff7d7d7d),
+          title: Text(
+            question,
             style: const TextStyle(
-              fontSize: 13.0,
-              color: Color(0xff555555),
-              height: 1.4,
+              fontSize: 14.0,
+              fontWeight: FontWeight.w600,
+              color: Color(0xff000000),
             ),
           ),
-        ],
+          children: [
+            Text(
+              answer,
+              style: const TextStyle(
+                fontSize: 13.0,
+                color: Color(0xff555555),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

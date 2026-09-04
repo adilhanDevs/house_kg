@@ -259,35 +259,34 @@ class _CatalogPageState extends State<CatalogPage> {
         top: _gridFirstCard - _gridTop,
         bottom: 16,
       ),
-      onOpen: (listing) => Navigator.of(context).pushNamed(
-        Routes.listingVideo,
-        arguments: ListingArgs(listing.id),
-      ),
+      onOpen: (listing) => Navigator.of(
+        context,
+      ).pushNamed(Routes.listing, arguments: ListingArgs(listing.id)),
     );
   }
 
   Widget _label(String text) => Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 13,
-          color: _muted,
-          fontWeight: FontWeight.w500,
-        ),
-      );
+    text,
+    textAlign: TextAlign.center,
+    style: const TextStyle(
+      fontSize: 13,
+      color: _muted,
+      fontWeight: FontWeight.w500,
+    ),
+  );
 
   Widget _action(String text, VoidCallback onTap) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 14,
-            color: _accent,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 14,
+        color: _accent,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
 }
 
 class _Centered extends StatelessWidget {
@@ -300,10 +299,7 @@ class _Centered extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: children,
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
   }

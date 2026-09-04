@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/listings.dart';
 import '../../fig/fig.dart';
+import '../../l10n/l10n.dart';
 
 class CategoryPageArgs {
   const CategoryPageArgs(this.kind);
@@ -13,20 +14,9 @@ class CategoryPage extends StatelessWidget {
 
   final PropertyKind kind;
 
-  String _getTitle() {
-    return switch (kind) {
-      PropertyKind.newBuilding => 'Новостройки',
-      PropertyKind.room => 'Комнаты',
-      PropertyKind.commercial => 'Коммерция',
-      PropertyKind.house => 'Дома',
-      PropertyKind.apartment => 'Квартиры',
-      PropertyKind.plot => 'Участки',
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
-    final title = _getTitle();
+    final title = kind.localized(context.l10n);
 
     return Scaffold(
       backgroundColor: const Color(0xfffefefe),
@@ -34,7 +24,11 @@ class CategoryPage extends StatelessWidget {
         backgroundColor: const Color(0xffffffff),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(0xff000000)),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: Color(0xff000000),
+          ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
@@ -94,7 +88,10 @@ class CategoryPage extends StatelessWidget {
                 GestureDetector(
                   onTap: () => Navigator.of(context).maybePop(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 12.0,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xffea812e),
                       borderRadius: BorderRadius.circular(10.0),

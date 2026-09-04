@@ -19,6 +19,7 @@ import '../data/kind_fields.dart';
 import '../data/listing_payload.dart';
 import '../data/listings.dart';
 import '../data/tariff.dart';
+import '../l10n/app_localizations.dart';
 
 /// Операция по кошельку — строка «Истории пополнения и трат».
 @immutable
@@ -68,10 +69,9 @@ class AppState extends ChangeNotifier {
     MediaSource media = const DeviceMedia(),
     ListingApiClient? apiClient,
     VideoPosterCapture? posterCapture,
-  })  : _media = media,
-        _posterCapture = posterCapture ?? captureVideoPoster,
-        apiClient = apiClient ??
-            ListingApiClient(baseUrl: kApiBaseUrl) {
+  }) : _media = media,
+       _posterCapture = posterCapture ?? captureVideoPoster,
+       apiClient = apiClient ?? ListingApiClient(baseUrl: kApiBaseUrl) {
     this.apiClient.setTokenRefreshCallback(_handleTokenRefresh);
     authInitialized = _initAuth();
   }
@@ -108,19 +108,20 @@ class AppState extends ChangeNotifier {
   int _authGeneration = 0;
   String? _accessToken;
   String? _refreshToken;
-  
+
   int? userId;
   String? userName;
   String? userPhone;
   String? userWhatsappPhone;
   String? userAvatarUrl;
   String? userProfileCoverUrl;
+
   /// `owner` | `realtor` | `agency` — из профиля (`seller_kind`).
   String? sellerKind;
   int walletBalance = 0;
   bool isPro = false;
   bool isInitializing = true;
-  
+
   Locale _locale = const Locale('ru');
   Locale get locale => _locale;
   String get languageCode => _locale.languageCode;
@@ -137,7 +138,7 @@ class AppState extends ChangeNotifier {
   Future<void> setLocale(Locale newLocale) async {
     await setLanguageCode(newLocale.languageCode);
   }
-  
+
   final ListingApiClient apiClient;
 
   bool get isAuthenticated => _accessToken != null;
@@ -227,9 +228,9 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? currentSubscription;
 
   TariffPlan get activeTariff => tariffs.firstWhere(
-        (t) => t.code == currentTariffCode,
-        orElse: () => kDefaultTariffPlans.first,
-      );
+    (t) => t.code == currentTariffCode,
+    orElse: () => kDefaultTariffPlans.first,
+  );
 
   Future<void> fetchTariffs() async {
     try {
@@ -246,7 +247,9 @@ class AppState extends ChangeNotifier {
       final sub = await apiClient.getCurrentSubscription();
       if (sub != null) {
         currentSubscription = sub;
-        final tCode = (sub['tariff'] is Map) ? sub['tariff']['code'] : sub['tariff_code'];
+        final tCode = (sub['tariff'] is Map)
+            ? sub['tariff']['code']
+            : sub['tariff_code'];
         if (tCode != null) {
           final raw = tCode.toString();
           if (raw == 'free') {
@@ -284,7 +287,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> buySubscription(TariffPlan tariff, {bool withBricks = false}) async {
+  Future<void> buySubscription(
+    TariffPlan tariff, {
+    bool withBricks = false,
+  }) async {
     if (tariff.isFree) {
       try {
         await apiClient.cancelSubscription();
@@ -312,7 +318,9 @@ class AppState extends ChangeNotifier {
 
   Future<void> fetchFilterOptions([String? city = 'bishkek']) async {
     try {
-      final citySlug = (city == 'Бишкек' || city == null || city.isEmpty) ? 'bishkek' : city;
+      final citySlug = (city == 'Бишкек' || city == null || city.isEmpty)
+          ? 'bishkek'
+          : city;
       filterOptions = await apiClient.getFilterOptions(city: citySlug);
       notifyListeners();
     } catch (e) {
@@ -342,7 +350,9 @@ class AppState extends ChangeNotifier {
       }
       isPro = profile['is_pro'] as bool? ?? false;
       final hasSellerProfile = profile['has_seller_profile'] as bool? ?? false;
-      if (isPro || hasSellerProfile || (sellerKind != null && sellerKind!.isNotEmpty)) {
+      if (isPro ||
+          hasSellerProfile ||
+          (sellerKind != null && sellerKind!.isNotEmpty)) {
         _pro = true;
       } else {
         _pro = false;
@@ -373,7 +383,9 @@ class AppState extends ChangeNotifier {
           userName = profile['name'] as String?;
           userPhone = profile['phone'] as String?;
           userWhatsappPhone = profile['whatsapp_phone'] as String?;
-          userAvatarUrl = apiClient.absoluteUrl(profile['avatar_url'] as String?);
+          userAvatarUrl = apiClient.absoluteUrl(
+            profile['avatar_url'] as String?,
+          );
           userProfileCoverUrl = apiClient.absoluteUrl(
             (profile['profile_cover_url'] ?? profile['cover_url']) as String?,
           );
@@ -406,11 +418,23 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  String localizedRoleLabel([dynamic l10n]) => roleLabel;
+  String localizedRoleLabel([AppLocalizations? l10n]) {
+    if (l10n == null) return roleLabel;
+    if (!(pro || isPro)) return l10n.roleClient;
+    return switch (sellerKind) {
+      'owner' => l10n.roleOwner,
+      'realtor' => l10n.roleRealtor,
+      'agency' => l10n.roleAgency,
+      _ => l10n.rolePro,
+    };
+  }
 
   /// Инициалы для заглушки аватара, когда фото не загружено.
   String get userInitials {
-    final parts = (userName ?? '').trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
+    final parts = (userName ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty);
     if (parts.isEmpty) return '';
     return parts.take(2).map((p) => p[0].toUpperCase()).join();
   }
@@ -491,7 +515,9 @@ class AppState extends ChangeNotifier {
 
   Future<void> logout() async {
     _authGeneration++;
-    try { await beforeLogout?.call(); } catch (_) {}
+    try {
+      await beforeLogout?.call();
+    } catch (_) {}
     userId = null;
     if (_refreshToken != null) {
       try {
@@ -520,7 +546,7 @@ class AppState extends ChangeNotifier {
     await prefs.remove('refresh_token');
     await prefs.remove('current_tariff_code');
     await prefs.remove('saved_phone');
-    
+
     _favourites.clear();
     _viewed.clear();
     _query = '';
@@ -621,7 +647,12 @@ class AppState extends ChangeNotifier {
     await _saveTokens(response);
   }
 
-  Future<void> registerPro(String phone, String name, String password, String iin) async {
+  Future<void> registerPro(
+    String phone,
+    String name,
+    String password,
+    String iin,
+  ) async {
     final response = await apiClient.registerPro(phone, name, password, iin);
     // If the server returns tokens immediately:
     if (response.containsKey('access')) {
@@ -652,7 +683,9 @@ class AppState extends ChangeNotifier {
       }
       isPro = user['is_pro'] as bool? ?? false;
       final hasSeller = user['has_seller_profile'] as bool? ?? false;
-      if (isPro || hasSeller || (sellerKind != null && sellerKind!.isNotEmpty)) {
+      if (isPro ||
+          hasSeller ||
+          (sellerKind != null && sellerKind!.isNotEmpty)) {
         _pro = true;
       }
     }
@@ -704,7 +737,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> toggleFavourite(String id) async {
     final wasFavourited = _favourites.contains(id);
-    
+
     // Optimistic UI update
     if (wasFavourited) {
       _favourites.remove(id);
@@ -715,8 +748,9 @@ class AppState extends ChangeNotifier {
 
     try {
       final response = await apiClient.toggleFavourite(id);
-      final isFavourited = response['is_favourite'] == true || response['is_favourited'] == true;
-      
+      final isFavourited =
+          response['is_favourite'] == true || response['is_favourited'] == true;
+
       // Re-sync with actual response just in case
       bool changed = false;
       if (isFavourited && !_favourites.contains(id)) {
@@ -760,6 +794,7 @@ class AppState extends ChangeNotifier {
   int? _priceTo;
 
   String get query => _query;
+
   /// Выбранные типы недвижимости (множественный выбор).
   Set<PropertyKind> get kinds => Set.unmodifiable(_kinds);
   Set<PropertyKind> get selectedKinds => kinds;
@@ -769,6 +804,7 @@ class AppState extends ChangeNotifier {
   AreaRange? get customArea => _customArea;
   Set<SellerKind> get sellers => Set.unmodifiable(_sellers);
   bool get secondaryOnly => _secondaryOnly;
+
   /// Чип «103 серия» — это тот же набор серий, а не отдельный флаг.
   /// Раньше он жил своим полем, которое не попадало в запрос, и фильтр
   /// молча не работал.
@@ -779,7 +815,9 @@ class AppState extends ChangeNotifier {
   Set<String> get buildingLines => Set.unmodifiable(_buildingLines);
 
   void togglePlotPurpose(String value) {
-    _plotPurposes.contains(value) ? _plotPurposes.remove(value) : _plotPurposes.add(value);
+    _plotPurposes.contains(value)
+        ? _plotPurposes.remove(value)
+        : _plotPurposes.add(value);
     notifyListeners();
   }
 
@@ -791,9 +829,12 @@ class AppState extends ChangeNotifier {
   }
 
   void toggleBuildingLine(String value) {
-    _buildingLines.contains(value) ? _buildingLines.remove(value) : _buildingLines.add(value);
+    _buildingLines.contains(value)
+        ? _buildingLines.remove(value)
+        : _buildingLines.add(value);
     notifyListeners();
   }
+
   int? get priceFrom => _priceFrom;
   int? get priceTo => _priceTo;
   bool get ownerOnly => _sellers.contains(SellerKind.owner);
@@ -805,8 +846,10 @@ class AppState extends ChangeNotifier {
   }
 
   /// Все выбранные диапазоны квадратуры — чипы плюс введённый вручную.
-  List<AreaRange> get areaFilter =>
-      [..._areas, if (_customArea != null) _customArea!];
+  List<AreaRange> get areaFilter => [
+    ..._areas,
+    if (_customArea != null) _customArea!,
+  ];
 
   bool get hasFilter =>
       _kinds.isNotEmpty ||
@@ -844,20 +887,25 @@ class AppState extends ChangeNotifier {
   /// Живёт столько же, сколько запуск приложения: по нему сервер собирает
   /// краткосрочный интерес и не показывает одно и то же дважды. Новый
   /// идентификатор на каждый запрос обнулял бы и то, и другое.
-  late final String recommendationSessionId = 'session-${const Uuid().v4().replaceAll('-', '')}';
+  late final String recommendationSessionId =
+      'session-${const Uuid().v4().replaceAll('-', '')}';
 
   Map<String, dynamic> get filterParams {
     final params = <String, dynamic>{};
     if (_query.isNotEmpty) params['search'] = _query;
     if (_kinds.isNotEmpty) params['kind'] = _kinds.map((k) => k.name).join(',');
     if (_rooms.isNotEmpty) params['rooms'] = _rooms.join(',');
-    if (areaFilter.isNotEmpty) params['area_ranges'] = areaFilter.map((a) => a.label).join(',');
-    if (_sellers.isNotEmpty) params['seller_kind'] = _sellers.map((s) => s.name).join(',');
-    if (_plotPurposes.isNotEmpty) params['plot_purpose'] = _plotPurposes.join(',');
+    if (areaFilter.isNotEmpty)
+      params['area_ranges'] = areaFilter.map((a) => a.label).join(',');
+    if (_sellers.isNotEmpty)
+      params['seller_kind'] = _sellers.map((s) => s.name).join(',');
+    if (_plotPurposes.isNotEmpty)
+      params['plot_purpose'] = _plotPurposes.join(',');
     if (_commercialPurposes.isNotEmpty) {
       params['commercial_purpose'] = _commercialPurposes.join(',');
     }
-    if (_buildingLines.isNotEmpty) params['building_line'] = _buildingLines.join(',');
+    if (_buildingLines.isNotEmpty)
+      params['building_line'] = _buildingLines.join(',');
     if (_secondaryOnly) params['is_secondary'] = 'true';
     if (_series.isNotEmpty) params['series'] = _series.join(',');
     if (_priceFrom != null) params['price_min'] = _priceFrom.toString();
@@ -919,7 +967,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-
   void setPrice({int? from, int? to}) {
     _priceFrom = from;
     _priceTo = to;
@@ -948,28 +995,63 @@ class AppState extends ChangeNotifier {
   int _bricks = 16700;
   final List<WalletEntry> _wallet = [
     // строки из макета «Истории пополнения и трат»
-    const WalletEntry(day: '21 августа', label: '+12 000 сом (12 000 кирпичей)', bricks: 12000, kind: WalletEntryKind.topup),
-    const WalletEntry(day: '21 августа', label: '+1 200 кирпичей (бонус за пополнение)', bricks: 1200, kind: WalletEntryKind.bonus),
-    const WalletEntry(day: '21 августа', label: '+300 кирпичей (бонус за квест)', bricks: 300, kind: WalletEntryKind.bonus),
-    const WalletEntry(day: '21 августа', label: '-500 кирпичей', bricks: -500, kind: WalletEntryKind.spend),
-    const WalletEntry(day: '20 августа', label: '+12 000 сом (12 000 кирпичей)', bricks: 12000, kind: WalletEntryKind.topup),
-    const WalletEntry(day: '20 августа', label: '-500 кирпичей', bricks: -500, kind: WalletEntryKind.spend),
+    const WalletEntry(
+      day: '21 августа',
+      label: '+12 000 сом (12 000 кирпичей)',
+      bricks: 12000,
+      kind: WalletEntryKind.topup,
+    ),
+    const WalletEntry(
+      day: '21 августа',
+      label: '+1 200 кирпичей (бонус за пополнение)',
+      bricks: 1200,
+      kind: WalletEntryKind.bonus,
+    ),
+    const WalletEntry(
+      day: '21 августа',
+      label: '+300 кирпичей (бонус за квест)',
+      bricks: 300,
+      kind: WalletEntryKind.bonus,
+    ),
+    const WalletEntry(
+      day: '21 августа',
+      label: '-500 кирпичей',
+      bricks: -500,
+      kind: WalletEntryKind.spend,
+    ),
+    const WalletEntry(
+      day: '20 августа',
+      label: '+12 000 сом (12 000 кирпичей)',
+      bricks: 12000,
+      kind: WalletEntryKind.topup,
+    ),
+    const WalletEntry(
+      day: '20 августа',
+      label: '-500 кирпичей',
+      bricks: -500,
+      kind: WalletEntryKind.spend,
+    ),
   ];
 
   int get bricks => _bricks;
   String get bricksLabel {
     final s = _bricks.toString();
-    return s.length > 3 ? '${s.substring(0, s.length - 3)}.${s.substring(s.length - 3)}' : s;
+    return s.length > 3
+        ? '${s.substring(0, s.length - 3)}.${s.substring(s.length - 3)}'
+        : s;
   }
 
   List<WalletEntry> get wallet => List.unmodifiable(_wallet);
 
   List<WalletEntry> walletFor(WalletTab tab) => switch (tab) {
-        WalletTab.all => wallet,
-        WalletTab.topup => _wallet.where((e) => e.kind == WalletEntryKind.topup).toList(),
-        WalletTab.spend => _wallet.where((e) => e.kind == WalletEntryKind.spend).toList(),
-        WalletTab.bonus => _wallet.where((e) => e.kind == WalletEntryKind.bonus).toList(),
-      };
+    WalletTab.all => wallet,
+    WalletTab.topup =>
+      _wallet.where((e) => e.kind == WalletEntryKind.topup).toList(),
+    WalletTab.spend =>
+      _wallet.where((e) => e.kind == WalletEntryKind.spend).toList(),
+    WalletTab.bonus =>
+      _wallet.where((e) => e.kind == WalletEntryKind.bonus).toList(),
+  };
 
   /// Пополнение: сумма в сомах даёт столько же кирпичей плюс 10% бонуса —
   /// как на экране «+12 000 сом → +1200 кирпичей».
@@ -1069,7 +1151,8 @@ class AppState extends ChangeNotifier {
 
   String _topupErrorText(Object error) {
     if (error is ApiException) {
-      if (error.statusCode == 401) return 'Войдите в аккаунт, чтобы пополнить кошелёк';
+      if (error.statusCode == 401)
+        return 'Войдите в аккаунт, чтобы пополнить кошелёк';
       if (error.statusCode == 429) {
         return 'Слишком много счетов подряд. Подождите немного и повторите';
       }
@@ -1081,7 +1164,8 @@ class AppState extends ChangeNotifier {
       }
       return error.message;
     }
-    if (error is NetworkException) return 'Нет связи с сервером. Проверьте интернет';
+    if (error is NetworkException)
+      return 'Нет связи с сервером. Проверьте интернет';
     return 'Не удалось выставить счёт на оплату';
   }
 
@@ -1093,7 +1177,6 @@ class AppState extends ChangeNotifier {
     _pro = value;
     notifyListeners();
   }
-
 
   // ------------------------------------------------------ история просмотров
   //
@@ -1119,7 +1202,8 @@ class AppState extends ChangeNotifier {
               final listing = Listing.fromJson(listingMap);
               final viewedAtStr = listingMap['viewed_at'] as String?;
               final at = viewedAtStr != null
-                  ? (DateTime.tryParse(viewedAtStr)?.toLocal() ?? DateTime.now())
+                  ? (DateTime.tryParse(viewedAtStr)?.toLocal() ??
+                        DateTime.now())
                   : DateTime.now();
               entries.add(ViewEntry(listing.id, at, listingData: listing));
             }
@@ -1199,6 +1283,7 @@ class AppState extends ChangeNotifier {
   String draftContactName = '';
   String draftContactPhone = '';
   final List<String> draftLandmarks = [];
+
   /// Экспликация помещений черновика: владелец сам решает, какие комнаты
   /// добавить. Фиксированного набора нет.
   final List<DraftRoom> draftRoomList = [];
@@ -1272,10 +1357,12 @@ class AppState extends ChangeNotifier {
       if (response['floor'] != null) draftFloor = response['floor'] as int;
       if (response['floors'] != null) draftFloors = response['floors'] as int;
       if (response['area'] != null) draftArea = response['area'].toString();
-      if (response['land_area'] != null) draftLandArea = response['land_area'].toString();
+      if (response['land_area'] != null)
+        draftLandArea = response['land_area'].toString();
       draftPlotPurpose = response['plot_purpose'] as String? ?? '';
       draftCommercialPurpose = response['commercial_purpose'] as String? ?? '';
-      draftSeparateEntrance = response['has_separate_entrance'] as bool? ?? false;
+      draftSeparateEntrance =
+          response['has_separate_entrance'] as bool? ?? false;
       draftBuildingLine = response['building_line'] as String? ?? '';
       if (response['ceiling_height'] != null) {
         draftCeilingHeight = response['ceiling_height'].toString();
@@ -1283,12 +1370,18 @@ class AppState extends ChangeNotifier {
       if (response['price'] != null) {
         final rawPrice = response['price'];
         if (rawPrice is num) {
-          draftPrice = rawPrice % 1 == 0 ? rawPrice.toInt().toString() : rawPrice.toString();
+          draftPrice = rawPrice % 1 == 0
+              ? rawPrice.toInt().toString()
+              : rawPrice.toString();
         } else {
           final pStr = rawPrice.toString();
-          final parsed = double.tryParse(pStr.replaceAll(' ', '').replaceAll(',', '.'));
+          final parsed = double.tryParse(
+            pStr.replaceAll(' ', '').replaceAll(',', '.'),
+          );
           if (parsed != null) {
-            draftPrice = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toString();
+            draftPrice = parsed % 1 == 0
+                ? parsed.toInt().toString()
+                : parsed.toString();
           } else {
             draftPrice = pStr;
           }
@@ -1308,24 +1401,36 @@ class AppState extends ChangeNotifier {
       draftContactPhone = response['contact_phone'] as String? ?? '';
       draftLandmarks
         ..clear()
-        ..addAll((response['landmarks'] as List<dynamic>? ?? const [])
-            .map((e) => e.toString()));
+        ..addAll(
+          (response['landmarks'] as List<dynamic>? ?? const []).map(
+            (e) => e.toString(),
+          ),
+        );
       draftRoomList
         ..clear()
-        ..addAll((response['rooms_breakdown'] as List<dynamic>? ?? const [])
-            .whereType<Map>()
-            .map((m) => DraftRoom(
+        ..addAll(
+          (response['rooms_breakdown'] as List<dynamic>? ?? const [])
+              .whereType<Map>()
+              .map(
+                (m) => DraftRoom(
                   name: (m['name'] ?? '').toString(),
                   area: (m['area'] ?? '').toString(),
-                )));
+                ),
+              ),
+        );
       if (response['series'] != null) {
         final series = response['series'];
-        draftSeries = series is Map ? (series['code'] ?? '').toString() : series.toString();
+        draftSeries = series is Map
+            ? (series['code'] ?? '').toString()
+            : series.toString();
       }
-      if (response['currency'] != null) draftUsd = response['currency'] == 'USD';
+      if (response['currency'] != null)
+        draftUsd = response['currency'] == 'USD';
       if (response['district'] != null) {
         final d = response['district'];
-        draftDistrict = d is Map ? (d['slug'] ?? d['id']?.toString() ?? '') : d.toString();
+        draftDistrict = d is Map
+            ? (d['slug'] ?? d['id']?.toString() ?? '')
+            : d.toString();
       }
       if (response['builder'] != null) {
         final b = response['builder'];
@@ -1342,23 +1447,24 @@ class AppState extends ChangeNotifier {
           final kind = m['kind'] as String?;
           final fileUrl = m['file'] as String? ?? m['url'] as String? ?? '';
           final mediaId = m['id'] as int?;
-          final durationSec = m['duration_seconds'] as int? ??
+          final durationSec =
+              m['duration_seconds'] as int? ??
               (m['duration'] is num ? (m['duration'] as num).toInt() : null);
           if (kind == 'video') {
-            draftVideoList.add(AdMedia.network(
-              fileUrl,
-              id: mediaId,
-              video: true,
-              title: m['title'] as String?,
-              description: m['description'] as String?,
-              durationSeconds: durationSec,
-            ));
+            draftVideoList.add(
+              AdMedia.network(
+                fileUrl,
+                id: mediaId,
+                video: true,
+                title: m['title'] as String?,
+                description: m['description'] as String?,
+                durationSeconds: durationSec,
+              ),
+            );
           } else {
-            draftGallery.add(AdMedia.network(
-              fileUrl,
-              id: mediaId,
-              video: false,
-            ));
+            draftGallery.add(
+              AdMedia.network(fileUrl, id: mediaId, video: false),
+            );
           }
         }
       }
@@ -1469,6 +1575,7 @@ class AppState extends ChangeNotifier {
   /// Продвижение: сколько дней и чем платим.
   int promoDays = 1;
   bool promoFromBalance = false;
+
   /// Цена дня продвижения для предпросмотра. Настоящую цену считает бэкенд
   /// (`GET /promotions/pricing/`), здесь — то же число, что стоит в базе.
   /// Тестовый режим оплаты: один кирпич за день (боевая цена — 780).
@@ -1485,7 +1592,7 @@ class AppState extends ChangeNotifier {
 /// Доступ к состоянию из дерева.
 class AppScope extends InheritedNotifier<AppState> {
   const AppScope({super.key, required AppState state, required super.child})
-      : super(notifier: state);
+    : super(notifier: state);
 
   static AppState of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();

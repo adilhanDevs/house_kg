@@ -626,6 +626,18 @@ abstract class AppLocalizations {
   /// **'Отправка кода...'**
   String get codeSending;
 
+  /// No description provided for @homeGreeting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Здравствуйте, {name}!'**
+  String homeGreeting(String name);
+
+  /// No description provided for @homeGreetingGuest.
+  ///
+  /// In ru, this message translates to:
+  /// **'Здравствуйте!'**
+  String get homeGreetingGuest;
+
   /// No description provided for @homeCategories.
   ///
   /// In ru, this message translates to:
@@ -649,6 +661,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Посмотреть все'**
   String get homeSeeAll;
+
+  /// No description provided for @homeNewPositions.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новые позиции'**
+  String get homeNewPositions;
 
   /// No description provided for @homeNewBuildings.
   ///
@@ -685,6 +703,42 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Поиск по адресу, району...'**
   String get homeSearchHint;
+
+  /// No description provided for @homeNoNewListings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет новых объявлений'**
+  String get homeNoNewListings;
+
+  /// No description provided for @cardRoomsShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count}-комн.'**
+  String cardRoomsShort(int count);
+
+  /// No description provided for @cardAreaMeters.
+  ///
+  /// In ru, this message translates to:
+  /// **'{area}м'**
+  String cardAreaMeters(String area);
+
+  /// No description provided for @cardFloor.
+  ///
+  /// In ru, this message translates to:
+  /// **'{floor} этаж'**
+  String cardFloor(int floor);
+
+  /// No description provided for @cardLandAreaSotka.
+  ///
+  /// In ru, this message translates to:
+  /// **'{area} сот.'**
+  String cardLandAreaSotka(String area);
+
+  /// No description provided for @cardPlot.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участок'**
+  String get cardPlot;
 
   /// No description provided for @catalogTitle.
   ///
@@ -1232,6 +1286,24 @@ abstract class AppLocalizations {
   /// **'Уведомлений пока нет'**
   String get notificationsEmpty;
 
+  /// No description provided for @notificationsProfileEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'У вас пока нет уведомлений'**
+  String get notificationsProfileEmpty;
+
+  /// No description provided for @notificationsLoadError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить уведомления'**
+  String get notificationsLoadError;
+
+  /// No description provided for @notificationFallbackTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Уведомление'**
+  String get notificationFallbackTitle;
+
   /// No description provided for @notificationsMarkAllRead.
   ///
   /// In ru, this message translates to:
@@ -1327,6 +1399,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Язык'**
   String get profileLanguageRow;
+
+  /// No description provided for @profileSettingsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки'**
+  String get profileSettingsTitle;
 
   /// No description provided for @profileSellButton.
   ///
@@ -1711,6 +1789,102 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Написать на почту'**
   String get supportEmail;
+
+  /// No description provided for @supportOnlineTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мы на связи 24/7'**
+  String get supportOnlineTitle;
+
+  /// No description provided for @supportOnlineBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оперативно ответим на любые вопросы по объектам, балансу кирпичей и PRO подписке'**
+  String get supportOnlineBody;
+
+  /// No description provided for @supportQuickContact.
+  ///
+  /// In ru, this message translates to:
+  /// **'Быстрая связь'**
+  String get supportQuickContact;
+
+  /// No description provided for @supportCallShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Позвонить'**
+  String get supportCallShort;
+
+  /// No description provided for @supportDirectQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задать вопрос напрямую'**
+  String get supportDirectQuestion;
+
+  /// No description provided for @supportMessageHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опишите вашу проблему или вопрос...'**
+  String get supportMessageHint;
+
+  /// No description provided for @supportSend.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get supportSend;
+
+  /// No description provided for @supportSending.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправка...'**
+  String get supportSending;
+
+  /// No description provided for @supportSent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение отправлено! Ответим в течение 5 минут.'**
+  String get supportSent;
+
+  /// No description provided for @supportOpenLinkError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть ссылку'**
+  String get supportOpenLinkError;
+
+  /// No description provided for @supportFaqBalanceQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Как пополнить баланс кирпичей?'**
+  String get supportFaqBalanceQuestion;
+
+  /// No description provided for @supportFaqBalanceAnswer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перейдите на вкладку «Профиль», нажмите на кнопку «Пополнить» на панели баланса и выберите удобный способ оплаты (MBANK, Элсом, Visa, О!Деньги).'**
+  String get supportFaqBalanceAnswer;
+
+  /// No description provided for @supportFaqProQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Как получить статус PRO агентства?'**
+  String get supportFaqProQuestion;
+
+  /// No description provided for @supportFaqProAnswer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пройдите быструю верификацию в профиле, загрузив фото вашего риелторского удостоверения или паспорта.'**
+  String get supportFaqProAnswer;
+
+  /// No description provided for @supportFaqBricksQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько списывается кирпичей за публикацию?'**
+  String get supportFaqBricksQuestion;
+
+  /// No description provided for @supportFaqBricksAnswer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Списание зависит от категории объекта и дополнительных опций (выделение цветом, топ списка, автоподъем).'**
+  String get supportFaqBricksAnswer;
 
   /// No description provided for @dateToday.
   ///

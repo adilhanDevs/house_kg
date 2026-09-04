@@ -21,6 +21,9 @@ import '../widgets/safe_image.dart';
 /// Колокол уведомлений.
 const Rect _bell = Rect.fromLTWH(320, 44, 30, 30);
 
+/// Приветствие, оставшееся в Figma-кадре статичным.
+const Rect _greeting = Rect.fromLTWH(20, 88, 330, 36);
+
 /// Плашка поиска.
 const Rect _search = Rect.fromLTWH(25, 236, 325, 50);
 
@@ -31,6 +34,7 @@ const List<double> _stripX = [25, 117, 209, 301];
 
 /// Категории: иконка 60×60 и подпись под ней.
 const double _categoryTop = 302;
+const double _categoryLabelTop = 367;
 const double _categoryBottom = 384;
 const List<(PropertyKind, double, double)> _categories = [
   (PropertyKind.house, 25, 60),
@@ -40,6 +44,7 @@ const List<(PropertyKind, double, double)> _categories = [
 ];
 
 /// Вкладки «Новых позиций»: подпись 15/500 и черта под выбранной.
+const Rect _newPositionsTitle = Rect.fromLTWH(17, 423, 240, 31);
 const double _tabsTop = 458;
 const double _tabsHeight = 22;
 
@@ -69,13 +74,52 @@ class _HomePageState extends State<HomePage> {
   List<Listing> _listings = [];
   bool _isLoading = true;
 
+  /// Лента фотографий под приветствием живёт отдельно от вкладок «Новых
+  /// позиций»: это витрина всего каталога, а не среза по типу недвижимости,
+  /// поэтому переключение вкладки её не трогает.
+  List<Listing> _stripListings = [];
+  bool _isStripLoading = true;
+
   @override
   void initState() {
     super.initState();
     final state = AppScope.read(context);
     _searchController = TextEditingController(text: state.query);
     _repository = ListingRepository(state.apiClient);
+    _loadStrip();
     _loadListings();
+  }
+
+  /// Обновление «потянув вниз» освежает и витрину, и карточки вкладки.
+  Future<void> _refresh() async {
+    await Future.wait([_loadStrip(), _loadListings()]);
+  }
+
+  Future<void> _loadStrip() async {
+    setState(() {
+      _isStripLoading = true;
+    });
+    try {
+      // Без фильтра по типу: лента показывает свежее из всего каталога.
+      final response = await _repository.getListings(
+        sessionId: AppScope.read(context).recommendationSessionId,
+      );
+      if (mounted) {
+        AppScope.read(context).syncFavourites(response.results);
+        setState(() {
+          _stripListings = response.results.take(4).toList();
+          _isStripLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _stripListings = [];
+          _isStripLoading = false;
+        });
+        debugPrint('Home page load strip failed: $e');
+      }
+    }
   }
 
   Future<void> _loadListings() async {
@@ -123,216 +167,335 @@ class _HomePageState extends State<HomePage> {
     Navigator.of(context).pushNamed(Routes.catalog);
   }
 
-  void _openListing(BuildContext context, Listing listing) => Navigator.of(context)
-      .pushNamed(Routes.listingVideo, arguments: ListingArgs(listing.id));
+  void _openListing(BuildContext context, Listing listing) => Navigator.of(
+    context,
+  ).pushNamed(Routes.listing, arguments: ListingArgs(listing.id));
 
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
     final l10n = context.l10n;
+    final userName = (state.userName ?? '').trim();
+    final greeting = userName.isEmpty
+        ? l10n.homeGreetingGuest
+        : l10n.homeGreeting(userName);
 
     final newTabs = [
       (PropertyKind.apartment, l10n.kindApartment, 23.0, 75.0),
-      (PropertyKind.plot, l10n.kindPlot, 115.0, 90.0),
-      (PropertyKind.house, l10n.kindHouse, 215.0, 60.0),
+      (
+        PropertyKind.plot,
+        l10n.kindPlot,
+        115.0,
+        state.languageCode == 'ky' ? 105.0 : 60.0,
+      ),
+      (
+        PropertyKind.house,
+        l10n.kindHouse,
+        state.languageCode == 'ky' ? 235.0 : 215.0,
+        60.0,
+      ),
     ];
 
     return RefreshIndicator(
-      onRefresh: _loadListings,
+      onRefresh: _refresh,
       color: const Color(0xffea812e),
       child: FigStage(
-      frame: frame('09'),
-      background: _page,
-      bottomBar: const AppTabBar(active: 0),
-      overlays: [
-        FigZone(
-          _bell.left, _bell.top, _bell.width, _bell.height,
-          label: l10n.notificationsTitle,
-          onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
-        ),
-        Positioned(
-          left: _bell.right - 12.0,
-          top: _bell.top - 4.0,
-          child: const NotificationBadge(),
-        ),
-        Positioned(
-          left: _search.left,
-          top: _search.top,
-          child: FigSearchField(
-            width: _search.width,
-            fieldHeight: _search.height,
-            controller: _searchController,
-            hint: l10n.homeSearchHint,
-            onChanged: (text) {
-              state.setQuery(text);
-            },
-            onSubmitted: (text) {
-              state.setQuery(text);
-              Navigator.of(context).pushNamed(Routes.catalog);
-            },
-          ),
-        ),
-        // Динамическая лента фотографий с горизонтальным скроллом (закрывает нарисованные в макете 4 фото)
-        Positioned(
-          left: 0,
-          top: _stripTop,
-          right: 0,
-          height: _stripSize,
-          child: ColoredBox(
-            color: _page,
-            child: _isLoading
-                ? ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    itemCount: 4,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (_, __) => Container(
-                      width: _stripSize,
-                      height: _stripSize,
-                      decoration: BoxDecoration(
-                        color: const Color(0xfff7f7f8),
-                        borderRadius: BorderRadius.circular(8.0),
-                        border: Border.all(color: const Color(0xffebebeb)),
-                      ),
-                      child: const Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0x66ea812e),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    itemCount: _listings.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final listing = _listings[index];
-                      final isFirst = index == 0;
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _openListing(context, listing),
-                        child: SizedBox(
-                          width: _stripSize,
-                          height: _stripSize,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8.0),
-                              border: Border.all(
-                                color: isFirst ? const Color(0xffea812e) : const Color(0xffdcdcdc),
-                                width: isFirst ? 2.0 : 1.0,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(6.0),
-                              child: (listing.photo.startsWith('http://') || listing.photo.startsWith('https://'))
-                                  ? buildSafeNetworkImage(
-                                      url: listing.photo,
-                                      fit: BoxFit.cover,
-                                      borderRadius: BorderRadius.circular(6.0),
-                                      fallback: const ColoredBox(
-                                        color: Color(0xfff0f0f0),
-                                      ),
-                                    )
-                                  : const ColoredBox(
-                                      color: Color(0xfff0f0f0),
-                                    ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ),
-        for (final (kind, x, w) in _categories)
+        frame: frame('09'),
+        background: _page,
+        bottomBar: const AppTabBar(active: 0),
+        overlays: [
           FigZone(
-            x, _categoryTop, w, _categoryBottom - _categoryTop,
-            label: kind.localized(l10n),
-            onTap: () => _openCatalog(context, kind: kind),
+            _bell.left,
+            _bell.top,
+            _bell.width,
+            _bell.height,
+            label: l10n.notificationsTitle,
+            onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
           ),
-        // вкладки: подписи перерисовываем, чтобы выбранная была акцентной
-        for (final (kind, label, x, w) in newTabs)
           Positioned(
-            left: x,
-            top: _tabsTop,
-            child: _NewTab(
-              label: label,
-              width: w,
-              selected: kind == _tab,
-              onTap: () {
-                if (_tab != kind) {
-                  setState(() => _tab = kind);
-                  _loadListings();
-                }
-              },
-            ),
-          ),
-        // карточки вместо нарисованных: во время загрузки закрываем старые зашитые карточки белой плашкой со спиннером
-        Positioned(
-          left: 0,
-          top: _cardsTop,
-          right: 0,
-          height: _cardsBottom - _cardsTop,
-          child: ColoredBox(
-            color: _page,
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircularProgressIndicator(
-                          color: Color(0xffea812e),
-                          strokeWidth: 3,
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          l10n.loading,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xff8e8e93),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListingGrid(
-                    listings: _listings,
-                    scrollable: false,
-                    onOpen: (listing) => _openListing(context, listing),
-                  ),
-          ),
-        ),
-        Positioned(
-          left: _seeAll.left - 20,
-          top: _seeAll.top - 2,
-          width: _seeAll.width + 40,
-          height: _seeAll.height + 4,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _openCatalog(context, kind: _tab),
-            child: Container(
+            left: _greeting.left,
+            top: _greeting.top,
+            width: _greeting.width,
+            height: _greeting.height,
+            child: ColoredBox(
               color: _page,
-              alignment: Alignment.center,
-              child: Text(
-                l10n.homeSeeAll,
-                style: const TextStyle(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xffea812e),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: figStyle(
+                    fontSize: 21.0,
+                    family: FigFont.display,
+                    weight: 600,
+                    height: 1.0,
+                    color: const Color(0xff000000),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
+          Positioned(
+            left: _bell.right - 12.0,
+            top: _bell.top - 4.0,
+            child: const NotificationBadge(),
+          ),
+          Positioned(
+            left: _search.left,
+            top: _search.top,
+            child: FigSearchField(
+              width: _search.width,
+              fieldHeight: _search.height,
+              controller: _searchController,
+              hint: l10n.homeSearchHint,
+              onChanged: (text) {
+                state.setQuery(text);
+              },
+              onSubmitted: (text) {
+                state.setQuery(text);
+                Navigator.of(context).pushNamed(Routes.catalog);
+              },
+            ),
+          ),
+          // Динамическая лента фотографий с горизонтальным скроллом (закрывает нарисованные в макете 4 фото)
+          Positioned(
+            left: 0,
+            top: _stripTop,
+            right: 0,
+            height: _stripSize,
+            child: ColoredBox(
+              color: _page,
+              child: _isStripLoading
+                  ? ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 25),
+                      itemCount: 4,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (_, __) => Container(
+                        width: _stripSize,
+                        height: _stripSize,
+                        decoration: BoxDecoration(
+                          color: const Color(0xfff7f7f8),
+                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(color: const Color(0xffebebeb)),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0x66ea812e),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 25),
+                      itemCount: _stripListings.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (context, index) {
+                        final listing = _stripListings[index];
+                        final isFirst = index == 0;
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _openListing(context, listing),
+                          child: SizedBox(
+                            width: _stripSize,
+                            height: _stripSize,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8.0),
+                                border: Border.all(
+                                  color: isFirst
+                                      ? const Color(0xffea812e)
+                                      : const Color(0xffdcdcdc),
+                                  width: isFirst ? 2.0 : 1.0,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6.0),
+                                child:
+                                    (listing.photo.startsWith('http://') ||
+                                        listing.photo.startsWith('https://'))
+                                    ? buildSafeNetworkImage(
+                                        url: listing.photo,
+                                        fit: BoxFit.cover,
+                                        borderRadius: BorderRadius.circular(
+                                          6.0,
+                                        ),
+                                        fallback: const ColoredBox(
+                                          color: Color(0xfff0f0f0),
+                                        ),
+                                      )
+                                    : const ColoredBox(
+                                        color: Color(0xfff0f0f0),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ),
+          for (final (kind, x, w) in _categories)
+            FigZone(
+              x,
+              _categoryTop,
+              w,
+              _categoryBottom - _categoryTop,
+              label: kind.localized(l10n),
+              onTap: () => _openCatalog(context, kind: kind),
+            ),
+          for (final (kind, x, w) in _categories)
+            Positioned(
+              left: x - 4.0,
+              top: _categoryLabelTop,
+              width: w + 8.0,
+              height: 31.0,
+              child: IgnorePointer(
+                child: ColoredBox(
+                  color: _page,
+                  child: Center(
+                    child: Text(
+                      kind.localized(l10n),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: figStyle(
+                        fontSize: state.languageCode == 'ky' ? 10.5 : 12.0,
+                        family: FigFont.display,
+                        weight: 500,
+                        height: 1.05,
+                        color: const Color(0xff000000),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            left: _newPositionsTitle.left,
+            top: _newPositionsTitle.top,
+            width: _newPositionsTitle.width,
+            height: _newPositionsTitle.height,
+            child: ColoredBox(
+              color: _page,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.homeNewPositions,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: figStyle(
+                    fontSize: 21.0,
+                    family: FigFont.display,
+                    weight: 600,
+                    height: 1.0,
+                    color: const Color(0xff000000),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // вкладки: подписи перерисовываем, чтобы выбранная была акцентной
+          for (final (kind, label, x, w) in newTabs)
+            Positioned(
+              left: x,
+              top: _tabsTop,
+              child: _NewTab(
+                label: label,
+                width: w,
+                selected: kind == _tab,
+                onTap: () {
+                  if (_tab != kind) {
+                    setState(() => _tab = kind);
+                    _loadListings();
+                  }
+                },
+              ),
+            ),
+          // карточки вместо нарисованных: во время загрузки закрываем старые зашитые карточки белой плашкой со спиннером
+          Positioned(
+            left: 0,
+            top: _cardsTop,
+            right: 0,
+            height: _cardsBottom - _cardsTop,
+            child: ColoredBox(
+              color: _page,
+              child: _isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
+                            color: Color(0xffea812e),
+                            strokeWidth: 3,
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            l10n.loading,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xff8e8e93),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _listings.isEmpty
+                  ? Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(32, 52, 32, 0),
+                        child: Text(
+                          l10n.homeNoNewListings,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            height: 1.35,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xff8e8e93),
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListingGrid(
+                      listings: _listings,
+                      scrollable: false,
+                      onOpen: (listing) => _openListing(context, listing),
+                    ),
+            ),
+          ),
+          Positioned(
+            left: _seeAll.left - 20,
+            top: _seeAll.top - 2,
+            width: _seeAll.width + 40,
+            height: _seeAll.height + 4,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _openCatalog(context, kind: _tab),
+              child: Container(
+                color: _page,
+                alignment: Alignment.center,
+                child: Text(
+                  l10n.homeSeeAll,
+                  style: const TextStyle(
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xffea812e),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

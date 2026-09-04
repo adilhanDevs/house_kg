@@ -279,6 +279,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get codeSending => 'Отправка кода...';
 
   @override
+  String homeGreeting(String name) {
+    return 'Здравствуйте, $name!';
+  }
+
+  @override
+  String get homeGreetingGuest => 'Здравствуйте!';
+
+  @override
   String get homeCategories => 'Категории';
 
   @override
@@ -289,6 +297,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get homeSeeAll => 'Посмотреть все';
+
+  @override
+  String get homeNewPositions => 'Новые позиции';
 
   @override
   String get homeNewBuildings => 'Новостройки';
@@ -307,6 +318,32 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get homeSearchHint => 'Поиск по адресу, району...';
+
+  @override
+  String get homeNoNewListings => 'Пока нет новых объявлений';
+
+  @override
+  String cardRoomsShort(int count) {
+    return '$count-комн.';
+  }
+
+  @override
+  String cardAreaMeters(String area) {
+    return '$areaм';
+  }
+
+  @override
+  String cardFloor(int floor) {
+    return '$floor этаж';
+  }
+
+  @override
+  String cardLandAreaSotka(String area) {
+    return '$area сот.';
+  }
+
+  @override
+  String get cardPlot => 'Участок';
 
   @override
   String get catalogTitle => 'Каталог';
@@ -601,6 +638,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notificationsEmpty => 'Уведомлений пока нет';
 
   @override
+  String get notificationsProfileEmpty => 'У вас пока нет уведомлений';
+
+  @override
+  String get notificationsLoadError => 'Не удалось загрузить уведомления';
+
+  @override
+  String get notificationFallbackTitle => 'Уведомление';
+
+  @override
   String get notificationsMarkAllRead => 'Отметить все как прочитанные';
 
   @override
@@ -647,6 +693,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get profileLanguageRow => 'Язык';
+
+  @override
+  String get profileSettingsTitle => 'Настройки';
 
   @override
   String get profileSellButton => 'Продать недвижимость';
@@ -857,6 +906,59 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get supportEmail => 'Написать на почту';
+
+  @override
+  String get supportOnlineTitle => 'Мы на связи 24/7';
+
+  @override
+  String get supportOnlineBody =>
+      'Оперативно ответим на любые вопросы по объектам, балансу кирпичей и PRO подписке';
+
+  @override
+  String get supportQuickContact => 'Быстрая связь';
+
+  @override
+  String get supportCallShort => 'Позвонить';
+
+  @override
+  String get supportDirectQuestion => 'Задать вопрос напрямую';
+
+  @override
+  String get supportMessageHint => 'Опишите вашу проблему или вопрос...';
+
+  @override
+  String get supportSend => 'Отправить';
+
+  @override
+  String get supportSending => 'Отправка...';
+
+  @override
+  String get supportSent => 'Сообщение отправлено! Ответим в течение 5 минут.';
+
+  @override
+  String get supportOpenLinkError => 'Не удалось открыть ссылку';
+
+  @override
+  String get supportFaqBalanceQuestion => 'Как пополнить баланс кирпичей?';
+
+  @override
+  String get supportFaqBalanceAnswer =>
+      'Перейдите на вкладку «Профиль», нажмите на кнопку «Пополнить» на панели баланса и выберите удобный способ оплаты (MBANK, Элсом, Visa, О!Деньги).';
+
+  @override
+  String get supportFaqProQuestion => 'Как получить статус PRO агентства?';
+
+  @override
+  String get supportFaqProAnswer =>
+      'Пройдите быструю верификацию в профиле, загрузив фото вашего риелторского удостоверения или паспорта.';
+
+  @override
+  String get supportFaqBricksQuestion =>
+      'Сколько списывается кирпичей за публикацию?';
+
+  @override
+  String get supportFaqBricksAnswer =>
+      'Списание зависит от категории объекта и дополнительных опций (выделение цветом, топ списка, автоподъем).';
 
   @override
   String get dateToday => 'Сегодня';

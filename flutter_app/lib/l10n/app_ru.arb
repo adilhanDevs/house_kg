@@ -109,16 +109,51 @@
   "resendCode": "Отправить код повторно",
   "codeSending": "Отправка кода...",
 
+  "homeGreeting": "Здравствуйте, {name}!",
+  "@homeGreeting": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "homeGreetingGuest": "Здравствуйте!",
   "homeCategories": "Категории",
   "homePopular": "Популярные",
   "homeFeatured": "Рекомендованные",
   "homeSeeAll": "Посмотреть все",
+  "homeNewPositions": "Новые позиции",
   "homeNewBuildings": "Новостройки",
   "homeSecondary": "Вторичка",
   "homeHouses": "Дома",
   "homePlots": "Участки",
   "homeCommercial": "Коммерция",
   "homeSearchHint": "Поиск по адресу, району...",
+  "homeNoNewListings": "Пока нет новых объявлений",
+
+  "cardRoomsShort": "{count}-комн.",
+  "@cardRoomsShort": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "cardAreaMeters": "{area}м",
+  "@cardAreaMeters": {
+    "placeholders": {
+      "area": { "type": "String" }
+    }
+  },
+  "cardFloor": "{floor} этаж",
+  "@cardFloor": {
+    "placeholders": {
+      "floor": { "type": "int" }
+    }
+  },
+  "cardLandAreaSotka": "{area} сот.",
+  "@cardLandAreaSotka": {
+    "placeholders": {
+      "area": { "type": "String" }
+    }
+  },
+  "cardPlot": "Участок",
 
   "catalogTitle": "Каталог",
   "catalogFilters": "Фильтры",
@@ -257,6 +292,9 @@
   "notificationsTitle": "Уведомления",
   "notificationsLatest": "Последние уведомления",
   "notificationsEmpty": "Уведомлений пока нет",
+  "notificationsProfileEmpty": "У вас пока нет уведомлений",
+  "notificationsLoadError": "Не удалось загрузить уведомления",
+  "notificationFallbackTitle": "Уведомление",
   "notificationsMarkAllRead": "Отметить все как прочитанные",
   "priceDecreased": "Цена снизилась",
   "messagesTitle": "Сообщения",
@@ -274,6 +312,7 @@
   "profileSupportRow": "Служба поддержки",
   "profileHistoryRow": "История пополнения и трат",
   "profileLanguageRow": "Язык",
+  "profileSettingsTitle": "Настройки",
   "profileSellButton": "Продать недвижимость",
   "profileLogout": "Выйти из аккаунта",
   "profileLogoutConfirmTitle": "Выйти из аккаунта?",
@@ -385,6 +424,22 @@
   "supportWhatsapp": "Написать в WhatsApp",
   "supportCall": "Позвонить в поддержку",
   "supportEmail": "Написать на почту",
+  "supportOnlineTitle": "Мы на связи 24/7",
+  "supportOnlineBody": "Оперативно ответим на любые вопросы по объектам, балансу кирпичей и PRO подписке",
+  "supportQuickContact": "Быстрая связь",
+  "supportCallShort": "Позвонить",
+  "supportDirectQuestion": "Задать вопрос напрямую",
+  "supportMessageHint": "Опишите вашу проблему или вопрос...",
+  "supportSend": "Отправить",
+  "supportSending": "Отправка...",
+  "supportSent": "Сообщение отправлено! Ответим в течение 5 минут.",
+  "supportOpenLinkError": "Не удалось открыть ссылку",
+  "supportFaqBalanceQuestion": "Как пополнить баланс кирпичей?",
+  "supportFaqBalanceAnswer": "Перейдите на вкладку «Профиль», нажмите на кнопку «Пополнить» на панели баланса и выберите удобный способ оплаты (MBANK, Элсом, Visa, О!Деньги).",
+  "supportFaqProQuestion": "Как получить статус PRO агентства?",
+  "supportFaqProAnswer": "Пройдите быструю верификацию в профиле, загрузив фото вашего риелторского удостоверения или паспорта.",
+  "supportFaqBricksQuestion": "Сколько списывается кирпичей за публикацию?",
+  "supportFaqBricksAnswer": "Списание зависит от категории объекта и дополнительных опций (выделение цветом, топ списка, автоподъем).",
 
   "dateToday": "Сегодня",
   "dateYesterday": "Вчера",

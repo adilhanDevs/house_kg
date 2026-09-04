@@ -280,6 +280,14 @@ class AppLocalizationsKy extends AppLocalizations {
   String get codeSending => 'Код жөнөтүлүүдө...';
 
   @override
+  String homeGreeting(String name) {
+    return 'Саламатсызбы, $name!';
+  }
+
+  @override
+  String get homeGreetingGuest => 'Саламатсызбы!';
+
+  @override
   String get homeCategories => 'Категориялар';
 
   @override
@@ -290,6 +298,9 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get homeSeeAll => 'Баарын көрүү';
+
+  @override
+  String get homeNewPositions => 'Жаңы жарыялар';
 
   @override
   String get homeNewBuildings => 'Жаңы курулуштар';
@@ -308,6 +319,32 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get homeSearchHint => 'Дарек, район боюнча издөө...';
+
+  @override
+  String get homeNoNewListings => 'Азырынча жаңы жарыялар жок';
+
+  @override
+  String cardRoomsShort(int count) {
+    return '$count бөлм.';
+  }
+
+  @override
+  String cardAreaMeters(String area) {
+    return '$areaм';
+  }
+
+  @override
+  String cardFloor(int floor) {
+    return '$floor-кабат';
+  }
+
+  @override
+  String cardLandAreaSotka(String area) {
+    return '$area сот.';
+  }
+
+  @override
+  String get cardPlot => 'Жер тилкеси';
 
   @override
   String get catalogTitle => 'Каталог';
@@ -603,6 +640,15 @@ class AppLocalizationsKy extends AppLocalizations {
   String get notificationsEmpty => 'Билдирмелер жок';
 
   @override
+  String get notificationsProfileEmpty => 'Азырынча билдирмелериңиз жок';
+
+  @override
+  String get notificationsLoadError => 'Билдирмелерди жүктөө мүмкүн болгон жок';
+
+  @override
+  String get notificationFallbackTitle => 'Билдирме';
+
+  @override
   String get notificationsMarkAllRead => 'Баарын окулду деп белгилөө';
 
   @override
@@ -649,6 +695,9 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get profileLanguageRow => 'Тил';
+
+  @override
+  String get profileSettingsTitle => 'Жөндөөлөр';
 
   @override
   String get profileSellButton => 'Кыймылсыз мүлктү сатуу';
@@ -859,6 +908,59 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get supportEmail => 'Электрондук почтага жазуу';
+
+  @override
+  String get supportOnlineTitle => '24/7 байланыштабыз';
+
+  @override
+  String get supportOnlineBody =>
+      'Объекттер, кирпич балансы жана PRO жазылуу боюнча суроолорго ыкчам жооп беребиз';
+
+  @override
+  String get supportQuickContact => 'Тез байланыш';
+
+  @override
+  String get supportCallShort => 'Чалуу';
+
+  @override
+  String get supportDirectQuestion => 'Суроону түз жөнөтүү';
+
+  @override
+  String get supportMessageHint => 'Маселеңизди же сурооңузду жазыңыз...';
+
+  @override
+  String get supportSend => 'Жөнөтүү';
+
+  @override
+  String get supportSending => 'Жөнөтүлүүдө...';
+
+  @override
+  String get supportSent => 'Билдирүү жөнөтүлдү! 5 мүнөт ичинде жооп беребиз.';
+
+  @override
+  String get supportOpenLinkError => 'Шилтемени ачуу мүмкүн болгон жок';
+
+  @override
+  String get supportFaqBalanceQuestion => 'Кирпич балансын кантип толуктайм?';
+
+  @override
+  String get supportFaqBalanceAnswer =>
+      '«Профиль» бөлүмүнө өтүп, баланс панелиндеги «Толуктоо» баскычын басыңыз жана ыңгайлуу төлөм ыкмасын тандаңыз (MBANK, Элсом, Visa, О!Деньги).';
+
+  @override
+  String get supportFaqProQuestion => 'PRO агенттик статусун кантип алам?';
+
+  @override
+  String get supportFaqProAnswer =>
+      'Профилден кыска верификациядан өтүп, риелтордук күбөлүгүңүздүн же паспортуңуздун сүрөтүн жүктөңүз.';
+
+  @override
+  String get supportFaqBricksQuestion =>
+      'Жарыя жарыялоо үчүн канча кирпич алынат?';
+
+  @override
+  String get supportFaqBricksAnswer =>
+      'Алынган кирпич саны объекттин категориясына жана кошумча опцияларга жараша болот (түстүү белгилөө, тизменин башына чыгаруу, авто көтөрүү).';
 
   @override
   String get dateToday => 'Бүгүн';

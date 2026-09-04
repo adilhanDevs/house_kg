@@ -15,13 +15,18 @@ import "../../app/routes.dart";
 import "../../data/chat_controller.dart" show describeApiError;
 import "../../data/chat_models.dart";
 import "../../fig/fig.dart";
+import "../../l10n/l10n.dart";
 import "../pages/chat_page.dart";
 import "price_drop_notification_tile.dart";
 
-const Key kProfileNotificationsSectionKey = Key("profile_notifications_section");
+const Key kProfileNotificationsSectionKey = Key(
+  "profile_notifications_section",
+);
 const Key kProfileNotificationsSeeAllKey = Key("profile_notifications_see_all");
 const Key kProfileNotificationsEmptyKey = Key("profile_notifications_empty");
-const Key kProfileNotificationsLoadingKey = Key("profile_notifications_loading");
+const Key kProfileNotificationsLoadingKey = Key(
+  "profile_notifications_loading",
+);
 const Key kProfileNotificationsErrorKey = Key("profile_notifications_error");
 
 Key kProfileNotificationTileKey(int id) => Key("profile_notification_tile_$id");
@@ -44,7 +49,8 @@ class ProfileLatestNotifications extends StatefulWidget {
   final bool showTitle;
 
   @override
-  State<ProfileLatestNotifications> createState() => _ProfileLatestNotificationsState();
+  State<ProfileLatestNotifications> createState() =>
+      _ProfileLatestNotificationsState();
 }
 
 class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
@@ -68,7 +74,9 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
       appRouteObserver.subscribe(this, route);
     }
     final state = AppScope.of(context);
-    final currentPhone = state.isAuthenticated ? (state.userPhone ?? "authenticated") : null;
+    final currentPhone = state.isAuthenticated
+        ? (state.userPhone ?? "authenticated")
+        : null;
     if (_lastUserPhone != currentPhone) {
       _lastUserPhone = currentPhone;
       _items.clear();
@@ -168,9 +176,9 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
   Future<void> _markRead(AppNotification notification) async {
     if (notification.isRead) return;
     try {
-      await AppScope.read(context)
-          .apiClient
-          .markNotificationsRead(ids: [notification.id]);
+      await AppScope.read(
+        context,
+      ).apiClient.markNotificationsRead(ids: [notification.id]);
       if (!mounted) return;
       final index = _items.indexWhere((n) => n.id == notification.id);
       if (index >= 0) {
@@ -220,6 +228,7 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       key: kProfileNotificationsSectionKey,
       width: widget.width,
@@ -229,9 +238,9 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
         mainAxisSize: MainAxisSize.min,
         children: [
           if (widget.showTitle) ...[
-            const Text(
-              "Последние уведомления",
-              style: TextStyle(
+            Text(
+              l10n.notificationsLatest,
+              style: const TextStyle(
                 fontSize: 18.0,
                 fontWeight: FontWeight.bold,
                 letterSpacing: -0.2,
@@ -240,19 +249,19 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
             ),
             const SizedBox(height: 12.0),
           ],
-          _buildBody(),
+          _buildBody(l10n),
           const SizedBox(height: 12.0),
           GestureDetector(
             key: kProfileNotificationsSeeAllKey,
             behavior: HitTestBehavior.opaque,
             onTap: _onSeeAll,
-            child: const SizedBox(
+            child: SizedBox(
               width: double.infinity,
               height: 28.0,
               child: Center(
                 child: Text(
-                  "Посмотреть все",
-                  style: TextStyle(
+                  l10n.homeSeeAll,
+                  style: const TextStyle(
                     fontSize: 14.0,
                     fontWeight: FontWeight.w500,
                     color: Color(0xff7d7d7d),
@@ -266,7 +275,7 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(AppLocalizations l10n) {
     if (_isLoading && _items.isEmpty) {
       return SizedBox(
         key: kProfileNotificationsLoadingKey,
@@ -293,7 +302,7 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
             const SizedBox(width: 6.0),
             Flexible(
               child: Text(
-                "Не удалось загрузить уведомления",
+                l10n.notificationsLoadError,
                 style: figStyle(
                   fontSize: 12.0,
                   family: FigFont.display,
@@ -306,7 +315,7 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
             GestureDetector(
               onTap: _refresh,
               child: Text(
-                "Повторить",
+                l10n.retry,
                 style: figStyle(
                   fontSize: 12.0,
                   family: FigFont.display,
@@ -326,7 +335,7 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
         padding: const EdgeInsets.symmetric(vertical: 12.0),
         alignment: Alignment.center,
         child: Text(
-          "У вас пока нет уведомлений",
+          l10n.notificationsProfileEmpty,
           style: figStyle(
             fontSize: 13.0,
             family: FigFont.display,
@@ -342,13 +351,13 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
       children: [
         for (var i = 0; i < _items.length; i++) ...[
           if (i > 0) const Divider(height: 1.0, color: Color(0xfff0f0f0)),
-          _buildItemTile(_items[i]),
+          _buildItemTile(_items[i], l10n),
         ],
       ],
     );
   }
 
-  Widget _buildItemTile(AppNotification item) {
+  Widget _buildItemTile(AppNotification item, AppLocalizations l10n) {
     if (item.isPriceDrop) {
       return PriceDropNotificationTile(
         key: kProfileNotificationTileKey(item.id),
@@ -387,7 +396,9 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
                     children: [
                       Expanded(
                         child: Text(
-                          item.title.isNotEmpty ? item.title : "Уведомление",
+                          item.title.isNotEmpty
+                              ? item.title
+                              : l10n.notificationFallbackTitle,
                           style: const TextStyle(
                             fontSize: 15.0,
                             fontWeight: FontWeight.bold,

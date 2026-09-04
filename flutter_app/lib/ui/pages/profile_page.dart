@@ -51,7 +51,10 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Выйти', style: TextStyle(color: _danger)),
+            child: Text(
+              l10n.profileLogout,
+              style: const TextStyle(color: _danger),
+            ),
           ),
         ],
       ),
@@ -83,9 +86,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (state.isInitializing) {
       return const Scaffold(
         backgroundColor: Color(0xffffffff),
-        body: Center(
-          child: CircularProgressIndicator(color: _accent),
-        ),
+        body: Center(child: CircularProgressIndicator(color: _accent)),
       );
     }
     if (state.pro || state.isPro) {
@@ -104,14 +105,17 @@ class _ProfilePageState extends State<ProfilePage> {
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 16.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Заголовок экрана
-                  const Text(
-                    'Ваш профиль',
-                    style: TextStyle(
+                  Text(
+                    l10n.profileTitle,
+                    style: const TextStyle(
                       fontSize: 22.0,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.3,
@@ -149,7 +153,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              (state.userName ?? '').isNotEmpty ? state.userName! : l10n.profileNoName,
+                              (state.userName ?? '').isNotEmpty
+                                  ? state.userName!
+                                  : l10n.profileNoName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -177,7 +183,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(width: 8.0),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 6.0,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xffe8f1ff),
                           borderRadius: BorderRadius.circular(6.0),
@@ -200,9 +209,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 24.0),
 
                   // Секция «Настройки»
-                  const Text(
-                    'Настройки',
-                    style: TextStyle(
+                  Text(
+                    l10n.profileSettingsTitle,
+                    style: const TextStyle(
                       fontSize: 18.0,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.2,
@@ -214,22 +223,26 @@ class _ProfilePageState extends State<ProfilePage> {
                   _ProfileSettingRow(
                     icon: Icons.favorite_border,
                     label: l10n.profileFavoritesRow,
-                    onTap: () => Navigator.of(context).pushNamed(Routes.favourites),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(Routes.favourites),
                   ),
                   _ProfileSettingRow(
                     icon: Icons.notifications_none,
                     label: l10n.profileNotificationsRow,
-                    onTap: () => Navigator.of(context).pushNamed(Routes.notifications),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(Routes.notifications),
                   ),
                   _ProfileSettingRow(
                     icon: Icons.person_outline,
                     label: l10n.profileAccountRow,
-                    onTap: () => Navigator.of(context).pushNamed(Routes.account),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(Routes.account),
                   ),
                   _ProfileSettingRow(
                     icon: Icons.phone_in_talk_outlined,
                     label: l10n.profileSupportRow,
-                    onTap: () => Navigator.of(context).pushNamed(Routes.support),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(Routes.support),
                   ),
 
                   // Строка переключателя языка
@@ -259,7 +272,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 4.0),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: _isLoggingOut ? null : () => _confirmLogOut(context),
+                      onTap: _isLoggingOut
+                          ? null
+                          : () => _confirmLogOut(context),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10.0),
                         child: Row(
@@ -290,7 +305,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             const SizedBox(width: 12.0),
                             Expanded(
                               child: Text(
-                                _isLoggingOut ? l10n.profileLoggingOut : l10n.profileLogout,
+                                _isLoggingOut
+                                    ? l10n.profileLoggingOut
+                                    : l10n.profileLogout,
                                 style: const TextStyle(
                                   fontSize: 15.0,
                                   fontWeight: FontWeight.w500,
@@ -317,7 +334,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     height: 48.0,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (!requireAuth(context, reason: l10n.adMustSelectCategory)) return;
+                        if (!requireAuth(
+                          context,
+                          reason: l10n.adMustSelectCategory,
+                        ))
+                          return;
                         Navigator.of(context).pushNamed(Routes.ad);
                       },
                       style: ElevatedButton.styleFrom(

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../data/kind_fields.dart';
 import '../data/listings.dart';
 import '../fig/fig.dart';
+import '../l10n/l10n.dart';
 import 'widgets/safe_image.dart';
 
 /// Контур сердца из макета (иконка «в избранное» на карточке).
@@ -54,7 +55,8 @@ class ObjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!adaptive) return _buildFixedCard();
+    final l10n = context.l10n;
+    if (!adaptive) return _buildFixedCard(l10n);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -71,7 +73,7 @@ class ObjectCard extends StatelessWidget {
             child: SizedBox(
               width: kCardWidth,
               height: kCardHeight,
-              child: _buildFixedCard(),
+              child: _buildFixedCard(l10n),
             ),
           ),
         );
@@ -79,7 +81,12 @@ class ObjectCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFixedCard() {
+  Widget _buildFixedCard(AppLocalizations l10n) {
+    final areaLabel = l10n.cardAreaMeters(listing.area.toString());
+    final landAreaLabel = listing.landArea == null
+        ? null
+        : l10n.cardLandAreaSotka(listing.landArea!.toStringAsFixed(0));
+
     return Container(
       color: const Color(0xfffefefe),
       width: kCardWidth,
@@ -270,7 +277,7 @@ class ObjectCard extends StatelessWidget {
                     // объекта: см. lib/data/kind_fields.dart.
                     if (showsField(listing.kind, ListingField.rooms) &&
                         listing.rooms > 0) ...[
-                      _spec7(listing.roomsLabel),
+                      _spec7(l10n.cardRoomsShort(listing.rooms)),
                       const FigBox(
                         width: 4.0,
                         height: 4.0,
@@ -279,7 +286,7 @@ class ObjectCard extends StatelessWidget {
                       ),
                     ],
                     if (listing.isPlot) ...[
-                      _spec7('Участок'),
+                      _spec7(l10n.cardPlot),
                       const FigBox(
                         width: 4.0,
                         height: 4.0,
@@ -287,16 +294,16 @@ class ObjectCard extends StatelessWidget {
                         radius: 2.0,
                       ),
                     ],
-                    _areaWidget(listing.areaLabel),
+                    _areaWidget(areaLabel),
                     if (showsField(listing.kind, ListingField.landArea) &&
-                        listing.landArea != null) ...[
+                        landAreaLabel != null) ...[
                       const FigBox(
                         width: 4.0,
                         height: 4.0,
                         color: _dot,
                         radius: 2.0,
                       ),
-                      _spec7('${listing.landArea!.toStringAsFixed(0)} сот.'),
+                      _spec7(landAreaLabel),
                     ],
                     if (showsField(listing.kind, ListingField.floor) &&
                         listing.floor > 0) ...[
@@ -306,11 +313,7 @@ class ObjectCard extends StatelessWidget {
                         color: _dot,
                         radius: 2.0,
                       ),
-                      _spec7(
-                        listing.floorLong.isNotEmpty
-                            ? listing.floorLong
-                            : '${listing.floor} этаж',
-                      ),
+                      _spec7(l10n.cardFloor(listing.floor)),
                     ],
                   ],
                 ),

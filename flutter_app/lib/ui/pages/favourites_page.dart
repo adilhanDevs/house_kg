@@ -46,7 +46,8 @@ class _FavouritesPageState extends State<FavouritesPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       _loadListings();
     }
   }
@@ -56,7 +57,7 @@ class _FavouritesPageState extends State<FavouritesPage> {
       _hasMore = true;
       _nextCursor = null;
     }
-    
+
     if (!_hasMore || (_isLoadingMore && !refresh)) return;
 
     if (refresh) {
@@ -70,10 +71,8 @@ class _FavouritesPageState extends State<FavouritesPage> {
     }
 
     try {
-      final response = await _repository.getFavourites(
-        cursor: _nextCursor,
-      );
-      
+      final response = await _repository.getFavourites(cursor: _nextCursor);
+
       if (mounted) {
         _appState.syncFavourites(response.results);
         setState(() {
@@ -139,13 +138,12 @@ class _FavouritesPageState extends State<FavouritesPage> {
                       child: ListingGrid(
                         controller: _scrollController,
                         listings: _listings,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 16,
-                        ),
+                        padding: const EdgeInsets.only(top: 8, bottom: 16),
                         empty: _NoFavourites(message: l10n.favouritesEmpty),
-                        onOpen: (listing) => Navigator.of(context)
-                            .pushNamed(Routes.listingVideo, arguments: ListingArgs(listing.id)),
+                        onOpen: (listing) => Navigator.of(context).pushNamed(
+                          Routes.listing,
+                          arguments: ListingArgs(listing.id),
+                        ),
                       ),
                     ),
             ),
@@ -156,24 +154,24 @@ class _FavouritesPageState extends State<FavouritesPage> {
   }
 
   Widget _header(dynamic l10n) => Padding(
-        padding: const EdgeInsets.fromLTRB(_side, 12, _side, 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Text(
-                l10n.tabFavourites,
-                style: const TextStyle(
-                  fontSize: 22.0,
-                  fontWeight: FontWeight.bold,
-                  color: _ink,
-                  height: 1.2,
-                ),
-              ),
+    padding: const EdgeInsets.fromLTRB(_side, 12, _side, 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            l10n.tabFavourites,
+            style: const TextStyle(
+              fontSize: 22.0,
+              fontWeight: FontWeight.bold,
+              color: _ink,
+              height: 1.2,
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _NoFavourites extends StatelessWidget {
@@ -184,7 +182,11 @@ class _NoFavourites extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: kGridLeft, right: kGridLeft, top: 24),
+      padding: const EdgeInsets.only(
+        left: kGridLeft,
+        right: kGridLeft,
+        top: 24,
+      ),
       child: Text(
         message,
         style: const TextStyle(
