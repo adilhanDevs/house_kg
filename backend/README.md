@@ -1474,6 +1474,25 @@ PostgreSQL и Redis (там тесты гонок **не пропускаютс�
 DJANGO_SETTINGS_MODULE=config.settings.production python manage.py check --deploy
 ```
 
+### Продакшн-хост — ровно один
+
+Единственный продакшен House KG: **`root@139.59.224.34`**, путь
+`/root/house-backend` (репозиторий `house-backend`, не этот монорепо).
+Никакой другой хост, алиас или IP не является продакшеном House KG — даже
+если это единственная запись в `~/.ssh/config` на машине, с которой
+выполняется деплой. Один такой near-miss уже случился (см.
+[docs/audits/house-product-risk-audit-2026-09.md](../docs/audits/house-product-risk-audit-2026-09.md),
+раздел PRODUCTION HOST CONFIG): секрет чуть не ушёл на несвязанный сервер
+только потому, что тот оказался единственным сконфигурированным алиасом.
+
+Перед любой SSH-операцией с секретом, деплоем или миграцией — сверить хост
+через скрипт, а не по памяти:
+
+```bash
+backend/scripts/check_production_host.sh 139.59.224.34   # exit 0, печатает хост
+backend/scripts/check_production_host.sh <что угодно другое>  # exit 1, отказ
+```
+
 ## Push-уведомления
 
 Источник правды — таблица `Notification` в PostgreSQL. Очередь доставки лежит
