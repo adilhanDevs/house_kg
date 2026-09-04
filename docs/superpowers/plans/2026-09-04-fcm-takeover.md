@@ -9,7 +9,7 @@ Goal: complete the supplied takeover specification without replacing the existin
 - [x] Add recipient_id to existing backend payload in both repositories with focused contract tests; run existing device/outbox tests on PostgreSQL.
 - [x] Run analyzer, focused Flutter tests, backend checks, and ARM64 release build. Verify package/version/signature.
 - [x] Commit tested implementation; push/deploy Repo B 6128636, keep PUSH_ENABLED=0, verify health. Monorepo documentation/release metadata follows.
-- [x] Publish APK only to verified private prerelease repository (v2110) and provide honest report and physical-phone checklist in docs/FCM_ANDROID_RUNBOOK.md. Physical receipt awaits the owner and fresh matching Admin key.
+- [x] Publish APK only to verified private prerelease repository (v2110) and provide honest report and physical-phone checklist in docs/FCM_ANDROID_RUNBOOK.md. Physical receipt awaits the owner and a controlled test window; a fresh matching Admin key was subsequently installed and OAuth-validated.
 
 Client design: PushCoordinator owns session generation, token work queue, retry on resume, pending intent and seen notification IDs. FirebasePushMessaging owns Android plugin calls and streams. AppScope owns NavigatorState key and waits until a non-startup route is ready; existing pages remain destinations. AppState exposes a pre-logout hook and notification revision. No Firebase network in ordinary unit tests.
 

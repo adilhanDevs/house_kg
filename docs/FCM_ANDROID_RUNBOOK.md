@@ -2,13 +2,13 @@
 
 ## Current gate
 
-Production push stays **PUSH_ENABLED=0**. The existing database outbox/worker is reused; no Redis/Celery addition is needed. Firebase Admin has not been installed.
+Production push stays **PUSH_ENABLED=0**. The existing database outbox/worker is reused; no Redis/Celery addition is needed. A fresh Firebase Admin credential has been installed and its Google OAuth authentication validated. Physical delivery remains untested.
 
-**FRESH FIREBASE ADMIN KEY REQUIRED.** The House KG service account under the private builds repository occurs in Git history. The candidate in Downloads belongs to another Firebase project and must not be installed for House KG. Obtain a new service account key for the same Firebase project as the ignored Android google-services.json, outside Git. Do not paste the key into chat or commit it. Credential revocation/rotation needs separate coordination; this integration does not change DB/JWT/Finik secrets.
+**Credential gate resolved on 2026-09-04.** The owner supplied a fresh matching House KG service account, absent from checked Git history. It is installed with root ownership and mode 600 in a root-owned mode-700 directory, excluded from Git, and Google OAuth authentication passed without sending a notification. The older key in builds Git history and the unrelated Downloads credential were not installed. Revocation of the previously exposed key still needs separate coordination; DB/JWT/Finik secrets were not changed.
 
 Only target: `139.59.224.34`, hostname `house-kg-droplet`, repository `/root/house-backend`, remote `adilhanDevs/house-backend`. Run `backend/scripts/check_production_host.sh 139.59.224.34` locally before SSH. Do not use `mtl-server` or another server.
 
-A future authorized credential installation must use `/root/house-backend/secrets` owned by root with mode 700, `firebase-service-account.json` mode 600, and existing `FCM_CREDENTIALS_FILE`. Leave `FCM_CREDENTIALS_BASE64` unset and `PUSH_ENABLED=0` until controlled delivery is ready. No credential was copied in this task.
+The credential installation uses `/root/house-backend/secrets` owned by root with mode 700, `firebase-service-account.json` mode 600, and existing `FCM_CREDENTIALS_FILE`. `FCM_CREDENTIALS_BASE64` remains unset and `PUSH_ENABLED=0` until the owner is ready for controlled delivery. Gunicorn and the push worker were restarted after configuring only FCM_CREDENTIALS_FILE.
 
 ## Client contract
 
@@ -23,7 +23,7 @@ A future authorized credential installation must use `/root/house-backend/secret
 
 Implementation reference: [Flutter FCM handling](https://firebase.google.com/docs/cloud-messaging/flutter/receive-messages) and [Android Google Services setup](https://firebase.google.com/docs/android/setup).
 
-## Controlled test after credential gate is resolved
+## Controlled test — credential gate resolved, owner phone required
 
 1. Keep the global switch off while installing the APK, logging in, granting permission, and inspecting that this user's installation has an active DeviceToken. Inspect only id/user_id/platform/is_active/last_seen_at; never print token values.
 2. Verify worker/gunicorn active, Django check, DB connectivity, and no pending/retry/processing backlog. Events skipped while disabled must not be requeued en masse.
@@ -78,3 +78,5 @@ The current release signing configuration uses the Android debug certificate. **
 ## Session security incident
 
 During recovery inspection, the existing monorepo settings.py hardcoded Django secret fallback accidentally appeared in tool output. Its value is deliberately not repeated here. No rotation was performed in this FCM task; assess that exposure in the separate security task. Firebase Admin JSON, Finik configuration contents, DB credentials and live access/refresh tokens were not printed. No service-account credential was uploaded and no wrong server was contacted.
+
+Credential follow-up: a fresh matching key was installed after the original release report. No secrets were printed during that follow-up, no push was sent, and PUSH_ENABLED stayed 0.
