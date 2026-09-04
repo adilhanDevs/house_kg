@@ -46,6 +46,8 @@ dependencies:
   qr_flutter: ^4.1.0
   video_thumbnail: ^0.5.6
   saver_gallery: ^5.1.0
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
 
 dev_dependencies:
   flutter_test:

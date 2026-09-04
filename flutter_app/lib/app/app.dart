@@ -6,6 +6,9 @@
 // чтобы приложение оставалось проходимым.
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import '../push/push_coordinator.dart';
 
 import 'route_observer.dart';
 import '../ui/app_tab_bar.dart';
@@ -59,6 +62,7 @@ class HouseKgzAppScope extends StatefulWidget {
     this.initialRoute = Routes.splash,
     this.media = const DeviceMedia(),
     this.apiClient,
+    this.pushMessaging,
   });
 
   final String initialRoute;
@@ -68,19 +72,109 @@ class HouseKgzAppScope extends StatefulWidget {
   final MediaSource media;
 
   final ListingApiClient? apiClient;
+  final PushMessaging? pushMessaging;
 
   @override
   State<HouseKgzAppScope> createState() => _HouseKgzAppScopeState();
 }
 
-class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
+class _HouseKgzAppScopeState extends State<HouseKgzAppScope> with WidgetsBindingObserver {
   late final AppState _state = AppState(
     media: widget.media,
     apiClient: widget.apiClient,
   );
 
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  late final _pushRoutes = _PushRouteObserver(_schedulePushNavigation);
+  PushCoordinator? _push;
+  bool _pushLoggingOut = false;
+  bool _pushResuming = false;
+  Future<String>? _deviceId;
+
+  Future<String> _installationId() => _deviceId ??= () async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString('push_installation_id');
+    if (existing != null && existing.isNotEmpty) return existing;
+    final id = const Uuid().v4();
+    await prefs.setString('push_installation_id', id);
+    return id;
+  }();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    final messaging = widget.pushMessaging;
+    if (messaging != null) {
+      _push = PushCoordinator(
+        messaging: messaging,
+        register: (token) async => _state.apiClient.registerPushDevice(
+          token: token, deviceId: await _installationId(), locale: _state.languageCode),
+        deactivate: () async => _state.apiClient.deactivatePushDevice(await _installationId()),
+        onForeground: _state.refreshPushNotifications,
+        onPending: _schedulePushNavigation,
+      );
+      _state.beforeLogout = () async {
+        _pushLoggingOut = true;
+        await _push!.logout();
+      };
+      _state.addListener(_syncPushSession);
+      unawaited(_push!.start());
+      _syncPushSession();
+    }
+  }
+
+  void _syncPushSession() {
+    if (_state.isInitializing) return;
+    if (!_state.isAuthenticated) _pushLoggingOut = false;
+    if (_pushLoggingOut) return;
+    unawaited(_push?.setUser(_state.isAuthenticated ? _state.userId : null));
+    _schedulePushNavigation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_pushLoggingOut) {
+      unawaited(_resumePush());
+    }
+  }
+
+  Future<void> _resumePush() async {
+    if (_push == null || _pushResuming) return;
+    _pushResuming = true;
+    try {
+      if (_state.isAuthenticated && _state.userId == null && !_state.isInitializing) {
+        await _state.fetchProfile();
+      }
+      if (!mounted || _pushLoggingOut) return;
+      _syncPushSession();
+      await _push?.resume();
+      if (mounted) _schedulePushNavigation();
+    } finally {
+      _pushResuming = false;
+    }
+  }
+
+  void _schedulePushNavigation() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _pushLoggingOut || _state.isInitializing || !_state.isAuthenticated) return;
+      final navigator = _navigatorKey.currentState;
+      final intent = _push?.takePending(navigationReady: navigator != null && _pushRoutes.ready);
+      if (intent == null || navigator == null) return;
+      navigator.pushNamed(
+        intent.type == 'new_message' ? Routes.conversation : Routes.listing,
+        arguments: intent.conversationId ?? intent.listingSlug,
+      );
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _state.removeListener(_syncPushSession);
+    _state.beforeLogout = null;
+    unawaited(_push?.dispose());
     _state.dispose();
     super.dispose();
   }
@@ -92,6 +186,7 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
       child: ListenableBuilder(
         listenable: _state,
         builder: (context, _) => MaterialApp(
+          navigatorKey: _navigatorKey,
           title: 'House KGZ',
           debugShowCheckedModeBanner: false,
           locale: _state.locale,
@@ -129,7 +224,7 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> {
             return [_route(RouteSettings(name: path, arguments: uri?.queryParameters))];
           },
           onGenerateRoute: _route,
-          navigatorObservers: [appRouteObserver],
+          navigatorObservers: [appRouteObserver, _pushRoutes],
         ),
       ),
     );
@@ -380,4 +475,21 @@ class FramePage extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Splash/login transitions finish before a queued push can enter the stack.
+class _PushRouteObserver extends NavigatorObserver {
+  _PushRouteObserver(this.changed);
+  final VoidCallback changed;
+  bool ready = false;
+  void _update(Route<dynamic>? route) {
+    ready = route != null && !{
+      Routes.splash, Routes.onboarding, Routes.welcome, Routes.register,
+      Routes.code, Routes.proCode, Routes.proSignup, Routes.passwordReset,
+    }.contains(route.settings.name);
+    changed();
+  }
+  @override void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(route);
+  @override void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) => _update(newRoute);
+  @override void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(previousRoute);
 }

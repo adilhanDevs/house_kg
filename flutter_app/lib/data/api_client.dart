@@ -1430,6 +1430,38 @@ class ListingApiClient {
     );
   }
 
+  Future<void> registerPushDevice({required String token, required String deviceId,
+      required String locale}) async {
+    await _pushDeviceRequest('POST', '/api/v1/notifications/devices/', {
+      'token': token, 'platform': 'android', 'device_id': deviceId, 'locale': locale,
+    });
+  }
+
+  Future<void> deactivatePushDevice(String deviceId) => _pushDeviceRequest(
+    'DELETE', '/api/v1/notifications/devices/current/', {'device_id': deviceId});
+
+  Future<void> _pushDeviceRequest(String method, String path, Map<String, dynamic> body) async {
+    final abort = Completer<void>();
+    final timer = Timer(const Duration(seconds: 10), () => abort.complete());
+    final request = http.AbortableRequest(method, Uri.parse('$baseUrl$path'), abortTrigger: abort.future)
+      ..headers.addAll({'Content-Type': 'application/json', 'Accept': 'application/json'})
+      ..body = jsonEncode(body);
+    final access = _client.accessToken;
+    if (access != null) request.headers['Authorization'] = 'Bearer $access';
+    try {
+      // Bind this operation to the current session. A delayed 401 must not
+      // refresh credentials after logout and register for a different user.
+      // Normal API traffic refreshes auth; push retries on the next resume.
+      final response = await http.Response.fromStream(await _client.sendWithoutAuth(request))
+          .timeout(const Duration(seconds: 10));
+      if (method == 'DELETE' && (response.statusCode == 204 || response.statusCode == 404)) return;
+      _processResponse(response);
+    } finally {
+      timer.cancel();
+      if (!abort.isCompleted) abort.complete();
+    }
+  }
+
   Future<Map<String, dynamic>> getNotifications({String? cursor}) async {
     final uri = cursor != null && cursor.isNotEmpty
         ? Uri.parse(cursor)

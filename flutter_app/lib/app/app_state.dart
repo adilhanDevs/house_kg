@@ -78,6 +78,10 @@ class AppState extends ChangeNotifier {
 
   Future<void>? authInitialized;
 
+  Future<void> Function()? beforeLogout;
+  final ValueNotifier<int> notificationRevision = ValueNotifier(0);
+  void refreshPushNotifications() => notificationRevision.value++;
+
   /// Чем снимается кадр-обложка ролика. Подменяется в тестах.
   final VideoPosterCapture _posterCapture;
 
@@ -85,6 +89,7 @@ class AppState extends ChangeNotifier {
   final MediaSource _media;
 
   // ---------------------------------------------------------------- авторизация и API
+  int _authGeneration = 0;
   String? _accessToken;
   String? _refreshToken;
   
@@ -301,8 +306,10 @@ class AppState extends ChangeNotifier {
 
   Future<void> fetchProfile() async {
     if (!isAuthenticated) return;
+    final generation = _authGeneration;
     try {
       final profile = await apiClient.getMe();
+      if (generation != _authGeneration) return;
       userId = profile['id'] as int?;
       userName = profile['name'] as String?;
       userPhone = profile['phone'] as String?;
@@ -328,10 +335,12 @@ class AppState extends ChangeNotifier {
       await prefs.setBool('cached_is_pro', _pro);
       notifyListeners();
     } catch (e) {
+      if (generation != _authGeneration) return;
       if (e is ApiException && e.statusCode == 401 && _refreshToken != null) {
         try {
           final prefs = await SharedPreferences.getInstance();
           final data = await apiClient.refreshToken(_refreshToken!);
+          if (generation != _authGeneration) return;
           final newAccess = data['access'] as String?;
           final newRefresh = data['refresh'] as String?;
           if (newAccess != null) {
@@ -343,6 +352,8 @@ class AppState extends ChangeNotifier {
             await prefs.setString('refresh_token', newRefresh);
           }
           final profile = await apiClient.getMe();
+          if (generation != _authGeneration) return;
+          userId = profile['id'] as int?;
           userName = profile['name'] as String?;
           userPhone = profile['phone'] as String?;
           userWhatsappPhone = profile['whatsapp_phone'] as String?;
@@ -463,6 +474,9 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    _authGeneration++;
+    try { await beforeLogout?.call(); } catch (_) {}
+    userId = null;
     if (_refreshToken != null) {
       try {
         await apiClient.logout(_refreshToken!);
@@ -497,6 +511,7 @@ class AppState extends ChangeNotifier {
     resetFilter();
 
     apiClient.setToken(null);
+    refreshPushNotifications();
     notifyListeners();
   }
 
@@ -599,6 +614,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _saveTokens(Map<String, dynamic> response) async {
+    _authGeneration++;
     final prefs = await SharedPreferences.getInstance();
     if (response.containsKey('access') && response['access'] != null) {
       _accessToken = response['access'] as String;

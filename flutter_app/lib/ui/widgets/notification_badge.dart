@@ -21,6 +21,8 @@ class NotificationBadge extends StatefulWidget {
 
 class _NotificationBadgeState extends State<NotificationBadge> with RouteAware {
   int _count = 0;
+  int _refreshGeneration = 0;
+  ValueNotifier<int>? _pushRevision;
 
   @override
   void initState() {
@@ -31,6 +33,12 @@ class _NotificationBadgeState extends State<NotificationBadge> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final revision = AppScope.read(context).notificationRevision;
+    if (revision != _pushRevision) {
+      _pushRevision?.removeListener(_refresh);
+      _pushRevision = revision;
+      revision.addListener(_refresh);
+    }
     final route = ModalRoute.of(context);
     if (route is ModalRoute<void>) {
       appRouteObserver.subscribe(this, route);
@@ -39,6 +47,7 @@ class _NotificationBadgeState extends State<NotificationBadge> with RouteAware {
 
   @override
   void dispose() {
+    _pushRevision?.removeListener(_refresh);
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -49,15 +58,17 @@ class _NotificationBadgeState extends State<NotificationBadge> with RouteAware {
   void didPopNext() => _refresh();
 
   Future<void> _refresh() async {
+    final generation = ++_refreshGeneration;
     if (!mounted) return;
     final state = AppScope.read(context);
     if (!state.isAuthenticated) {
       if (_count != 0) setState(() => _count = 0);
       return;
     }
+    final user = state.userId;
     try {
       final data = await state.apiClient.getUnreadNotificationCount();
-      if (!mounted) return;
+      if (!mounted || generation != _refreshGeneration || !state.isAuthenticated || state.userId != user) return;
       final count = (data['count'] as num?)?.toInt() ?? 0;
       if (count != _count) setState(() => _count = count);
     } catch (e) {

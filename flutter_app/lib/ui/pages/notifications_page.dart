@@ -29,6 +29,20 @@ class _NotificationsPageState extends State<NotificationsPage> {
   String? _nextCursor;
   bool _isLoading = true;
   String? _error;
+  int _refreshGeneration = 0;
+
+  ValueNotifier<int>? _pushRevision;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final revision = AppScope.read(context).notificationRevision;
+    if (revision != _pushRevision) {
+      _pushRevision?.removeListener(_load);
+      _pushRevision = revision;
+      revision.addListener(_load);
+    }
+  }
 
   @override
   void initState() {
@@ -36,14 +50,28 @@ class _NotificationsPageState extends State<NotificationsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
+  @override
+  void dispose() {
+    _pushRevision?.removeListener(_load);
+    super.dispose();
+  }
+
   Future<void> _load() async {
+    final generation = ++_refreshGeneration;
+    if (!mounted) return;
+    final state = AppScope.read(context);
+    final user = state.userId;
+    if (!state.isAuthenticated) {
+      setState(() { _items.clear(); _isLoading = false; _nextCursor = null; });
+      return;
+    }
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      final page = await AppScope.read(context).apiClient.getNotifications();
-      if (!mounted) return;
+      final page = await state.apiClient.getNotifications();
+      if (!mounted || generation != _refreshGeneration || !state.isAuthenticated || state.userId != user) return;
       final results = page['results'];
       setState(() {
         _items
@@ -55,9 +83,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
         _nextCursor = page['next'] as String?;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = describeApiError(e));
+      if (mounted && generation == _refreshGeneration) setState(() => _error = describeApiError(e));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && generation == _refreshGeneration) setState(() => _isLoading = false);
     }
   }
 

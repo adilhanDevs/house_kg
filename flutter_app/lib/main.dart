@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/app.dart';
+import 'push/firebase_push_messaging.dart';
 
 export 'prototype_shell.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Кадры нарисованы во весь экран и держат свои поля под системные полосы:
   // пустая полоса 0..48 сверху и полоса внутри таб-бара снизу. Приложение
@@ -23,5 +24,6 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(const HouseKgzAppScope());
+  final pushMessaging = await FirebasePushMessaging.initialize();
+  runApp(HouseKgzAppScope(pushMessaging: pushMessaging));
 }

@@ -3,6 +3,8 @@
 // Число берётся у сервера: своего счётчика клиент не ведёт, иначе после
 // прочтения на другом устройстве цифра врала бы.
 import 'dart:convert';
+import 'dart:async';
+import 'package:http/testing.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,6 +58,23 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('older foreground refresh cannot overwrite newer badge count', (tester) async {
+    final pending = <Completer<http.Response>>[];
+    final state = await _authorized(MockClient((request) async {
+      if (request.url.path == '/api/v1/notifications/unread-count/') {
+        final response = Completer<http.Response>(); pending.add(response); return response.future;
+      }
+      return http.Response('{}', 200);
+    }));
+    await tester.pumpWidget(_host(state)); await _settle(tester);
+    state.refreshPushNotifications(); await _settle(tester);
+    expect(pending.length, 2);
+    pending[1].complete(http.Response('{"count":2}', 200)); await _settle(tester);
+    pending[0].complete(http.Response('{"count":1}', 200)); await _settle(tester);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('1'), findsNothing);
+  });
+
   testWidgets('показывает количество непрочитанных', (tester) async {
     final state = await _authorized(_CountServer(3));
 
