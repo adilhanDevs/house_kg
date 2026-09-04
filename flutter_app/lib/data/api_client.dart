@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:http/http.dart' as http;
 
 import 'api_exceptions.dart';
@@ -46,9 +46,16 @@ class AuthInterceptorClient extends http.BaseClient {
             retryRequest.headers['Authorization'] = 'Bearer $newAccess';
             return await _inner.send(retryRequest);
           }
+          // Multipart тела читаются один раз: тот же MultipartRequest нельзя
+          // переслать повторно (package:http бросает StateError на второй
+          // finalize()). Здесь мы уже обновили accessToken — этого
+          // достаточно: ListingApiClient._sendMultipartWithRetry пересобирает
+          // запрос из исходных байт и шлёт его снова, и тот второй запрос
+          // подхватит уже свежий токен через тот же заголовок Authorization.
         }
-      } catch (_) {
+      } catch (e) {
         _isRefreshing = false;
+        debugPrint('Token refresh failed for ${request.url.path}: $e');
       }
     }
     return response;
@@ -128,6 +135,43 @@ class ListingApiClient {
 
   void setTokenRefreshCallback(TokenRefreshCallback? callback) {
     _client.onTokenExpired = callback;
+  }
+
+  /// Отправляет multipart-запрос, собранный заново на каждый вызов, и
+  /// повторяет ровно один раз при 401.
+  ///
+  /// `AuthInterceptorClient.send` уже обновляет `accessToken` при первом 401
+  /// (через `onTokenExpired`), но не пересылает саму multipart-часть: у
+  /// `http.MultipartFile` поток тела читается один раз, и повторный
+  /// `finalize()` того же объекта бросает `StateError` — значит, чтобы
+  /// повторить запрос, файлы нужно пересобрать из исходных байт/пути, а не
+  /// переслать те же объекты. [buildRequest] делает эту пересборку —
+  /// вызывающий код передаёт замыкание, а не готовый запрос.
+  Future<Map<String, dynamic>> _sendMultipartWithRetry(
+    Future<http.MultipartRequest> Function() buildRequest,
+  ) async {
+    try {
+      return await _sendMultipartOnce(buildRequest);
+    } on ApiException catch (e) {
+      if (e.statusCode != 401) rethrow;
+      return await _sendMultipartOnce(buildRequest);
+    }
+  }
+
+  Future<Map<String, dynamic>> _sendMultipartOnce(
+    Future<http.MultipartRequest> Function() buildRequest,
+  ) async {
+    try {
+      final request = await buildRequest();
+      final streamedResponse = await _client.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
+      return _processResponse(response);
+    } on SocketException {
+      throw NetworkException('Отсутствует подключение к сети');
+    } catch (e) {
+      if (e is ApiException || e is NetworkException) rethrow;
+      throw NetworkException(e.toString());
+    }
   }
 
   Future<Map<String, dynamic>> getListings({Map<String, dynamic>? filters, String? cursor}) async {
@@ -456,7 +500,7 @@ class ListingApiClient {
       return updateMe({'delete_avatar': true});
     }
     final uri = Uri.parse('$baseUrl/api/v1/users/me/');
-    try {
+    return _sendMultipartWithRetry(() async {
       final request = http.MultipartRequest('PATCH', uri)
         ..headers['Accept'] = 'application/json';
 
@@ -475,14 +519,8 @@ class ListingApiClient {
       } else {
         throw ArgumentError('Не указаны данные для загрузки аватара');
       }
-
-      final streamedResponse = await _client.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
-      return _processResponse(response);
-    } catch (e) {
-      if (e is ApiException || e is NetworkException) rethrow;
-      throw NetworkException(e.toString());
-    }
+      return request;
+    });
   }
 
   /// Загрузка/удаление фона/обложки профиля (PATCH /api/v1/users/me/).
@@ -496,7 +534,7 @@ class ListingApiClient {
       return updateMe({'delete_cover': true});
     }
     final uri = Uri.parse('$baseUrl/api/v1/users/me/');
-    try {
+    return _sendMultipartWithRetry(() async {
       final request = http.MultipartRequest('PATCH', uri)
         ..headers['Accept'] = 'application/json';
 
@@ -515,14 +553,8 @@ class ListingApiClient {
       } else {
         throw ArgumentError('Не указаны данные для загрузки обложки');
       }
-
-      final streamedResponse = await _client.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
-      return _processResponse(response);
-    } catch (e) {
-      if (e is ApiException || e is NetworkException) rethrow;
-      throw NetworkException(e.toString());
-    }
+      return request;
+    });
   }
 
   /// Смена пароля авторизованным пользователем (POST /api/v1/auth/password/change/).
@@ -946,9 +978,9 @@ class ListingApiClient {
     UploadProgress? onProgress,
   }) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$listingSlug/media/');
+    final defaultName = kind == 'photo' ? 'photo.jpg' : 'upload.mp4';
 
-    try {
-      final defaultName = kind == 'photo' ? 'photo.jpg' : 'upload.mp4';
+    return _sendMultipartWithRetry(() async {
       final request = _ProgressMultipartRequest('POST', uri, onProgress: onProgress)
         ..headers['Accept'] = 'application/json'
         ..fields['kind'] = kind;
@@ -999,16 +1031,8 @@ class ListingApiClient {
         }
       }
 
-      final streamedResponse = await _client.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
-
-      return _processResponse(response);
-    } on SocketException {
-      throw NetworkException('Отсутствует подключение к сети');
-    } catch (e) {
-      if (e is ApiException || e is NetworkException) rethrow;
-      throw NetworkException(e.toString());
-    }
+      return request;
+    });
   }
 
   /// Делает фото обложкой объявления.
