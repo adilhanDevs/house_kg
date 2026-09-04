@@ -83,6 +83,11 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
   final Map<int, PageController> _horizontalControllers = {};
   final GlobalKey<_VideoPlayerItemState> _playerKey = GlobalKey<_VideoPlayerItemState>();
 
+  /// Сколько горизонтальных контроллеров живёт прямо сейчас — нужно тесту,
+  /// который доказывает, что окно вокруг текущей карточки не растёт вечно.
+  @visibleForTesting
+  int get debugHorizontalControllerCount => _horizontalControllers.length;
+
   final List<_ListingFeedItem> _feed = [];
   final Map<int, int> _subVideoIndices = {};
   int _listingIndex = 0;
@@ -195,6 +200,25 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
       listingIdx,
       () => PageController(initialPage: _getSubIndex(listingIdx)),
     );
+  }
+
+  /// Держит только окно вокруг текущей карточки — иначе один вертикальный
+  /// свайп на каждый ролик оставляет позади себя контроллер, который никто
+  /// больше не тронет до `dispose()` всего экрана: за 50 свайпов их
+  /// набирается 49 (измерено `video_page_controller_memory_test.dart`),
+  /// каждый со своей `ScrollPosition` и слушателями.
+  ///
+  /// `_subVideoIndices` хранит, на каком под-ролике был пользователь,
+  /// отдельно от контроллера — так что удалённый контроллер, если к нему
+  /// вернутся, пересоздаётся `_getHorizontalController` на правильной
+  /// позиции, а не с нуля.
+  void _pruneHorizontalControllers(int keepAround) {
+    final toRemove = _horizontalControllers.keys
+        .where((idx) => (idx - keepAround).abs() > 1)
+        .toList();
+    for (final idx in toRemove) {
+      _horizontalControllers.remove(idx)?.dispose();
+    }
   }
 
   @override
@@ -394,6 +418,7 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
                     _listingIndex = i;
                   });
                   _startWatch(_feed[i].listing.backendId);
+                  _pruneHorizontalControllers(i);
                 }
                 if (i >= _feed.length - 2) {
                   _loadNextPage();
