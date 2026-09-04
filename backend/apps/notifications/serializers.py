@@ -110,7 +110,13 @@ class DeviceTokenSerializer(serializers.ModelSerializer):
         read_only_fields = ["is_active", "last_seen_at"]
         extra_kwargs = {
             "app_version": {"required": False, "allow_blank": True},
-            "device_id": {"required": False, "allow_blank": True, "allow_null": True},
+            # Like token, installation identity is an upsert key, not a new-row-only value.
+            "device_id": {
+                "required": False,
+                "allow_blank": True,
+                "allow_null": True,
+                "validators": [],
+            },
             # Уникальность токена — не ошибка ввода, а повод обновить запись.
             "token": {"validators": []},
         }

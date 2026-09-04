@@ -165,6 +165,10 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> with WidgetsBinding
         intent.type == 'new_message' ? Routes.conversation : Routes.listing,
         arguments: intent.conversationId ?? intent.listingSlug,
       );
+      final notificationId = int.tryParse(intent.notificationId ?? '');
+      if (notificationId != null) {
+        unawaited(_state.markNotificationRead(notificationId));
+      }
     });
     WidgetsBinding.instance.ensureVisualUpdate();
   }

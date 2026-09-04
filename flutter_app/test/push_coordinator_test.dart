@@ -63,11 +63,27 @@ void main() {
         {},
         {...message(), 'conversation_id': ''},
         {...message(), 'recipient_id': null},
-        {...message(), 'notification_id': []},
         {...message(type: 'price_drop'), 'listing_slug': '../wrong'},
         message(type: 'unknown'),
       ]) {
         expect(PushIntent.parse(Map<String, dynamic>.from(data)), isNull);
+      }
+    },
+  );
+  test(
+    'malformed notification IDs preserve valid destinations without marking read',
+    () {
+      for (final id in [
+        null,
+        [],
+        '0',
+        '-1',
+        'bad',
+        '9999999999999999999999999999',
+      ]) {
+        final intent = PushIntent.parse({...message(), 'notification_id': id});
+        expect(intent?.conversationId, message()['conversation_id']);
+        expect(intent?.notificationId, isNull);
       }
     },
   );
@@ -110,13 +126,31 @@ void main() {
     },
   );
   test(
-    'logout deactivates before new account registration and deletes local token',
+    'logout deactivates before new account registration and keeps FCM token',
     () async {
       await coordinator.start();
       await coordinator.setUser(7);
       await coordinator.logout();
       await coordinator.setUser(8);
       expect(calls, ['register:token-a', 'deactivate', 'register:token-a']);
+      expect(messaging.deleted, 0);
+    },
+  );
+  test(
+    'failed backend deactivation invalidates FCM delivery as fallback',
+    () async {
+      await coordinator.dispose();
+      coordinator = PushCoordinator(
+        messaging: messaging,
+        register: (_) async {},
+        deactivate: () async {
+          throw Exception('offline');
+        },
+        onForeground: () {},
+        onPending: () {},
+      );
+      await coordinator.setUser(7);
+      await coordinator.logout();
       expect(messaging.deleted, 1);
     },
   );

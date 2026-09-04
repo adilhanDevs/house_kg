@@ -1,43 +1,44 @@
 # House KG Android push — operator and phone checks
 
-## Current gate
+## Current status
 
-Production push stays **PUSH_ENABLED=0**. The existing database outbox/worker is reused; no Redis/Celery addition is needed. A fresh Firebase Admin credential has been installed and its Google OAuth authentication validated. Physical delivery remains untested.
+Production push is **PUSH_ENABLED=1**, enabled with owner authorization. The existing database outbox/worker is reused. The owner confirmed background new_message, cold-start new_message, and price_drop delivery/navigation on build 2110. Two subsequent regressions (system tap unread state and same-token re-login) are fixed for build 2111; the new physical retests remain pending. Do not send test pushes without the next explicit owner request.
 
 **Credential gate resolved on 2026-09-04.** The owner supplied a fresh matching House KG service account, absent from checked Git history. It is installed with root ownership and mode 600 in a root-owned mode-700 directory, excluded from Git, and Google OAuth authentication passed without sending a notification. The older key in builds Git history and the unrelated Downloads credential were not installed. Revocation of the previously exposed key still needs separate coordination; DB/JWT/Finik secrets were not changed.
 
 Only target: `139.59.224.34`, hostname `house-kg-droplet`, repository `/root/house-backend`, remote `adilhanDevs/house-backend`. Run `backend/scripts/check_production_host.sh 139.59.224.34` locally before SSH. Do not use `mtl-server` or another server.
 
-The credential installation uses `/root/house-backend/secrets` owned by root with mode 700, `firebase-service-account.json` mode 600, and existing `FCM_CREDENTIALS_FILE`. `FCM_CREDENTIALS_BASE64` remains unset and `PUSH_ENABLED=0` until the owner is ready for controlled delivery. Gunicorn and the push worker were restarted after configuring only FCM_CREDENTIALS_FILE.
+The credential installation uses `/root/house-backend/secrets` owned by root with mode 700, `firebase-service-account.json` mode 600, and existing `FCM_CREDENTIALS_FILE`. `FCM_CREDENTIALS_BASE64` remains unset. Push is now enabled for the owner-authorized lifecycle tests. Gunicorn and the push worker were restarted after configuring only FCM_CREDENTIALS_FILE.
 
 ## Client contract
 
 - `POST /api/v1/notifications/devices/`: token, platform=android, random installation UUID as device_id, current app locale. Optional version/timezone metadata is omitted rather than fabricated. Server defaults apply.
-- `DELETE /api/v1/notifications/devices/current/`: device_id in JSON, before auth is cleared. FCM deleteToken also invalidates the local token. Both are best effort when offline; failed network delivery cannot be proved remotely.
+- `DELETE /api/v1/notifications/devices/current/`: device_id in JSON, before auth is cleared. Successful deactivation keeps the FCM token; local registration bookkeeping resets so the same token is registered on the next login. deleteToken is a fallback only when backend deactivation fails. Both operations are best effort when offline.
 - Registration is serialized and remembered per process; a restart upserts the same installation. Refresh replaces the token, and resume retries failure (including profile hydration after an offline startup). Device requests capture auth and do not auto-refresh a delayed request into another account. Normal API calls refresh access credentials; push registration retries on resume if its own request receives 401.
 - Permission is requested after login, at most once per installation. Denial does not block use. Granting in Android Settings takes effect on resume.
 - FCM foreground events refresh the existing notification list/badge; they do not create Notification rows or navigate. Request generations prevent out-of-order refresh responses from restoring older data.
 - Push data now includes authoritative string `recipient_id` from Notification.user_id, in addition to notification_id/type and existing whitelisted fields. Payloads lacking recipient_id are safely ignored by this client for navigation. Deploy the matching backend before enabling delivery.
-- `new_message` uses canonical UUID conversation_id and `/conversations/detail`; `price_drop` uses listing_slug and `/listing`. No display-name identifiers. Taps wait for session hydration and a non-startup route, then consume once. Logout clears pending action; wrong recipients/malformed payloads are ignored.
+- `new_message` uses canonical UUID conversation_id and `/conversations/detail`; `price_drop` uses listing_slug and `/listing`. No display-name identifiers. Taps wait for session hydration and a non-startup route, then consume once. Logout clears pending action; wrong recipients/invalid destinations are ignored. Missing or malformed notification_id still permits a valid destination but skips mark-read. A valid ID deduplicates navigation and the shared asynchronous mark-read endpoint; successful read refreshes the server-owned badge. Receipt alone never marks read.
 - Android receives alert notifications through Firebase/Android while backgrounded. The top-level background handler only initializes Firebase and does not navigate.
 
 Implementation reference: [Flutter FCM handling](https://firebase.google.com/docs/cloud-messaging/flutter/receive-messages) and [Android Google Services setup](https://firebase.google.com/docs/android/setup).
 
-## Controlled test — credential gate resolved, owner phone required
+## Controlled retest after build 2111
 
-1. Keep the global switch off while installing the APK, logging in, granting permission, and inspecting that this user's installation has an active DeviceToken. Inspect only id/user_id/platform/is_active/last_seen_at; never print token values.
-2. Verify worker/gunicorn active, Django check, DB connectivity, and no pending/retry/processing backlog. Events skipped while disabled must not be requeued en masse.
-3. Arrange a short, explicit test window with the owner before enabling delivery. This task does not enable production push.
-4. The existing administrator-only command `manage.py send_test_push --user-id <OWNER_TEST_USER_ID>` sends a system notification to that user's active devices. It has no public endpoint and exits without creating a row while push is disabled. It checks transport only, not chat/listing navigation. Do not run it for an arbitrary or production-wide user set.
-5. For navigation, use a second test account to send one real message to the owner's existing conversation. For price_drop, favourite a test listing and lower its price through the existing owner flow sufficiently to satisfy backend notification policy (use test data only).
-6. Confirm one DB Notification and one outbox event for the action, then physical receipt and tap. Do not infer receipt from the worker accepting a message. Restore disabled state if the test window is closed or a failure occurs.
+Keep PUSH_ENABLED=1. Before each owner-authorized single-device test, verify gunicorn/worker, DB/API and no pending/retry/processing backlog. Never broadcast or automatically repeat. Never print device tokens.
+
+1. Install the new private APK. Same account: login → ACTIVE; logout → INACTIVE; login with the same FCM token → ACTIVE.
+2. For each new_message and price_drop test, send exactly one controlled notification only after the owner requests it. Receipt adds one unread item; tapping the system notification opens its exact destination, marks its canonical Notification read, and refreshes the bell count.
+3. Repeat new_message from cold start: one destination, one mark-read. Stop after sending and wait for physical confirmation.
+4. Account switch A → logout → B: only B owns the active installation; B → logout → A rebinds to A.
+5. Do not alter real listing prices or create real chat messages as test fixtures without explicit owner authorization. Do not requeue old skipped events.
 
 ## Owner's phone checklist
 
 - Install private ARM64 APK; open and log in.
 - Notification permission appears once; allow. A refusal must still leave the app usable.
 - Operator confirms an active token record for this installation, without showing its value.
-- After the credential/test-window gate above: receive one new_message while backgrounded.
+- After the owner requests a controlled single-device test: receive one new_message while backgrounded.
 - Tap: the correct existing chat opens.
 - Remove the app from recents, send another message, tap: cold start opens the correct chat after startup.
 - Do not use Android Settings → Force stop for this test: Android requires a manual reopen after a force stop before FCM can resume.
@@ -55,14 +56,28 @@ Run Flutter commands sequentially: parallel Flutter tooling can race on generate
 Build from flutter_app with the existing ignored Finik config:
 
 ```sh
-flutter build apk --release --split-per-abi --build-name=1.0.1 --build-number=110 --dart-define-from-file=.finik.local.json
+flutter build apk --release --split-per-abi --build-name=1.0.1 --build-number=111 --dart-define-from-file=.finik.local.json
 ```
 
 Prior split build used Flutter 109: ARM64 versionCode 2109, ARMv7 1109, x86_64 4109. New Flutter build 110 yields ARM64 2110. Use an incremented unused build number for any future release.
 
 The current release signing configuration uses the Android debug certificate. **PUBLIC DISTRIBUTION SIGNING: NOT READY.** APK contains private runtime configuration: distribute only through the verified PRIVATE house-kg-builds prerelease repository. No APK or credential belongs in the public monorepo.
 
-## Verified release artifact (2026-09-04)
+## Regression fixes for build 2111 (2026-09-04)
+
+System taps previously navigated without invoking the read endpoint. The FCM payload already included canonical string notification_id, so no payload change was required. Both system and in-app taps now share AppState.markNotificationRead → POST /notifications/read/ with the exact ID. Navigation starts immediately; mark-read has a 10-second best-effort timeout. Successful responses refresh the existing server-owned notification revision/badge. Receipt, failed reads and malformed IDs do not decrement a local counter. Cold-start and opened-app callbacks consume a notification once.
+
+Re-login failed in the backend serializer, not the client cache. Production requests returned HTTP 400; read-only validation of the stored device payload reported device_id unique. DRF's automatic uniqueness validator rejected a known installation before the existing register_device upsert could reactivate it. The validator is now disabled for this upsert key, retaining database uniqueness and authenticated-user ownership. The HTTP regression reproduces fresh registration, repeated registration, logout, unchanged-token A → A → B → A cycles and ignores a spoofed client user_id. Earlier service-only tests missed this API-level rejection.
+
+Client registration bookkeeping already reset on logout/user change. The new AppState test proves actual registration requests with an unchanged token throughout. Normal logout now keeps the FCM token; deleteToken remains only a fallback when backend deactivation fails.
+
+Validation: 69 focused Flutter tests; 65 backend tests in both repositories with local PostgreSQL; Django check and no migration changes; changed backend paths pass Ruff. Analyze: 128 existing diagnostics, no new diagnostics against the prior baseline. The profile-notification test fixture now places AppScope above its Navigator so pushed routes receive the same state. Mutations removing mark-read or preserving the registration memo fail their regression tests; restored code passes. Independent read-only code review found no blocking issues.
+
+Canonical backend commit: 9f36d133f169235fadde763e3d35ef0f999a6775, pushed and deployed from adilhanDevs/house-backend. Production backup branch backup/fcm-before-relogin-fix-20260904 retains prior HEAD 61286369225489be00c5c9c3fc9085c539931621. Only gunicorn needed restart; no schema/config change. Post-deploy: gunicorn/house-push-worker active, Django/DB/Firebase Admin init pass, HTTPS config/listings 200, PUSH_ENABLED=1, pending/retry/processing backlog 0. Existing-device serializer validation now succeeds. No device was manually activated and no test notification was sent.
+
+Physical checks for this build remain NOT TESTED: same-account relogin, system new_message read state, price_drop read state, cold-start read/deduplication, cross-account ownership. Tokens and secret configuration were not printed; only the canonical production host was contacted.
+
+## Previous release artifact 2110 (historical, 2026-09-04)
 
 - Private prerelease: [House KG Android FCM Test 2110](https://github.com/adilhanDevs/house-kg-builds/releases/tag/v2110), tag `v2110` in `adilhanDevs/house-kg-builds`.
 - Local distributable: `/Users/adminbaike/house-kg-builds/house-kg-arm64-v2110.apk`.

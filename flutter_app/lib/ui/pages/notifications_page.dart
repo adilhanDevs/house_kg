@@ -152,10 +152,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markRead(AppNotification notification) async {
     if (notification.isRead) return;
     try {
-      await AppScope.read(context)
-          .apiClient
-          .markNotificationsRead(ids: [notification.id]);
-      if (!mounted) return;
+      final marked = await AppScope.read(context).markNotificationRead(notification.id);
+      if (!mounted || !marked) return;
       final index = _items.indexWhere((n) => n.id == notification.id);
       if (index >= 0) {
         setState(() {

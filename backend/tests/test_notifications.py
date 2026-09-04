@@ -546,3 +546,25 @@ def test_canonical_device_api_requires_authentication(api_client: APIClient) -> 
         ).status_code
         == 401
     )
+
+
+@pytest.mark.django_db
+def test_same_token_http_logout_relogin_and_account_switch() -> None:
+    """All writes go through DRF: its validators must allow service upsert."""
+    a, b = UserFactory(), UserFactory()
+    ca, cb = client_for(a), client_for(b)
+    body = {"token": "unchanged-fcm-token", "device_id": "same-installation", "platform": "android"}
+    for client, user in [(ca, a), (ca, a), (cb, b), (ca, a)]:
+        for _ in range(2):
+            response = client.post(CANONICAL_DEVICES_URL, {**body, "user_id": b.pk}, format="json")
+            assert response.status_code == 200, response.data
+            device = DeviceToken.objects.get(token=body["token"])
+            assert device.user_id == user.pk
+            assert device.is_active
+            assert DeviceToken.objects.filter(token=body["token"]).count() == 1
+        response = client.delete(
+            CURRENT_DEVICE_URL, {"device_id": body["device_id"]}, format="json"
+        )
+        assert response.status_code == 204
+        device.refresh_from_db()
+        assert not device.is_active

@@ -82,6 +82,22 @@ class AppState extends ChangeNotifier {
   final ValueNotifier<int> notificationRevision = ValueNotifier(0);
   void refreshPushNotifications() => notificationRevision.value++;
 
+  /// Shared by in-app and system notification taps; the server owns unread state.
+  Future<bool> markNotificationRead(int id) async {
+    if (!isAuthenticated || id <= 0) return false;
+    final generation = _authGeneration;
+    try {
+      await apiClient
+          .markNotificationsRead(ids: [id])
+          .timeout(const Duration(seconds: 10));
+      if (generation != _authGeneration || !isAuthenticated) return false;
+      refreshPushNotifications();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Чем снимается кадр-обложка ролика. Подменяется в тестах.
   final VideoPosterCapture _posterCapture;
 

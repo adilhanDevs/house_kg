@@ -18,19 +18,24 @@ class PushIntent {
     this.conversationId,
     this.listingSlug,
   });
-  final String notificationId;
+  final String? notificationId;
+  String get dedupeKey =>
+      notificationId ?? '$recipientId:$type:${conversationId ?? listingSlug}';
   final int recipientId;
   final String type;
   final String? conversationId;
   final String? listingSlug;
 
   static PushIntent? parse(Map<String, dynamic> data) {
-    final id = data['notification_id'];
+    final rawId = data['notification_id'];
+    final id =
+        rawId is String &&
+            RegExp(r'^[1-9][0-9]*$').hasMatch(rawId) &&
+            int.tryParse(rawId) != null
+        ? rawId
+        : null;
     final recipient = data['recipient_id'];
-    if (id is! String ||
-        !RegExp(r'^[1-9][0-9]*$').hasMatch(id) ||
-        recipient is! String)
-      return null;
+    if (recipient is! String) return null;
     final user = int.tryParse(recipient);
     if (user == null || user <= 0) return null;
     final type = data['type'];
@@ -166,8 +171,8 @@ class PushCoordinator {
     return _enqueue(() async {
       try {
         await deactivate();
-      } finally {
-        // Invalidates delivery even if the deactivation request was offline.
+      } catch (_) {
+        // Fallback only: invalidate delivery if backend deactivation failed.
         await messaging.deleteToken();
       }
     });
@@ -176,7 +181,7 @@ class PushCoordinator {
   void _capture(Map<String, dynamic> data) {
     if (_disposed) return;
     final intent = PushIntent.parse(data);
-    if (intent == null || _seen.contains(intent.notificationId)) return;
+    if (intent == null || _seen.contains(intent.dedupeKey)) return;
     if (_user != null && intent.recipientId != _user) return;
     _pending = intent;
     onPending();
@@ -187,7 +192,7 @@ class PushCoordinator {
     final intent = _pending;
     _pending = null;
     if (intent == null || intent.recipientId != _user) return null;
-    _seen.add(intent.notificationId);
+    _seen.add(intent.dedupeKey);
     if (_seen.length > 100) _seen.remove(_seen.first);
     return intent;
   }

@@ -100,25 +100,25 @@ class _MockHttpServer extends http.BaseClient {
 }
 
 Widget _wrapWithApp(Widget child, AppState state) {
-  return MaterialApp(
-    routes: {
-      Routes.notifications: (context) => const NotificationsPage(),
-      Routes.conversation: (context) {
-        final args = ModalRoute.of(context)!.settings.arguments as ChatArgs;
-        return Scaffold(
-          body: Text('Chat with ${args.peerName}, ID: ${args.conversationId}'),
-        );
+  return AppScope(
+    state: state,
+    child: MaterialApp(
+      routes: {
+        Routes.notifications: (context) => const NotificationsPage(),
+        Routes.conversation: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as ChatArgs;
+          return Scaffold(
+            body: Text('Chat with ${args.peerName}, ID: ${args.conversationId}'),
+          );
+        },
+        Routes.listing: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as ListingArgs;
+          return Scaffold(
+            body: Text('Listing Slug: ${args.id}'),
+          );
+        },
       },
-      Routes.listing: (context) {
-        final args = ModalRoute.of(context)!.settings.arguments as ListingArgs;
-        return Scaffold(
-          body: Text('Listing Slug: ${args.id}'),
-        );
-      },
-    },
-    home: AppScope(
-      state: state,
-      child: Scaffold(body: child),
+      home: Scaffold(body: child),
     ),
   );
 }
