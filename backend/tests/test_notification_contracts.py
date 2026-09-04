@@ -150,3 +150,25 @@ def test_price_drop_reason_maps_to_the_right_preference() -> None:
     assert settings_row.allows_reason(NotificationType.PRICE_DROP, "viewed") is False
     assert settings_row.allows_reason(NotificationType.PRICE_DROP, "favorite") is True
     assert settings_row.allows_reason(NotificationType.NEW_MESSAGE, None) is True
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("notification_type", ["new_message", "price_drop"])
+def test_push_recipient_is_authoritative_and_payload_is_small(notification_type: str) -> None:
+    import json
+
+    notification = Notification.objects.create(
+        user=UserFactory(),
+        type=notification_type,
+        payload={
+            "recipient_id": "999999",
+            "conversation_id": str(uuid4()),
+            "listing_slug": "house-42",
+            "private_notes": "not-for-push",
+        },
+    )
+    data = _data_payload(notification)
+    assert data["recipient_id"] == str(notification.user_id)
+    assert len(json.dumps(data).encode()) < 1024
+    assert "private_notes" not in data
+    assert all(isinstance(value, str) for value in data.values())

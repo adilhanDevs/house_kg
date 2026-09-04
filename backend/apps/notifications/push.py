@@ -154,6 +154,7 @@ def _data_payload(notification: Any) -> dict[str, str]:
     """Данные для перехода по нажатию. Только строки: FCM других не принимает."""
     payload: dict[str, str] = {
         "notification_id": str(notification.pk),
+        "recipient_id": str(notification.user_id),
         "type": str(notification.type),
     }
     if notification.listing_id:

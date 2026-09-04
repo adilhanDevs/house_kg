@@ -520,3 +520,29 @@ def test_favourite_remembers_price_at_add(auth: APIClient, user, district) -> No
     auth.post(FAVOURITE_URL.format(slug=listing.slug))
 
     assert Favourite.objects.get().price_at_add == Decimal("120000.00")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"token": "", "platform": "android"},
+        {"token": "x" * 513, "platform": "android"},
+        {"token": "synthetic-token", "platform": "unsupported"},
+    ],
+)
+def test_canonical_device_registration_rejects_invalid_input(auth: APIClient, body: dict) -> None:
+    response = auth.post("/api/v1/notifications/devices/", body, format="json")
+    assert response.status_code == 400
+
+
+def test_canonical_device_api_requires_authentication(api_client: APIClient) -> None:
+    assert api_client.post("/api/v1/notifications/devices/", {}, format="json").status_code == 401
+    assert (
+        api_client.delete(
+            "/api/v1/notifications/devices/current/",
+            {"device_id": "test-installation"},
+            format="json",
+        ).status_code
+        == 401
+    )
