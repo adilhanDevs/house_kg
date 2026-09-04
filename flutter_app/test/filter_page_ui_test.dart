@@ -130,7 +130,11 @@ void main() {
       await _scrollUntilVisible(tester, find.text('От'));
       expect(find.text('До'), findsOneWidget);
 
-      await _scrollUntilVisible(tester, find.text('Кто продаёт'));
+      await _scrollUntilVisible(tester, find.text('Только собственник'));
+      // Продавец — последняя секция; докручиваем до последней строки, а не
+      // только до заголовка, иначе более компактная вёрстка может ещё не
+      // успеть построить остальные строки в sliver cache extent.
+      await _scrollUntilVisible(tester, find.text('Агентство недвижимости'));
       for (final label in const ['Только собственник', 'Риелторы', 'Агентство недвижимости']) {
         expect(find.text(label), findsOneWidget);
       }
@@ -179,7 +183,10 @@ void main() {
       await _pumpFilter(tester, state);
 
       // Тумблеры продавца — в самом низу списка, до них нужно прокрутить.
-      await _scrollUntilVisible(tester, find.text('Кто продаёт'));
+      // Докручиваем до последней строки: заголовка секции недостаточно —
+      // остальные строки могут ещё не попасть в sliver cache extent.
+      await _scrollUntilVisible(tester, find.text('Только собственник'));
+      await _scrollUntilVisible(tester, find.text('Агентство недвижимости'));
 
       final toggles = tester.widgetList<FigToggle>(find.byType(FigToggle)).toList();
       expect(toggles, hasLength(3), reason: 'три продавца — три тумблера');

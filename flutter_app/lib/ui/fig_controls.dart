@@ -112,14 +112,21 @@ class FigChip extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(8.0),
         ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13.0,
-            fontWeight: FontWeight.w500,
-            height: 1.0,
-            color: selected ? _accentText : _mutedText,
+        // `alignment` on Container wraps the child in an expanding Align,
+        // which under Wrap's loose constraints stretches the chip to fill
+        // the row's full width — Center with factor 1 centers without
+        // expanding, so the chip stays as narrow as its label.
+        child: Center(
+          widthFactor: 1.0,
+          heightFactor: 1.0,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13.0,
+              fontWeight: FontWeight.w500,
+              height: 1.0,
+              color: selected ? _accentText : _mutedText,
+            ),
           ),
         ),
       ),
