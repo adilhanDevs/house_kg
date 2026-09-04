@@ -156,7 +156,7 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
           Routes.conversation,
           arguments: ChatArgs(
             conversationId,
-            peerName: notification.displayTitle(context.l10n),
+            peerName: _localizedTitle(notification, context.l10n),
           ),
         );
         if (mounted) await _refresh();
@@ -399,9 +399,7 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
                     children: [
                       Expanded(
                         child: Text(
-                          item.displayTitle(l10n).isNotEmpty
-                              ? item.displayTitle(l10n)
-                              : l10n.notificationFallbackTitle,
+                          _localizedTitle(item, l10n),
                           style: const TextStyle(
                             fontSize: 15.0,
                             fontWeight: FontWeight.bold,
@@ -438,10 +436,10 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
                       ),
                     ],
                   ),
-                  if (item.displayBody(l10n).isNotEmpty) ...[
+                  if (_localizedBody(item, l10n).isNotEmpty) ...[
                     const SizedBox(height: 3.0),
                     Text(
-                      item.displayBody(l10n),
+                      _localizedBody(item, l10n),
                       style: const TextStyle(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w400,
@@ -457,5 +455,30 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
         ),
       ),
     );
+  }
+
+  String _localizedTitle(AppNotification item, AppLocalizations l10n) {
+    final title = item.displayTitle(l10n);
+    if (l10n.localeName.startsWith('ky')) {
+      final normalized = title
+          .toLowerCase()
+          .replaceAll('—', '-')
+          .replaceAll('–', '-');
+      if (normalized.contains('проверка прочтения')) {
+        return l10n.notificationTestPushTitle;
+      }
+    }
+    return title.isNotEmpty ? title : l10n.notificationFallbackTitle;
+  }
+
+  String _localizedBody(AppNotification item, AppLocalizations l10n) {
+    final body = item.displayBody(l10n);
+    if (l10n.localeName.startsWith('ky')) {
+      final normalized = body.toLowerCase();
+      if (normalized.contains('контрольное уведомление')) {
+        return l10n.notificationTestPushBody;
+      }
+    }
+    return body;
   }
 }

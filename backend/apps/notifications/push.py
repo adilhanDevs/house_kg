@@ -150,14 +150,42 @@ PUSH_DATA_FIELDS: dict[str, tuple[str, ...]] = {
 }
 
 
+def _is_test_push(notification: Any) -> bool:
+    source = getattr(notification, "payload", None) or {}
+    if source.get("kind") == "test_push":
+        return True
+    title = (
+        str(getattr(notification, "title", "") or "")
+        .lower()
+        .replace("—", "-")
+        .replace("–", "-")
+    )
+    if (
+        "проверка прочтения" in title
+        or "окулганын текшерүү" in title
+        or "проверка уведомлений" in title
+        or "билдирмелерди текшерүү" in title
+    ):
+        return True
+    body = str(getattr(notification, "body", "") or "").lower()
+    if (
+        "контрольное уведомление" in body
+        or "көзөмөл билдирмеси" in body
+        or "push-уведомления работают" in body
+        or "push-билдирмелер иштеп" in body
+    ):
+        return True
+    return False
+
+
 def _localized_payload_text(notification: Any, field: str, locale: str) -> str:
-    source = notification.payload or {}
+    source = getattr(notification, "payload", None) or {}
     i18n = source.get(f"{field}_i18n")
     if isinstance(i18n, dict):
-        text = str(i18n.get(locale) or i18n.get("ru") or "").strip()
+        text = str(i18n.get(locale) or "").strip()
         if text:
             return text
-    if source.get("kind") == "test_push":
+    if _is_test_push(notification):
         defaults = {
             "title": {
                 "ru": "House KG — проверка прочтения",
@@ -175,6 +203,10 @@ def _localized_payload_text(notification: Any, field: str, locale: str) -> str:
             },
         }
         text = defaults.get(field, {}).get(locale) or defaults.get(field, {}).get("ru")
+        if text:
+            return text
+    if isinstance(i18n, dict):
+        text = str(i18n.get("ru") or "").strip()
         if text:
             return text
     return str(getattr(notification, field, "") or "")

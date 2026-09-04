@@ -27,6 +27,49 @@ class NotificationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    def to_representation(self, instance: Notification) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        from apps.notifications.push import _is_test_push, _localized_payload_text
+
+        if _is_test_push(instance):
+            payload = dict(data.get("payload") or {})
+            payload.setdefault("kind", "test_push")
+            payload.setdefault(
+                "title_i18n",
+                {
+                    "ru": "House KG — проверка прочтения",
+                    "ky": "House KG — окулганын текшерүү",
+                },
+            )
+            payload.setdefault(
+                "body_i18n",
+                {
+                    "ru": (
+                        "Контрольное уведомление. Нажмите, чтобы открыть чат "
+                        "и обновить счётчик."
+                    ),
+                    "ky": (
+                        "Көзөмөл билдирмеси. Чатты ачып, эсептегичти "
+                        "жаңыртуу үчүн басыңыз."
+                    ),
+                },
+            )
+            data["payload"] = payload
+
+        request = self.context.get("request")
+        if request is not None:
+            raw_locale = (
+                request.query_params.get("locale")
+                or request.query_params.get("lang")
+                or request.headers.get("Accept-Language", "")
+            )
+            lang = raw_locale.strip().lower().replace("_", "-").split("-")[0]
+            if lang in ("ky", "ru"):
+                data["title"] = _localized_payload_text(instance, "title", lang)
+                data["body"] = _localized_payload_text(instance, "body", lang)
+
+        return data
+
 
 class UnreadCountSerializer(serializers.Serializer):
     count = serializers.IntegerField()

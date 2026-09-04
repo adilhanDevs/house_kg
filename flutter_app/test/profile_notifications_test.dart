@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:house_kgz/app/app_state.dart';
 import 'package:house_kgz/app/routes.dart';
 import 'package:house_kgz/data/api_client.dart';
-import 'package:house_kgz/data/chat_models.dart';
 import 'package:house_kgz/l10n/app_localizations.dart';
 import 'package:house_kgz/ui/pages/chat_page.dart';
 import 'package:house_kgz/ui/pages/notifications_page.dart';
@@ -102,31 +101,37 @@ class _MockHttpServer extends http.BaseClient {
 Widget _wrapWithApp(
   Widget child,
   AppState state, {
-  Locale locale = const Locale('ru'),
+  Locale? locale,
 }) {
+  if (locale != null && locale.languageCode != state.languageCode) {
+    state.setLanguageCode(locale.languageCode);
+  }
   return AppScope(
     state: state,
-    child: MaterialApp(
-      locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      routes: {
-        Routes.notifications: (context) => const NotificationsPage(),
-        Routes.conversation: (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as ChatArgs;
-          return Scaffold(
-            body: Text(
-              'Chat with ${args.peerName}, ID: ${args.conversationId}',
-            ),
-          );
+    child: ListenableBuilder(
+      listenable: state,
+      builder: (context, _) => MaterialApp(
+        locale: state.locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        routes: {
+          Routes.notifications: (context) => const NotificationsPage(),
+          Routes.conversation: (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as ChatArgs;
+            return Scaffold(
+              body: Text(
+                'Chat with ${args.peerName}, ID: ${args.conversationId}',
+              ),
+            );
+          },
+          Routes.listing: (context) {
+            final args =
+                ModalRoute.of(context)!.settings.arguments as ListingArgs;
+            return Scaffold(body: Text('Listing Slug: ${args.id}'));
+          },
         },
-        Routes.listing: (context) {
-          final args =
-              ModalRoute.of(context)!.settings.arguments as ListingArgs;
-          return Scaffold(body: Text('Listing Slug: ${args.id}'));
-        },
-      },
-      home: Scaffold(body: child),
+        home: Scaffold(body: child),
+      ),
     ),
   );
 }
@@ -304,6 +309,130 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('House KG — проверка прочтения'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Profile screen dynamically localizes test push notification without payload kind on language switch',
+      (tester) async {
+        tester.view.physicalSize = const Size(375, 812);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final server = _MockHttpServer(
+          notifications: [
+            {
+              'id': 205,
+              'type': 'system',
+              'title': 'House KG - проверка прочтения',
+              'body':
+                  'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.',
+              'payload': <String, dynamic>{},
+              'is_read': false,
+              'created_at': '2026-09-02T11:00:00Z',
+            },
+          ],
+        );
+
+        final state = AppState(
+          apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
+        );
+
+        await tester.pumpWidget(
+          _wrapWithApp(
+            const ProfilePage(),
+            state,
+            locale: const Locale('ru'),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Initial Russian state
+        expect(find.text('House KG — проверка прочтения'), findsOneWidget);
+        expect(
+          find.text(
+            'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.',
+          ),
+          findsOneWidget,
+        );
+
+        // Switch to Kyrgyz
+        await tester.tap(find.text('Кыргызча'));
+        await tester.pumpAndSettle();
+
+        // Notification is now localized in Kyrgyz
+        expect(find.text('House KG — окулганын текшерүү'), findsOneWidget);
+        expect(
+          find.text(
+            'Көзөмөл билдирмеси. Чатты ачып, эсептегичти жаңыртуу үчүн басыңыз.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('House KG - проверка прочтения'), findsNothing);
+        expect(find.text('House KG — проверка прочтения'), findsNothing);
+
+        // Switch back to Russian
+        await tester.tap(find.text('Орусча'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('House KG — проверка прочтения'), findsOneWidget);
+        expect(
+          find.text(
+            'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'Test push with only Russian title_i18n in payload localizes to Kyrgyz on ky locale',
+      (tester) async {
+        final server = _MockHttpServer(
+          notifications: [
+            {
+              'id': 206,
+              'type': 'system',
+              'title': 'House KG — проверка прочтения',
+              'body':
+                  'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.',
+              'payload': {
+                'kind': 'test_push',
+                'title_i18n': {'ru': 'House KG — проверка прочтения'},
+                'body_i18n': {
+                  'ru':
+                      'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.',
+                },
+              },
+              'is_read': false,
+              'created_at': '2026-09-02T11:00:00Z',
+            },
+          ],
+        );
+
+        final state = AppState(
+          apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
+        );
+
+        await tester.pumpWidget(
+          _wrapWithApp(
+            const ProfileLatestNotifications(),
+            state,
+            locale: const Locale('ky'),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('House KG — окулганын текшерүү'), findsOneWidget);
+        expect(
+          find.text(
+            'Көзөмөл билдирмеси. Чатты ачып, эсептегичти жаңыртуу үчүн басыңыз.',
+          ),
+          findsOneWidget,
+        );
       },
     );
 

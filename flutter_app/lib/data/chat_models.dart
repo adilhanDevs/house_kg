@@ -225,25 +225,59 @@ class AppNotification {
 
   String? get coverUrl => payload['cover_url']?.toString();
 
+  /// Проверяет, является ли уведомление проверочным (test push).
+  ///
+  /// Учитывает не только `payload['kind'] == 'test_push'`, но и типичные
+  /// заголовки/тексты проверочных уведомлений (на русском и кыргызском, с дефисом
+  /// или тире), чтобы даже старые записи из базы без payload или с частичным
+  /// payload корректно локализовались при переключении языка в приложении.
+  bool get isTestPush {
+    if (payload['kind'] == 'test_push') return true;
+    final cleanTitle = title
+        .toLowerCase()
+        .replaceAll('—', '-')
+        .replaceAll('–', '-');
+    if (cleanTitle.contains('проверка прочтения') ||
+        cleanTitle.contains('окулганын текшерүү') ||
+        cleanTitle.contains('проверка уведомлений') ||
+        cleanTitle.contains('билдирмелерди текшерүү')) {
+      return true;
+    }
+    final cleanBody = body.toLowerCase();
+    if (cleanBody.contains('контрольное уведомление') ||
+        cleanBody.contains('көзөмөл билдирмеси') ||
+        cleanBody.contains('push-уведомления работают') ||
+        cleanBody.contains('push-билдирмелер иштеп')) {
+      return true;
+    }
+    return false;
+  }
+
   String displayTitle(AppLocalizations l10n) {
     final localized = _localizedPayloadText('title', l10n.localeName);
     if (localized != null) return localized;
-    if (payload['kind'] == 'test_push') return l10n.notificationTestPushTitle;
+    if (isTestPush) return l10n.notificationTestPushTitle;
+    final fallback = _localizedPayloadText('title', 'ru');
+    if (fallback != null) return fallback;
     return title;
   }
 
   String displayBody(AppLocalizations l10n) {
     final localized = _localizedPayloadText('body', l10n.localeName);
     if (localized != null) return localized;
-    if (payload['kind'] == 'test_push') return l10n.notificationTestPushBody;
+    if (isTestPush) return l10n.notificationTestPushBody;
+    final fallback = _localizedPayloadText('body', 'ru');
+    if (fallback != null) return fallback;
     return body;
   }
 
   String? _localizedPayloadText(String field, String localeName) {
     final i18n = payload['${field}_i18n'];
     if (i18n is! Map) return null;
-    final languageCode = localeName.split('_').first;
-    final value = i18n[languageCode] ?? i18n[localeName] ?? i18n['ru'];
+    final languageCode = localeName.split('_').first.toLowerCase();
+    final value = i18n[languageCode] ??
+        i18n[localeName] ??
+        i18n[localeName.toLowerCase()];
     final text = value?.toString().trim() ?? '';
     return text.isEmpty ? null : text;
   }
