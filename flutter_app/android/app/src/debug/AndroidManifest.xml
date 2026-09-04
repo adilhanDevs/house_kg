@@ -1,7 +1,17 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- The INTERNET permission is required for development. Specifically,
          the Flutter tool needs it to communicate with the running application
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Production talks HTTPS only (see main manifest). This debug-only
+         override exists solely so a local dev run against a plain-HTTP
+         backend (dart-define API_BASE_URL override) still works; it never
+         ships in a release build. tools:replace is required because the
+         main manifest already sets this attribute to false. -->
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic"/>
 </manifest>
