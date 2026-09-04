@@ -369,9 +369,9 @@ class _ProProfilePageState extends State<ProProfilePage> {
                                   ),
                                 ),
                                 const SizedBox(height: 3.0),
-                                const Text(
-                                  'Добавьте первый объект',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.proAddFirstListing,
+                                  style: const TextStyle(
                                     fontSize: 13.0,
                                     fontWeight: FontWeight.w400,
                                     color: Color(0xff7d7d7d),
@@ -389,11 +389,11 @@ class _ProProfilePageState extends State<ProProfilePage> {
               const SizedBox(height: 24.0),
 
               // 5. Заголовок «Все объявления» и 2 крупные карточки в ряд (Reference 1)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.0),
                 child: Text(
-                  'Все объявление',
-                  style: TextStyle(
+                  l10n.proAllListings,
+                  style: const TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
                     letterSpacing: -0.2,

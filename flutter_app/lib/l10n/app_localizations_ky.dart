@@ -649,6 +649,13 @@ class AppLocalizationsKy extends AppLocalizations {
   String get notificationFallbackTitle => 'Билдирме';
 
   @override
+  String get notificationTestPushTitle => 'House KG — окулганын текшерүү';
+
+  @override
+  String get notificationTestPushBody =>
+      'Көзөмөл билдирмеси. Чатты ачып, эсептегичти жаңыртуу үчүн басыңыз.';
+
+  @override
   String get notificationsMarkAllRead => 'Баарын окулду деп белгилөө';
 
   @override
@@ -732,7 +739,13 @@ class AppLocalizationsKy extends AppLocalizations {
   String get proAddListing => 'Жарыя кошуу';
 
   @override
+  String get proAddFirstListing => 'Биринчи объектти кошуңуз';
+
+  @override
   String get proMyListings => 'Менин жарыяларым';
+
+  @override
+  String get proAllListings => 'Бардык жарыялар';
 
   @override
   String get proEmptyNewBuildings => 'Жаңы курулуштар жок';

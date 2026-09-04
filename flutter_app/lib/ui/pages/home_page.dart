@@ -44,9 +44,17 @@ const List<(PropertyKind, double, double)> _categories = [
 ];
 
 /// Вкладки «Новых позиций»: подпись 15/500 и черта под выбранной.
+///
+/// По координатам макета вкладки не расставляются: ширина подписи зависит от
+/// перевода («Дома» и «Үйлөр», «Участки» и «Жер тилкелери»), и любые зашитые
+/// x/ширина расходятся с текстом — черта вылезала за подпись, а кыргызские
+/// названия наезжали друг на друга. Ряд выкладывается от одного левого края,
+/// каждая вкладка занимает ровно свою подпись, между ними постоянный зазор.
 const Rect _newPositionsTitle = Rect.fromLTWH(17, 423, 240, 31);
 const double _tabsTop = 458;
 const double _tabsHeight = 22;
+const double _tabsLeft = 23;
+const double _tabsGap = 30;
 
 /// Карточки объявлений под вкладками.
 const double _cardsTop = 496;
@@ -181,19 +189,9 @@ class _HomePageState extends State<HomePage> {
         : l10n.homeGreeting(userName);
 
     final newTabs = [
-      (PropertyKind.apartment, l10n.kindApartment, 23.0, 75.0),
-      (
-        PropertyKind.plot,
-        l10n.kindPlot,
-        115.0,
-        state.languageCode == 'ky' ? 105.0 : 60.0,
-      ),
-      (
-        PropertyKind.house,
-        l10n.kindHouse,
-        state.languageCode == 'ky' ? 235.0 : 215.0,
-        60.0,
-      ),
+      (PropertyKind.apartment, l10n.kindApartment),
+      (PropertyKind.plot, l10n.kindPlot),
+      (PropertyKind.house, l10n.kindHouse),
     ];
 
     return RefreshIndicator(
@@ -402,23 +400,44 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // вкладки: подписи перерисовываем, чтобы выбранная была акцентной
-          for (final (kind, label, x, w) in newTabs)
-            Positioned(
-              left: x,
-              top: _tabsTop,
-              child: _NewTab(
-                label: label,
-                width: w,
-                selected: kind == _tab,
-                onTap: () {
-                  if (_tab != kind) {
-                    setState(() => _tab = kind);
-                    _loadListings();
-                  }
-                },
+          // вкладки: нарисованные в кадре закрываем плашкой во всю строку и
+          // выкладываем свои — выбранная акцентная, черта по ширине подписи
+          Positioned(
+            left: 0,
+            top: _tabsTop - 4,
+            right: 0,
+            height: _tabsHeight + 12,
+            child: ColoredBox(
+              color: _page,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: _tabsLeft, right: 16),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final (kind, label) in newTabs) ...[
+                        if (kind != newTabs.first.$1)
+                          const SizedBox(width: _tabsGap),
+                        _NewTab(
+                          label: label,
+                          selected: kind == _tab,
+                          onTap: () {
+                            if (_tab != kind) {
+                              setState(() => _tab = kind);
+                              _loadListings();
+                            }
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
+          ),
           // карточки вместо нарисованных: во время загрузки закрываем старые зашитые карточки белой плашкой со спиннером
           Positioned(
             left: 0,
@@ -505,13 +524,11 @@ class _HomePageState extends State<HomePage> {
 class _NewTab extends StatelessWidget {
   const _NewTab({
     required this.label,
-    required this.width,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
-  final double width;
   final bool selected;
   final VoidCallback onTap;
 
@@ -523,27 +540,15 @@ class _NewTab extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: SizedBox(
-          width: width,
-          height: _tabsHeight + 2,
-          // ширина взята из макета; подпись в шрифте устройства может выйти за
-          // неё — в вёрстке она так же торчит, а не обрезается
-          child: Stack(
-            clipBehavior: Clip.none,
+        // Ширину задаёт сама подпись: черта под выбранной вкладкой получается
+        // ровно по её длине на любом языке.
+        child: IntrinsicWidth(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Подложка шире самой вкладки: нарисованная в кадре подпись
-              // начинается чуть левее координаты из макета, и её первая буква
-              // выглядывала из-под нашей — получалось «ДДома».
-              const Positioned(
-                left: -6,
-                right: -6,
-                top: 0,
-                bottom: 0,
-                child: ColoredBox(color: _page),
-              ),
-              Positioned(
-                left: 0,
-                top: 0,
+              SizedBox(
+                height: _tabsHeight,
                 child: FigText(
                   noWrap: true,
                   opacity: 0.8,
@@ -559,16 +564,13 @@ class _NewTab extends StatelessWidget {
                   ),
                 ),
               ),
-              if (selected)
-                Positioned(
-                  left: 1,
-                  top: _tabsHeight,
-                  child: SizedBox(
-                    width: width - 1,
-                    height: 1,
-                    child: const ColoredBox(color: _underline),
-                  ),
+              const SizedBox(height: 3),
+              SizedBox(
+                height: 1,
+                child: ColoredBox(
+                  color: selected ? _underline : const Color(0x00000000),
                 ),
+              ),
             ],
           ),
         ),

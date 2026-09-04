@@ -62,7 +62,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final state = AppScope.read(context);
     final user = state.userId;
     if (!state.isAuthenticated) {
-      setState(() { _items.clear(); _isLoading = false; _nextCursor = null; });
+      setState(() {
+        _items.clear();
+        _isLoading = false;
+        _nextCursor = null;
+      });
       return;
     }
     setState(() {
@@ -71,7 +75,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
     try {
       final page = await state.apiClient.getNotifications();
-      if (!mounted || generation != _refreshGeneration || !state.isAuthenticated || state.userId != user) return;
+      if (!mounted ||
+          generation != _refreshGeneration ||
+          !state.isAuthenticated ||
+          state.userId != user)
+        return;
       final results = page['results'];
       setState(() {
         _items
@@ -83,9 +91,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
         _nextCursor = page['next'] as String?;
       });
     } catch (e) {
-      if (mounted && generation == _refreshGeneration) setState(() => _error = describeApiError(e));
+      if (mounted && generation == _refreshGeneration)
+        setState(() => _error = describeApiError(e));
     } finally {
-      if (mounted && generation == _refreshGeneration) setState(() => _isLoading = false);
+      if (mounted && generation == _refreshGeneration)
+        setState(() => _isLoading = false);
     }
   }
 
@@ -93,8 +103,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final cursor = _nextCursor;
     if (cursor == null) return;
     try {
-      final page =
-          await AppScope.read(context).apiClient.getNotifications(cursor: cursor);
+      final page = await AppScope.read(
+        context,
+      ).apiClient.getNotifications(cursor: cursor);
       if (!mounted) return;
       final results = page['results'];
       setState(() {
@@ -137,7 +148,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
       }
       await navigator.pushNamed(
         Routes.conversation,
-        arguments: ChatArgs(conversationId, peerName: notification.title),
+        arguments: ChatArgs(
+          conversationId,
+          peerName: notification.displayTitle(context.l10n),
+        ),
       );
       if (mounted) await _load();
       return;
@@ -152,7 +166,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markRead(AppNotification notification) async {
     if (notification.isRead) return;
     try {
-      final marked = await AppScope.read(context).markNotificationRead(notification.id);
+      final marked = await AppScope.read(
+        context,
+      ).markNotificationRead(notification.id);
       if (!mounted || !marked) return;
       final index = _items.indexWhere((n) => n.id == notification.id);
       if (index >= 0) {
@@ -201,7 +217,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
           IconButton(
             tooltip: l10n.chatTitle,
             icon: const Icon(Icons.forum_outlined, color: _accent),
-            onPressed: () => Navigator.of(context).pushNamed(Routes.conversations),
+            onPressed: () =>
+                Navigator.of(context).pushNamed(Routes.conversations),
           ),
         ],
       ),
@@ -215,7 +232,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
       return const Center(child: CircularProgressIndicator(color: _accent));
     }
     if (_error != null && _items.isEmpty) {
-      return _Placeholder(text: _error!, actionLabel: l10n.retry, onAction: _load);
+      return _Placeholder(
+        text: _error!,
+        actionLabel: l10n.retry,
+        onAction: _load,
+      );
     }
     if (_items.isEmpty) {
       return _Placeholder(text: l10n.notificationsEmpty);
@@ -272,8 +293,9 @@ class _NotificationTile extends StatelessWidget {
         '${at.month.toString().padLeft(2, '0')}';
   }
 
-  IconData get _icon =>
-      notification.isNewMessage ? Icons.forum_outlined : Icons.notifications_none;
+  IconData get _icon => notification.isNewMessage
+      ? Icons.forum_outlined
+      : Icons.notifications_none;
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +325,7 @@ class _NotificationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          notification.title,
+                          notification.displayTitle(context.l10n),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: figStyle(
@@ -329,7 +351,7 @@ class _NotificationTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4.0),
                   Text(
-                    notification.body,
+                    notification.displayBody(context.l10n),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: figStyle(

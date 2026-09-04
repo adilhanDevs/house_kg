@@ -154,7 +154,10 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
       if (conversationId != null && conversationId.isNotEmpty) {
         await navigator.pushNamed(
           Routes.conversation,
-          arguments: ChatArgs(conversationId, peerName: notification.title),
+          arguments: ChatArgs(
+            conversationId,
+            peerName: notification.displayTitle(context.l10n),
+          ),
         );
         if (mounted) await _refresh();
         return;
@@ -396,8 +399,8 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
                     children: [
                       Expanded(
                         child: Text(
-                          item.title.isNotEmpty
-                              ? item.title
+                          item.displayTitle(l10n).isNotEmpty
+                              ? item.displayTitle(l10n)
                               : l10n.notificationFallbackTitle,
                           style: const TextStyle(
                             fontSize: 15.0,
@@ -435,10 +438,10 @@ class _ProfileLatestNotificationsState extends State<ProfileLatestNotifications>
                       ),
                     ],
                   ),
-                  if (item.body.isNotEmpty) ...[
+                  if (item.displayBody(l10n).isNotEmpty) ...[
                     const SizedBox(height: 3.0),
                     Text(
-                      item.body,
+                      item.displayBody(l10n),
                       style: const TextStyle(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w400,

@@ -647,6 +647,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notificationFallbackTitle => 'Уведомление';
 
   @override
+  String get notificationTestPushTitle => 'House KG — проверка прочтения';
+
+  @override
+  String get notificationTestPushBody =>
+      'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.';
+
+  @override
   String get notificationsMarkAllRead => 'Отметить все как прочитанные';
 
   @override
@@ -730,7 +737,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get proAddListing => 'Добавить объявление';
 
   @override
+  String get proAddFirstListing => 'Добавьте первый объект';
+
+  @override
   String get proMyListings => 'Мои объявления';
+
+  @override
+  String get proAllListings => 'Все объявления';
 
   @override
   String get proEmptyNewBuildings => 'Нет новостроек';

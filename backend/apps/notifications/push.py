@@ -150,6 +150,36 @@ PUSH_DATA_FIELDS: dict[str, tuple[str, ...]] = {
 }
 
 
+def _localized_payload_text(notification: Any, field: str, locale: str) -> str:
+    source = notification.payload or {}
+    i18n = source.get(f"{field}_i18n")
+    if isinstance(i18n, dict):
+        text = str(i18n.get(locale) or i18n.get("ru") or "").strip()
+        if text:
+            return text
+    if source.get("kind") == "test_push":
+        defaults = {
+            "title": {
+                "ru": "House KG — проверка прочтения",
+                "ky": "House KG — окулганын текшерүү",
+            },
+            "body": {
+                "ru": (
+                    "Контрольное уведомление. Нажмите, чтобы открыть чат "
+                    "и обновить счётчик."
+                ),
+                "ky": (
+                    "Көзөмөл билдирмеси. Чатты ачып, эсептегичти "
+                    "жаңыртуу үчүн басыңыз."
+                ),
+            },
+        }
+        text = defaults.get(field, {}).get(locale) or defaults.get(field, {}).get("ru")
+        if text:
+            return text
+    return str(getattr(notification, field, "") or "")
+
+
 def _data_payload(notification: Any) -> dict[str, str]:
     """Данные для перехода по нажатию. Только строки: FCM других не принимает."""
     payload: dict[str, str] = {
@@ -192,13 +222,14 @@ def send_to_user(user: Any, notification: Any) -> int:
         )
         return 0
 
-    # Порядок фиксируем: по нему сопоставляются ответы FCM с токенами.
-    tokens = list(
+    # Порядок фиксируем внутри каждой языковой группы: по нему сопоставляются
+    # ответы FCM с токенами.
+    devices = list(
         DeviceToken.objects.filter(user=user, is_active=True)
         .order_by("pk")
-        .values_list("token", flat=True)
+        .values_list("token", "locale")
     )
-    if not tokens:
+    if not devices:
         return 0
 
     app = get_fcm_app()
@@ -208,17 +239,24 @@ def send_to_user(user: Any, notification: Any) -> int:
     from firebase_admin import messaging
 
     sent = 0
-    for chunk in batched(tokens, FCM_BATCH_SIZE):
-        batch = list(chunk)
-        # tokens=, а не fids=: клиент присылает регистрационные токены FCM.
-        message = messaging.MulticastMessage(
-            tokens=batch,
-            notification=messaging.Notification(title=notification.title, body=notification.body),
-            data=_data_payload(notification),
-        )
-        response = messaging.send_each_for_multicast(message, app=app)
-        sent += getattr(response, "success_count", 0)
-        _deactivate_tokens(batch, response)
+    by_locale: dict[str, list[str]] = {}
+    for token, locale in devices:
+        by_locale.setdefault(locale or "ru", []).append(token)
+
+    for locale, tokens in by_locale.items():
+        title = _localized_payload_text(notification, "title", locale)
+        body = _localized_payload_text(notification, "body", locale)
+        for chunk in batched(tokens, FCM_BATCH_SIZE):
+            batch = list(chunk)
+            # tokens=, а не fids=: клиент присылает регистрационные токены FCM.
+            message = messaging.MulticastMessage(
+                tokens=batch,
+                notification=messaging.Notification(title=title, body=body),
+                data=_data_payload(notification),
+            )
+            response = messaging.send_each_for_multicast(message, app=app)
+            sent += getattr(response, "success_count", 0)
+            _deactivate_tokens(batch, response)
 
     logger.info("Push %s доставлен на %s устройств", notification.pk, sent)
     return sent

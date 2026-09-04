@@ -20,12 +20,15 @@ class Command(BaseCommand):
         parser.add_argument("--user-id", type=int, required=True)
         parser.add_argument(
             "--title",
-            default="Проверка уведомлений",
+            default="House KG — проверка прочтения",
             help="Заголовок проверочного уведомления.",
         )
         parser.add_argument(
             "--body",
-            default="Если вы это видите, push-уведомления работают.",
+            default=(
+                "Контрольное уведомление. Нажмите, чтобы открыть чат "
+                "и обновить счётчик."
+            ),
             help="Текст проверочного уведомления.",
         )
 
@@ -62,7 +65,23 @@ class Command(BaseCommand):
             notification_type=NotificationType.SYSTEM,
             title=options["title"],
             body=options["body"],
-            payload={"kind": "test_push"},
+            payload={
+                "kind": "test_push",
+                "title_i18n": {
+                    "ru": "House KG — проверка прочтения",
+                    "ky": "House KG — окулганын текшерүү",
+                },
+                "body_i18n": {
+                    "ru": (
+                        "Контрольное уведомление. Нажмите, чтобы открыть чат "
+                        "и обновить счётчик."
+                    ),
+                    "ky": (
+                        "Көзөмөл билдирмеси. Чатты ачып, эсептегичти "
+                        "жаңыртуу үчүн басыңыз."
+                    ),
+                },
+            },
         )
         self.stdout.write(
             self.style.SUCCESS(

@@ -106,8 +106,8 @@ class PriceDropNotificationTile extends StatelessWidget {
     final coverUrl = _resolveCoverUrl(context, notification.coverUrl);
     final titleText = notification.districtName?.isNotEmpty == true
         ? notification.districtName!
-        : (notification.title.isNotEmpty
-              ? notification.title
+        : (notification.displayTitle(l10n).isNotEmpty
+              ? notification.displayTitle(l10n)
               : l10n.notificationFallbackTitle);
     final specsText = _formatSpecs(l10n);
 
@@ -212,11 +212,11 @@ class PriceDropNotificationTile extends StatelessWidget {
                         color: _muted,
                       ),
                     ),
-                  ] else if (notification.body.isNotEmpty &&
+                  ] else if (notification.displayBody(l10n).isNotEmpty &&
                       oldPriceFormatted.isEmpty) ...[
                     const SizedBox(height: 4.0),
                     Text(
-                      notification.body,
+                      notification.displayBody(l10n),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: figStyle(

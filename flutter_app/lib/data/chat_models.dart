@@ -5,6 +5,8 @@
 // контракт уже задеплоен.
 import 'package:flutter/foundation.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// Собеседник в диалоге.
 @immutable
 class ChatPeer {
@@ -15,12 +17,12 @@ class ChatPeer {
   final String? avatarUrl;
 
   factory ChatPeer.fromJson(Map<String, dynamic> json) => ChatPeer(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        name: (json['name'] as String?)?.trim().isNotEmpty == true
-            ? (json['name'] as String).trim()
-            : 'Собеседник',
-        avatarUrl: json['avatar_url'] as String?,
-      );
+    id: (json['id'] as num?)?.toInt() ?? 0,
+    name: (json['name'] as String?)?.trim().isNotEmpty == true
+        ? (json['name'] as String).trim()
+        : 'Собеседник',
+    avatarUrl: json['avatar_url'] as String?,
+  );
 }
 
 /// Последнее сообщение диалога — то, что видно в списке.
@@ -39,11 +41,13 @@ class ChatPreview {
   final DateTime? createdAt;
 
   factory ChatPreview.fromJson(Map<String, dynamic> json) => ChatPreview(
-        id: json['id']?.toString() ?? '',
-        senderId: (json['sender_id'] as num?)?.toInt() ?? 0,
-        text: json['text'] as String? ?? '',
-        createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '')?.toLocal(),
-      );
+    id: json['id']?.toString() ?? '',
+    senderId: (json['sender_id'] as num?)?.toInt() ?? 0,
+    text: json['text'] as String? ?? '',
+    createdAt: DateTime.tryParse(
+      json['created_at']?.toString() ?? '',
+    )?.toLocal(),
+  );
 }
 
 /// Диалог по конкретному объявлению.
@@ -88,11 +92,13 @@ class Conversation {
       listingPrice: json['listing_price']?.toString(),
       listingCurrency: json['listing_currency'] as String? ?? '',
       listingCoverUrl: json['listing_cover_url'] as String?,
-      latestMessage:
-          latest is Map<String, dynamic> ? ChatPreview.fromJson(latest) : null,
+      latestMessage: latest is Map<String, dynamic>
+          ? ChatPreview.fromJson(latest)
+          : null,
       unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
-      lastMessageAt:
-          DateTime.tryParse(json['last_message_at']?.toString() ?? '')?.toLocal(),
+      lastMessageAt: DateTime.tryParse(
+        json['last_message_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }
@@ -137,23 +143,23 @@ class ChatMessage {
   bool get isPending => status != MessageStatus.sent;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-        id: json['id']?.toString() ?? '',
-        senderId: (json['sender_id'] as num?)?.toInt() ?? 0,
-        text: json['text'] as String? ?? '',
-        createdAt:
-            DateTime.tryParse(json['created_at']?.toString() ?? '')?.toLocal() ??
-                DateTime.now(),
-        clientMessageId: json['client_message_id']?.toString(),
-      );
+    id: json['id']?.toString() ?? '',
+    senderId: (json['sender_id'] as num?)?.toInt() ?? 0,
+    text: json['text'] as String? ?? '',
+    createdAt:
+        DateTime.tryParse(json['created_at']?.toString() ?? '')?.toLocal() ??
+        DateTime.now(),
+    clientMessageId: json['client_message_id']?.toString(),
+  );
 
   ChatMessage copyWith({MessageStatus? status}) => ChatMessage(
-        id: id,
-        senderId: senderId,
-        text: text,
-        createdAt: createdAt,
-        clientMessageId: clientMessageId,
-        status: status ?? this.status,
-      );
+    id: id,
+    senderId: senderId,
+    text: text,
+    createdAt: createdAt,
+    clientMessageId: clientMessageId,
+    status: status ?? this.status,
+  );
 }
 
 /// Уведомление из ленты.
@@ -219,6 +225,28 @@ class AppNotification {
 
   String? get coverUrl => payload['cover_url']?.toString();
 
+  String displayTitle(AppLocalizations l10n) {
+    final localized = _localizedPayloadText('title', l10n.localeName);
+    if (localized != null) return localized;
+    if (payload['kind'] == 'test_push') return l10n.notificationTestPushTitle;
+    return title;
+  }
+
+  String displayBody(AppLocalizations l10n) {
+    final localized = _localizedPayloadText('body', l10n.localeName);
+    if (localized != null) return localized;
+    if (payload['kind'] == 'test_push') return l10n.notificationTestPushBody;
+    return body;
+  }
+
+  String? _localizedPayloadText(String field, String localeName) {
+    final i18n = payload['${field}_i18n'];
+    if (i18n is! Map) return null;
+    final languageCode = localeName.split('_').first;
+    final value = i18n[languageCode] ?? i18n[localeName] ?? i18n['ru'];
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'];
@@ -230,7 +258,9 @@ class AppNotification {
       isRead: json['is_read'] == true,
       payload: payload is Map<String, dynamic> ? payload : const {},
       listingSlug: json['listing_slug'] as String?,
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '')?.toLocal(),
+      createdAt: DateTime.tryParse(
+        json['created_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }

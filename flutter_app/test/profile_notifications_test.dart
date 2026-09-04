@@ -8,6 +8,7 @@ import 'package:house_kgz/app/app_state.dart';
 import 'package:house_kgz/app/routes.dart';
 import 'package:house_kgz/data/api_client.dart';
 import 'package:house_kgz/data/chat_models.dart';
+import 'package:house_kgz/l10n/app_localizations.dart';
 import 'package:house_kgz/ui/pages/chat_page.dart';
 import 'package:house_kgz/ui/pages/notifications_page.dart';
 import 'package:house_kgz/ui/pages/profile_page.dart';
@@ -59,7 +60,9 @@ class _MockHttpServer extends http.BaseClient {
     if (path.contains('/api/v1/notifications/read/')) {
       if (request is http.Request) {
         final body = jsonDecode(request.body) as Map<String, dynamic>;
-        markedReadIds = (body['ids'] as List?)?.map((e) => (e as num).toInt()).toList();
+        markedReadIds = (body['ids'] as List?)
+            ?.map((e) => (e as num).toInt())
+            .toList();
       }
       return _json({'status': 'ok'});
     }
@@ -77,10 +80,7 @@ class _MockHttpServer extends http.BaseClient {
     }
 
     if (path.contains('/api/v1/listings/me/')) {
-      return _json({
-        'active': [],
-        'sold': [],
-      });
+      return _json({'active': [], 'sold': []});
     }
 
     if (path.contains('/api/v1/catalog/filter-options/')) {
@@ -99,23 +99,31 @@ class _MockHttpServer extends http.BaseClient {
   }
 }
 
-Widget _wrapWithApp(Widget child, AppState state) {
+Widget _wrapWithApp(
+  Widget child,
+  AppState state, {
+  Locale locale = const Locale('ru'),
+}) {
   return AppScope(
     state: state,
     child: MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routes: {
         Routes.notifications: (context) => const NotificationsPage(),
         Routes.conversation: (context) {
           final args = ModalRoute.of(context)!.settings.arguments as ChatArgs;
           return Scaffold(
-            body: Text('Chat with ${args.peerName}, ID: ${args.conversationId}'),
+            body: Text(
+              'Chat with ${args.peerName}, ID: ${args.conversationId}',
+            ),
           );
         },
         Routes.listing: (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as ListingArgs;
-          return Scaffold(
-            body: Text('Listing Slug: ${args.id}'),
-          );
+          final args =
+              ModalRoute.of(context)!.settings.arguments as ListingArgs;
+          return Scaffold(body: Text('Listing Slug: ${args.id}'));
         },
       },
       home: Scaffold(body: child),
@@ -134,67 +142,67 @@ void main() {
   });
 
   group('Profile Latest Notifications Tests', () {
-    testWidgets('Regular Profile renders real backend notifications and no mock data', (tester) async {
-      tester.view.physicalSize = const Size(375, 812);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'Regular Profile renders real backend notifications and no mock data',
+      (tester) async {
+        tester.view.physicalSize = const Size(375, 812);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (details) {
-        if (details.exceptionAsString().contains('overflowed')) return;
-        originalOnError?.call(details);
-      };
-      addTearDown(() => FlutterError.onError = originalOnError);
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          originalOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = originalOnError);
 
-      final server = _MockHttpServer(
-        notifications: [
-          {
-            'id': 101,
-            'type': 'new_message',
-            'title': 'Азамат Сообщение',
-            'body': 'Здравствуйте! Квартира свободна?',
-            'payload': {
-              'conversation_id': kConversationId,
-              'sender_id': 42,
+        final server = _MockHttpServer(
+          notifications: [
+            {
+              'id': 101,
+              'type': 'new_message',
+              'title': 'Азамат Сообщение',
+              'body': 'Здравствуйте! Квартира свободна?',
+              'payload': {'conversation_id': kConversationId, 'sender_id': 42},
+              'is_read': false,
+              'created_at': '2026-09-02T10:00:00Z',
             },
-            'is_read': false,
-            'created_at': '2026-09-02T10:00:00Z',
-          },
-          {
-            'id': 102,
-            'type': 'price_drop',
-            'title': 'Снижение цены',
-            'body': 'Цена снизилась на 3000 USD',
-            'payload': {
+            {
+              'id': 102,
+              'type': 'price_drop',
+              'title': 'Снижение цены',
+              'body': 'Цена снизилась на 3000 USD',
+              'payload': {'listing_slug': 'tokmok-house-12'},
               'listing_slug': 'tokmok-house-12',
+              'is_read': true,
+              'created_at': '2026-09-02T09:00:00Z',
             },
-            'listing_slug': 'tokmok-house-12',
-            'is_read': true,
-            'created_at': '2026-09-02T09:00:00Z',
-          },
-        ],
-      );
+          ],
+        );
 
-      final state = AppState(
-        apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
-      );
+        final state = AppState(
+          apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
+        );
 
-      await tester.pumpWidget(_wrapWithApp(const ProfilePage(), state));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpWidget(_wrapWithApp(const ProfilePage(), state));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byKey(kProfileNotificationsSectionKey), findsOneWidget);
-      expect(find.text('Азамат Сообщение'), findsOneWidget);
-      expect(find.text('Здравствуйте! Квартира свободна?'), findsOneWidget);
-      expect(find.text('Снижение цены'), findsOneWidget);
-      expect(find.text('Цена снизилась на 3000 USD'), findsOneWidget);
+        expect(find.byKey(kProfileNotificationsSectionKey), findsOneWidget);
+        expect(find.text('Азамат Сообщение'), findsOneWidget);
+        expect(find.text('Здравствуйте! Квартира свободна?'), findsOneWidget);
+        expect(find.text('Снижение цены'), findsOneWidget);
+        expect(find.text('Цена снизилась на 3000 USD'), findsOneWidget);
 
-      expect(find.byKey(kProfileNotificationTileKey(101)), findsOneWidget);
-      expect(find.byKey(kProfileNotificationTileKey(102)), findsOneWidget);
-    });
+        expect(find.byKey(kProfileNotificationTileKey(101)), findsOneWidget);
+        expect(find.byKey(kProfileNotificationTileKey(102)), findsOneWidget);
+      },
+    );
 
-    testWidgets('Pro Profile renders real notifications and no mock data', (tester) async {
+    testWidgets('Pro Profile renders real notifications and no mock data', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(375, 812);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -222,10 +230,7 @@ void main() {
             'type': 'new_message',
             'title': 'Канат Клиент',
             'body': 'Хочу посмотреть квартиру сегодня',
-            'payload': {
-              'conversation_id': kConversationId,
-              'sender_id': 99,
-            },
+            'payload': {'conversation_id': kConversationId, 'sender_id': 99},
             'is_read': false,
             'created_at': '2026-09-02T11:00:00Z',
           },
@@ -245,13 +250,74 @@ void main() {
       expect(find.text('Хочу посмотреть квартиру сегодня'), findsOneWidget);
     });
 
-    testWidgets('Empty state shows "У вас пока нет уведомлений"', (tester) async {
+    testWidgets(
+      'Kyrgyz Pro Profile localizes listings header and test push text',
+      (tester) async {
+        tester.view.physicalSize = const Size(375, 812);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        SharedPreferences.setMockInitialValues({
+          'access_token': 'valid_token',
+          'refresh_token': 'valid_refresh',
+          'is_pro': true,
+          'user_phone': '+996555123456',
+          'user_name': 'Pro Агент',
+        });
+
+        final server = _MockHttpServer(
+          notifications: [
+            {
+              'id': 202,
+              'type': 'system',
+              'title': 'House KG — проверка прочтения',
+              'body':
+                  'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.',
+              'payload': {'kind': 'test_push'},
+              'is_read': false,
+              'created_at': '2026-09-02T11:00:00Z',
+            },
+          ],
+        );
+
+        final state = AppState(
+          apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
+        );
+
+        await tester.pumpWidget(
+          _wrapWithApp(
+            const ProProfilePage(),
+            state,
+            locale: const Locale('ky'),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Бардык жарыялар'), findsOneWidget);
+        expect(find.text('House KG — окулганын текшерүү'), findsOneWidget);
+        expect(
+          find.text(
+            'Көзөмөл билдирмеси. Чатты ачып, эсептегичти жаңыртуу үчүн басыңыз.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('House KG — проверка прочтения'), findsNothing);
+      },
+    );
+
+    testWidgets('Empty state shows "У вас пока нет уведомлений"', (
+      tester,
+    ) async {
       final server = _MockHttpServer(notifications: []);
       final state = AppState(
         apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
       );
 
-      await tester.pumpWidget(_wrapWithApp(const ProfileLatestNotifications(), state));
+      await tester.pumpWidget(
+        _wrapWithApp(const ProfileLatestNotifications(), state),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -259,13 +325,17 @@ void main() {
       expect(find.text('У вас пока нет уведомлений'), findsOneWidget);
     });
 
-    testWidgets('Error state shows error message without mock fallback', (tester) async {
+    testWidgets('Error state shows error message without mock fallback', (
+      tester,
+    ) async {
       final server = _MockHttpServer(failNotifications: true);
       final state = AppState(
         apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
       );
 
-      await tester.pumpWidget(_wrapWithApp(const ProfileLatestNotifications(), state));
+      await tester.pumpWidget(
+        _wrapWithApp(const ProfileLatestNotifications(), state),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -280,7 +350,9 @@ void main() {
         apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
       );
 
-      await tester.pumpWidget(_wrapWithApp(const ProfileLatestNotifications(), state));
+      await tester.pumpWidget(
+        _wrapWithApp(const ProfileLatestNotifications(), state),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -290,39 +362,44 @@ void main() {
       expect(find.byType(NotificationsPage), findsOneWidget);
     });
 
-    testWidgets('Tap new_message notification opens ChatPage and marks as read', (tester) async {
-      final server = _MockHttpServer(
-        notifications: [
-          {
-            'id': 301,
-            'type': 'new_message',
-            'title': 'Азамат',
-            'body': 'Вопрос по объекту',
-            'payload': {
-              'conversation_id': kConversationId,
-              'sender_id': 42,
+    testWidgets(
+      'Tap new_message notification opens ChatPage and marks as read',
+      (tester) async {
+        final server = _MockHttpServer(
+          notifications: [
+            {
+              'id': 301,
+              'type': 'new_message',
+              'title': 'Азамат',
+              'body': 'Вопрос по объекту',
+              'payload': {'conversation_id': kConversationId, 'sender_id': 42},
+              'is_read': false,
+              'created_at': '2026-09-02T10:00:00Z',
             },
-            'is_read': false,
-            'created_at': '2026-09-02T10:00:00Z',
-          },
-        ],
-      );
+          ],
+        );
 
-      final state = AppState(
-        apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
-      );
+        final state = AppState(
+          apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
+        );
 
-      await tester.pumpWidget(_wrapWithApp(const ProfileLatestNotifications(), state));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpWidget(
+          _wrapWithApp(const ProfileLatestNotifications(), state),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byKey(kProfileNotificationTileKey(301)), findsOneWidget);
-      await tester.tap(find.byKey(kProfileNotificationTileKey(301)));
-      await tester.pumpAndSettle();
+        expect(find.byKey(kProfileNotificationTileKey(301)), findsOneWidget);
+        await tester.tap(find.byKey(kProfileNotificationTileKey(301)));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Chat with Азамат, ID: $kConversationId'), findsOneWidget);
-      expect(server.markedReadIds, contains(301));
-    });
+        expect(
+          find.text('Chat with Азамат, ID: $kConversationId'),
+          findsOneWidget,
+        );
+        expect(server.markedReadIds, contains(301));
+      },
+    );
 
     testWidgets('Tap listing notification opens ListingPage', (tester) async {
       final server = _MockHttpServer(
@@ -332,9 +409,7 @@ void main() {
             'type': 'price_drop',
             'title': 'Цена снизилась',
             'body': 'Дом в Бишкеке подешевел',
-            'payload': {
-              'listing_slug': 'bishkek-house-55',
-            },
+            'payload': {'listing_slug': 'bishkek-house-55'},
             'listing_slug': 'bishkek-house-55',
             'is_read': false,
             'created_at': '2026-09-02T10:00:00Z',
@@ -346,7 +421,9 @@ void main() {
         apiClient: ListingApiClient(baseUrl: 'http://test', client: server),
       );
 
-      await tester.pumpWidget(_wrapWithApp(const ProfileLatestNotifications(), state));
+      await tester.pumpWidget(
+        _wrapWithApp(const ProfileLatestNotifications(), state),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 

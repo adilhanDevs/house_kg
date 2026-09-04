@@ -1304,6 +1304,18 @@ abstract class AppLocalizations {
   /// **'Уведомление'**
   String get notificationFallbackTitle;
 
+  /// No description provided for @notificationTestPushTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'House KG — проверка прочтения'**
+  String get notificationTestPushTitle;
+
+  /// No description provided for @notificationTestPushBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.'**
+  String get notificationTestPushBody;
+
   /// No description provided for @notificationsMarkAllRead.
   ///
   /// In ru, this message translates to:
@@ -1460,11 +1472,23 @@ abstract class AppLocalizations {
   /// **'Добавить объявление'**
   String get proAddListing;
 
+  /// No description provided for @proAddFirstListing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавьте первый объект'**
+  String get proAddFirstListing;
+
   /// No description provided for @proMyListings.
   ///
   /// In ru, this message translates to:
   /// **'Мои объявления'**
   String get proMyListings;
+
+  /// No description provided for @proAllListings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все объявления'**
+  String get proAllListings;
 
   /// No description provided for @proEmptyNewBuildings.
   ///

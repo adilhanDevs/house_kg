@@ -295,6 +295,8 @@
   "notificationsProfileEmpty": "У вас пока нет уведомлений",
   "notificationsLoadError": "Не удалось загрузить уведомления",
   "notificationFallbackTitle": "Уведомление",
+  "notificationTestPushTitle": "House KG — проверка прочтения",
+  "notificationTestPushBody": "Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.",
   "notificationsMarkAllRead": "Отметить все как прочитанные",
   "priceDecreased": "Цена снизилась",
   "messagesTitle": "Сообщения",
@@ -333,7 +335,9 @@
     }
   },
   "proAddListing": "Добавить объявление",
+  "proAddFirstListing": "Добавьте первый объект",
   "proMyListings": "Мои объявления",
+  "proAllListings": "Все объявления",
   "proEmptyNewBuildings": "Нет новостроек",
   "proEmptyApartments": "Нет квартир",
   "proEmptyCommercial": "Нет коммерческих объектов",

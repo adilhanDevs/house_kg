@@ -166,6 +166,36 @@ def test_push_is_sent_to_active_devices(user) -> None:
 
 
 @pytest.mark.django_db
+def test_push_alert_is_localized_per_device_locale(user) -> None:
+    DeviceToken.objects.create(user=user, token="ru-token", platform="android", locale="ru")
+    DeviceToken.objects.create(user=user, token="ky-token", platform="android", locale="ky")
+    notification = Notification.objects.create(
+        user=user,
+        type=NotificationType.SYSTEM,
+        title="House KG — проверка прочтения",
+        body="Контрольное уведомление. Нажмите, чтобы открыть чат и обновить счётчик.",
+        payload={"kind": "test_push"},
+    )
+
+    with (
+        patch("apps.notifications.push.get_fcm_app", return_value=object()),
+        patch(
+            "firebase_admin.messaging.send_each_for_multicast",
+            return_value=fcm_response(True),
+        ) as fcm,
+    ):
+        assert send_to_user(user, notification) == 2
+
+    messages = [call.args[0] for call in fcm.call_args_list]
+    by_token = {message.tokens[0]: message.notification for message in messages}
+
+    assert by_token["ru-token"].title == "House KG — проверка прочтения"
+    assert by_token["ru-token"].body.startswith("Контрольное уведомление")
+    assert by_token["ky-token"].title == "House KG — окулганын текшерүү"
+    assert by_token["ky-token"].body.startswith("Көзөмөл билдирмеси")
+
+
+@pytest.mark.django_db
 def test_unregistered_token_is_deactivated(user) -> None:
     DeviceToken.objects.create(user=user, token="dead", platform="android")
     DeviceToken.objects.create(user=user, token="alive", platform="android")
