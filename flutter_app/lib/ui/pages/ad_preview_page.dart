@@ -196,7 +196,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                 Navigator.of(ctx).pop();
                 Navigator.of(context).pushNamed(Routes.tariffs);
               },
-              child: const Text(
+              child: Text(
                 context.l10n.adPromoChangeTariff,
                 style: TextStyle(color: Color(0xffea812e), fontWeight: FontWeight.bold),
               ),
