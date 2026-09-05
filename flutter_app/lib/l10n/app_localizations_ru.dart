@@ -1781,4 +1781,41 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get addListingHasGas => 'Наличие газа';
+
+  @override
+  String get addListingAreaHint => 'Введите свою квадратуру...';
+
+  @override
+  String get addListingDetailsSubtitle => 'Адрес, описание, ремонт, отопление';
+
+  @override
+  String addListingRoomSuffix(String count) {
+    return '$count ком.';
+  }
+
+  @override
+  String addListingAreaSuffix(String area) {
+    return '$area м²';
+  }
+
+  @override
+  String get addListingSchoolExample => 'Например, школа №61';
+
+  @override
+  String get addListingAddBtn => 'Добавить';
+
+  @override
+  String get addListingBuilderTitle => 'Застройщик / ЖК';
+
+  @override
+  String get addListingTotalFloorsLabel => 'Всего этажей';
+
+  @override
+  String get addListingPriceUSDLabel => 'Стоимость (\\\$ USD)';
+
+  @override
+  String get addListingRoomLabel => 'Комната';
+
+  @override
+  String get addListingUnspecified => 'Не указано';
 }

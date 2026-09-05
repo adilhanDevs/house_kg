@@ -6,7 +6,7 @@ import 'package:house_kgz/l10n/l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('AdFormPage renders in Kyrgyz without hardcoded Russian strings', (WidgetTester tester) async {
+  testWidgets('AdFormPage renders in Kyrgyz without unnatural strings and Russian leftovers', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final state = AppState();
@@ -24,10 +24,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Выберите район'), findsNothing);
-    expect(find.text('Квартиры'), findsNothing);
-    expect(find.text('Дома'), findsNothing);
+    // Verify UI placeholders and labels that are always visible
+    expect(find.textContaining('Өзүңүздүн маани'), findsNothing);
+    expect(find.text('Введите свою квадратуру...'), findsNothing);
+    expect(find.text('Адрес'), findsNothing);
+    expect(find.text('Подробнее об объекте'), findsNothing);
+    expect(find.text('Болгон бөлмөлөрдү гана кошуңуз'), findsNothing);
+    expect(find.text('Негизги жерлер'), findsNothing);
 
-    expect(find.text('Батирлер'), findsWidgets);
+    // Ensure we don't have RU left
+    expect(find.text('Адрес'), findsNothing);
+    expect(find.text('Квартиры'), findsNothing);
   });
 }

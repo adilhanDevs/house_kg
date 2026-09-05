@@ -54,7 +54,7 @@ class _AdEditPageState extends State<AdEditPage> {
 
   // Selection states
   String _selectedDistrict = 'asanbay';
-  String _selectedDistrictName = 'Асанбай';
+  String _selectedDistrictName = 'asanbay';
   int _selectedRooms = 3;
   String _selectedSeries = '106';
   /// Тип объекта приходит с сервера: от него зависит, какие поля вообще
@@ -82,7 +82,7 @@ class _AdEditPageState extends State<AdEditPage> {
   final List<dynamic> _newVideoFiles = [];
 
   static const List<Map<String, String>> _districts = [
-    {'slug': 'asanbay', 'name': 'Асанбай'},
+    {'slug': 'asanbay', 'name': 'asanbay'},
     {'slug': 'center', 'name': 'Центр'},
     {'slug': 'yuzhnye-vorota', 'name': 'Южные ворота'},
     {'slug': 'technopark', 'name': 'Технопарк'},
@@ -190,7 +190,7 @@ class _AdEditPageState extends State<AdEditPage> {
     if (data['district'] != null) {
       if (data['district'] is Map) {
         _selectedDistrict = data['district']['slug']?.toString() ?? 'asanbay';
-        _selectedDistrictName = data['district']['name']?.toString() ?? 'Асанбай';
+        _selectedDistrictName = data['district']['name']?.toString() ?? 'asanbay';
       } else {
         _selectedDistrict = data['district'].toString();
         final match = _districts.firstWhere((d) => d['slug'] == _selectedDistrict, orElse: () => {'name': _selectedDistrict});
@@ -740,7 +740,7 @@ class _AdEditPageState extends State<AdEditPage> {
                         // Застройщик
                         _buildTextField(
                           controller: _builderController,
-                          label: 'Застройщик / ЖК',
+                          label: context.l10n.addListingBuilderTitle,
                           hint: context.l10n.addListingBuilderHint,
                           icon: Icons.domain_outlined,
                         ),
@@ -813,7 +813,7 @@ class _AdEditPageState extends State<AdEditPage> {
                             Expanded(
                               child: _buildTextField(
                                 controller: _floorsController,
-                                label: 'Всего этажей',
+                                label: context.l10n.addListingTotalFloorsLabel,
                                 hint: '14',
                                 keyboardType: TextInputType.number,
                               ),
@@ -825,7 +825,7 @@ class _AdEditPageState extends State<AdEditPage> {
                         // Цена
                         _buildTextField(
                           controller: _priceController,
-                          label: 'Стоимость (\$ USD)',
+                          label: context.l10n.addListingPriceUSDLabel,
                           hint: '145 000',
                           keyboardType: TextInputType.number,
                           icon: Icons.attach_money_rounded,
@@ -889,7 +889,7 @@ class _AdEditPageState extends State<AdEditPage> {
                                   ),
                                 ),
                                 Text(
-                                  '${_rooms[i].area} м²',
+                                  context.l10n.addListingAreaSuffix(_rooms[i].area),
                                   style: const TextStyle(fontSize: 14, color: Color(0xff7d7d7d)),
                                 ),
                                 IconButton(
@@ -936,7 +936,7 @@ class _AdEditPageState extends State<AdEditPage> {
                                     flex: 3,
                                     child: _buildTextField(
                                       controller: _roomNameController,
-                                      label: 'Комната',
+                                      label: context.l10n.addListingRoomLabel,
                                       hint: context.l10n.addListingRoomExample,
                                     ),
                                   ),
@@ -1059,12 +1059,12 @@ class _AdEditPageState extends State<AdEditPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xffd1d1d6), style: BorderStyle.solid),
               ),
-              child: const Column(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_photo_alternate_outlined, color: Color(0xffea812e), size: 30),
                   SizedBox(height: 4),
-                  Text('Добавить', style: TextStyle(fontSize: 12, color: Color(0xff8e8e93))),
+                  Text(context.l10n.addListingAddBtn, style: TextStyle(fontSize: 12, color: Color(0xff8e8e93))),
                 ],
               ),
             ),
@@ -1284,7 +1284,7 @@ class _AdEditPageState extends State<AdEditPage> {
               onPressed: _pickVideo,
               icon: const Icon(Icons.video_call_outlined, color: Color(0xffea812e), size: 20),
               label: Text(
-                totalVideos == 0 ? context.l10n.addListingVideoAdd : 'Добавить еще видео (+)',
+                totalVideos == 0 ? context.l10n.addListingVideoAdd : context.l10n.addListingAddMoreVideo,
                 style: const TextStyle(color: Color(0xffea812e), fontWeight: FontWeight.bold, fontSize: 14),
               ),
               style: OutlinedButton.styleFrom(
@@ -1361,7 +1361,7 @@ class _AdEditPageState extends State<AdEditPage> {
   }) {
     // Пустое значение — это «не указано», а не первый пункт списка: показывать
     // «Евроремонт» там, где владелец ничего не выбирал, значит врать.
-    final options = {'': 'Не указано', ...items};
+    final options = {'': context.l10n.addListingUnspecified, ...items};
     final displayValue = options.containsKey(value) ? value : '';
 
     return Padding(

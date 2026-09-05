@@ -144,7 +144,7 @@ class _AdFormPageState extends State<AdFormPage> {
   }
 
   String _getDistrictLabel(AppState state) {
-    if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') return context.l10n.addListingSelectDistrict;
+    if (state.draftDistrict.isEmpty || state.draftDistrict == context.l10n.addListingSelectDistrict) return context.l10n.addListingSelectDistrict;
     final list = _getDistrictsList(state);
     for (final item in list) {
       if (item['slug'] == state.draftDistrict || item['name'] == state.draftDistrict) {
@@ -169,7 +169,7 @@ class _AdFormPageState extends State<AdFormPage> {
 
     final builder = _effectiveBuilderController.text.trim().isNotEmpty ? _effectiveBuilderController.text.trim() : state.draftBuilder;
 
-    if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') {
+    if (state.draftDistrict.isEmpty || state.draftDistrict == context.l10n.addListingSelectDistrict) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.addListingErrDistrict)),
       );
@@ -561,7 +561,7 @@ class _AdFormPageState extends State<AdFormPage> {
                       for (int index = 0; index < 5; index++) ...[
                         if (index > 0) const SizedBox(width: 8.0),
                         _buildChip(
-                          label: '${index + 1} ком.',
+                          label: context.l10n.addListingRoomSuffix((index + 1).toString()),
                           selected: state.draftRooms == index + 1 && roomsCtrl.text.isEmpty,
                           onTap: () {
                             roomsCtrl.clear();
@@ -598,7 +598,7 @@ class _AdFormPageState extends State<AdFormPage> {
                   Expanded(
                     child: _buildInputField(
                       controller: areaCtrl,
-                      hintText: 'Введите свою квадратуру...',
+                      hintText: context.l10n.addListingAreaHint,
                       keyboardType: TextInputType.number,
                       onChanged: (val) => state.setDraft(() => state.draftArea = val),
                     ),
@@ -862,9 +862,9 @@ class _AdFormPageState extends State<AdFormPage> {
               // ——— Необязательное: свёрнуто, чтобы форма не разрасталась ———
               _buildBlock(
                 title: context.l10n.addListingMoreInfo,
-                subtitle: 'Адрес, описание, ремонт, отопление',
+                subtitle: context.l10n.addListingDetailsSubtitle,
                 children: [
-                  _buildSectionTitle('Адрес'),
+                  _buildSectionTitle(context.l10n.addListingAddressTitle),
                   const SizedBox(height: 10.0),
                   _buildInputField(
                     controller: addressCtrl,
@@ -910,7 +910,7 @@ class _AdFormPageState extends State<AdFormPage> {
                       onSelect: (val) => state.setDraft(() => state.draftHeating = val),
                     ),
                     _buildToggleRow(
-                      label: 'Наличие газа',
+                      label: context.l10n.addListingHasGas,
                       value: state.draftHasGas,
                       onChanged: (val) => state.setDraft(() => state.draftHasGas = val),
                     ),
@@ -982,7 +982,7 @@ class _AdFormPageState extends State<AdFormPage> {
                                   borderRadius: BorderRadius.circular(10.0),
                                 ),
                                 child: Text(
-                                  '${state.draftRoomList[i].area} м²',
+                                  context.l10n.addListingAreaSuffix(state.draftRoomList[i].area),
                                   style: const TextStyle(fontSize: 15.0),
                                 ),
                               ),
@@ -1089,13 +1089,13 @@ class _AdFormPageState extends State<AdFormPage> {
                       Expanded(
                         child: _buildInputField(
                           controller: landmarkCtrl,
-                          hintText: 'Например, школа №61',
+                          hintText: context.l10n.addListingSchoolExample,
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
                       const SizedBox(width: 8.0),
                       _buildChip(
-                        label: 'Добавить',
+                        label: context.l10n.addListingAddBtn,
                         selected: landmarkCtrl.text.trim().isNotEmpty,
                         onTap: () {
                           final value = landmarkCtrl.text.trim();

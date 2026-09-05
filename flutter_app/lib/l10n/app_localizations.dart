@@ -3397,6 +3397,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Наличие газа'**
   String get addListingHasGas;
+
+  /// No description provided for @addListingAreaHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите свою квадратуру...'**
+  String get addListingAreaHint;
+
+  /// No description provided for @addListingDetailsSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Адрес, описание, ремонт, отопление'**
+  String get addListingDetailsSubtitle;
+
+  /// No description provided for @addListingRoomSuffix.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} ком.'**
+  String addListingRoomSuffix(String count);
+
+  /// No description provided for @addListingAreaSuffix.
+  ///
+  /// In ru, this message translates to:
+  /// **'{area} м²'**
+  String addListingAreaSuffix(String area);
+
+  /// No description provided for @addListingSchoolExample.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например, школа №61'**
+  String get addListingSchoolExample;
+
+  /// No description provided for @addListingAddBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить'**
+  String get addListingAddBtn;
+
+  /// No description provided for @addListingBuilderTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Застройщик / ЖК'**
+  String get addListingBuilderTitle;
+
+  /// No description provided for @addListingTotalFloorsLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всего этажей'**
+  String get addListingTotalFloorsLabel;
+
+  /// No description provided for @addListingPriceUSDLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стоимость (\\\$ USD)'**
+  String get addListingPriceUSDLabel;
+
+  /// No description provided for @addListingRoomLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комната'**
+  String get addListingRoomLabel;
+
+  /// No description provided for @addListingUnspecified.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не указано'**
+  String get addListingUnspecified;
 }
 
 class _AppLocalizationsDelegate

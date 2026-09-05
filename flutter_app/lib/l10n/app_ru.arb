@@ -818,5 +818,30 @@
   "addListingRoomHall": "Холл",
   "addListingRoomWardrobe": "Гардеробная",
   "addListingRoomTerrace": "Терраса",
-  "addListingHasGas": "Наличие газа"
+  "addListingHasGas": "Наличие газа",
+  "addListingAreaHint": "Введите свою квадратуру...",
+  "addListingDetailsSubtitle": "Адрес, описание, ремонт, отопление",
+  "addListingRoomSuffix": "{count} ком.",
+  "@addListingRoomSuffix": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingAreaSuffix": "{area} м²",
+  "@addListingAreaSuffix": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingSchoolExample": "Например, школа №61",
+  "addListingAddBtn": "Добавить",
+  "addListingBuilderTitle": "Застройщик / ЖК",
+  "addListingTotalFloorsLabel": "Всего этажей",
+  "addListingPriceUSDLabel": "Стоимость (\\$ USD)",
+  "addListingRoomLabel": "Комната",
+  "addListingUnspecified": "Не указано"
 }

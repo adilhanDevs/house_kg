@@ -1236,7 +1236,7 @@ class AppLocalizationsKy extends AppLocalizations {
   String get addListingRoomName => 'Бөлмөнүн аталышы';
 
   @override
-  String get addListingSelectRoom => 'Бөлмөнү тандаңыз же өзүңүздүкүн жазыңыз';
+  String get addListingSelectRoom => 'Бөлмөнү тандаңыз же өзүңүз жазыңыз';
 
   @override
   String get addListingRoomExample => 'Мисалы, гардероб';
@@ -1257,7 +1257,7 @@ class AppLocalizationsKy extends AppLocalizations {
   String get addListingAddRoom => 'Бөлмө кошуу';
 
   @override
-  String get addListingRoomsHint => 'Болгон бөлмөлөрдү гана кошуңуз';
+  String get addListingRoomsHint => 'Объекттеги бөлмөлөрдү көрсөтүңүз';
 
   @override
   String get addListingStreet => 'Көчө жана үйдүн номери';
@@ -1266,7 +1266,7 @@ class AppLocalizationsKy extends AppLocalizations {
   String get addListingStreetHint => 'мисалы, Аалы Токомбаев көч., 21/3';
 
   @override
-  String get addListingAddressTitle => 'Көчө / Дарек';
+  String get addListingAddressTitle => 'Дарек';
 
   @override
   String get addListingSeries => 'Үйдүн сериясы';
@@ -1334,18 +1334,19 @@ class AppLocalizationsKy extends AppLocalizations {
       'Мектеп, сейил бак, аялдама — объектинин жанында эмне бар';
 
   @override
-  String get addListingMoreInfo => 'Объект жөнүндө кененирээк';
+  String get addListingMoreInfo => 'Объект тууралуу кененирээк';
 
   @override
   String get addListingMoreInfoSubtitle =>
       'Объект жөнүндө айтып бериңиз: оңдоо, айлана-чөйрө, жанында эмне бар';
 
   @override
-  String get addListingContactsTitle => 'Байланыштар жана негизги жерлер';
+  String get addListingContactsTitle =>
+      'Байланыштар жана объекттин айланасындагы жерлер';
 
   @override
   String get addListingContactsSubtitle =>
-      'Кимге чалуу керек жана объектинин жанында эмне бар';
+      'Контакттар жана объекттин айланасында эмне бар';
 
   @override
   String get addListingContactName => 'Байланыш үчүн аты';
@@ -1357,13 +1358,13 @@ class AppLocalizationsKy extends AppLocalizations {
   String get addListingContactPhone => 'Байланыш телефону';
 
   @override
-  String get addListingKeyPlaces => 'Негизги жерлер';
+  String get addListingKeyPlaces => 'Объекттин айланасындагы жерлер';
 
   @override
   String get addListingWhoAreYou => 'Сиз кимсиз?';
 
   @override
-  String get addListingSellerOwner => 'Кожоюн';
+  String get addListingSellerOwner => 'Мүлк ээси';
 
   @override
   String get addListingSellerRealtor => 'Риелтор';
@@ -1714,7 +1715,7 @@ class AppLocalizationsKy extends AppLocalizations {
   String get addListingDraft => 'Каралама';
 
   @override
-  String get addListingEnterCustomValue => 'Өзүңүздүн мааниңизди киргизиңиз';
+  String get addListingEnterCustomValue => 'Маанини киргизиңиз';
 
   @override
   String get addListingCityBishkek => 'Бишкек';
@@ -1784,4 +1785,42 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get addListingHasGas => 'Газдын болушу';
+
+  @override
+  String get addListingAreaHint => 'Аянтын киргизиңиз';
+
+  @override
+  String get addListingDetailsSubtitle =>
+      'Объект тууралуу кененирээк маалымат бериңиз';
+
+  @override
+  String addListingRoomSuffix(String count) {
+    return '$count бөлмө';
+  }
+
+  @override
+  String addListingAreaSuffix(String area) {
+    return '$area м²';
+  }
+
+  @override
+  String get addListingSchoolExample => 'Мисалы, №61 мектеп';
+
+  @override
+  String get addListingAddBtn => 'Кошуу';
+
+  @override
+  String get addListingBuilderTitle => 'Куруучу / ТЖК';
+
+  @override
+  String get addListingTotalFloorsLabel => 'Бардык кабаттар';
+
+  @override
+  String get addListingPriceUSDLabel => 'Баасы (\\\$ USD)';
+
+  @override
+  String get addListingRoomLabel => 'Бөлмө';
+
+  @override
+  String get addListingUnspecified => 'Көрсөтүлгөн эмес';
 }
