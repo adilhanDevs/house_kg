@@ -1,3 +1,4 @@
+import 'package:house_kgz/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -92,18 +93,18 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12.0),
-                const Text(
-                  'Информация о видео',
+                SizedBox(height: 12.0),
+                Text(
+                  context.l10n.addListingVideoInfo,
                   style: TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
                     color: Color(0xff000000),
                   ),
                 ),
-                const SizedBox(height: 6.0),
-                const Text(
-                  'Укажите заголовок и краткое описание для REELS',
+                SizedBox(height: 6.0),
+                Text(
+                  context.l10n.addListingVideoInfoDesc,
                   style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                 ),
                 const SizedBox(height: 16.0),
@@ -112,8 +113,8 @@ class _AdVideoPageState extends State<AdVideoPage> {
                   maxLength: 100,
                   maxLines: 1,
                   decoration: InputDecoration(
-                    labelText: 'Заголовок видео',
-                    hintText: 'Например, обзор дома',
+                    labelText: context.l10n.addListingVideoTitle,
+                    hintText: context.l10n.addListingVideoTitleHint,
                     counterText: '',
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
                     filled: true,
@@ -138,8 +139,8 @@ class _AdVideoPageState extends State<AdVideoPage> {
                   minLines: 3,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    labelText: 'Описание видео',
-                    hintText: 'Расскажите подробнее о видео...',
+                    labelText: context.l10n.addListingVideoDesc,
+                    hintText: context.l10n.addListingVideoDescHint,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
                     filled: true,
                     fillColor: const Color(0xfff8f8fa),
@@ -180,8 +181,8 @@ class _AdVideoPageState extends State<AdVideoPage> {
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                     ),
-                    child: const Text(
-                      'Сохранить',
+                    child: Text(
+                      context.l10n.addListingSave,
                       style: TextStyle(
                         fontSize: 16.0,
                         fontWeight: FontWeight.bold,
@@ -200,10 +201,10 @@ class _AdVideoPageState extends State<AdVideoPage> {
 
   /// Подпись на кнопке во время отправки.
   String _uploadLabel() {
-    if (_videoTotal == 0) return 'Сохранение…';
+    if (_videoTotal == 0) return context.l10n.addListingSaving;
     final percent = _uploadFraction == null ? '' : ' ${(_uploadFraction! * 100).round()}%';
-    if (_videoTotal == 1) return 'Загрузка видео$percent';
-    return 'Видео $_videoIndex из $_videoTotal$percent';
+    if (_videoTotal == 1) return context.l10n.addListingUploadingVideo(percent);
+    return context.l10n.addListingVideoProgress(_videoIndex.toString(), _videoTotal.toString(), percent);
   }
 
   Future<void> _saveAndNext(AppState state) async {
@@ -303,7 +304,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
       if (failures.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ролик не загрузился: ${failures.first}'),
+            content: Text(context.l10n.addListingVideoUploadError(failures.first.toString())),
             backgroundColor: const Color(0xffd93025),
             duration: const Duration(seconds: 5),
           ),
@@ -315,7 +316,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сохранения: $e')),
+          SnackBar(content: Text(context.l10n.addListingErrorSave(e.toString()))),
         );
       }
     } finally {
@@ -365,11 +366,11 @@ class _AdVideoPageState extends State<AdVideoPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20.0),
+                    SizedBox(height: 20.0),
 
                     // Заголовок и подзаголовок
-                    const Text(
-                      'Добавьте видео обзор REELS',
+                    Text(
+                      context.l10n.addListingAddVideoReels,
                       style: TextStyle(
                         fontSize: 20.0,
                         fontWeight: FontWeight.bold,
@@ -377,9 +378,9 @@ class _AdVideoPageState extends State<AdVideoPage> {
                         height: 1.25,
                       ),
                     ),
-                    const SizedBox(height: 6.0),
-                    const Text(
-                      'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.',
+                    SizedBox(height: 6.0),
+                    Text(
+                      context.l10n.addListingVideoDummyDesc,
                       style: TextStyle(
                         fontSize: 14.0,
                         height: 1.35,
@@ -404,12 +405,12 @@ class _AdVideoPageState extends State<AdVideoPage> {
                           children: [
                             const Icon(Icons.add_photo_alternate_outlined,
                                 size: 28.0, color: orangeColor),
-                            const SizedBox(width: 14.0),
+                            SizedBox(width: 14.0),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Добавить видео',
+                                Text(
+                                  context.l10n.addListingAddVideoItem,
                                   style: TextStyle(
                                     fontSize: 15.0,
                                     fontWeight: FontWeight.bold,
@@ -419,8 +420,8 @@ class _AdVideoPageState extends State<AdVideoPage> {
                                 const SizedBox(height: 2.0),
                                 Text(
                                   state.freeVideoSlots > 0
-                                      ? 'Можно до ${AppState.draftMediaLimit} роликов'
-                                      : 'Больше ${AppState.draftMediaLimit} роликов не добавить',
+                                      ? context.l10n.addListingMaxVideos(AppState.draftMediaLimit.toString())
+                                      : context.l10n.addListingNoMoreVideos(AppState.draftMediaLimit.toString()),
                                   style: const TextStyle(
                                     fontSize: 12.0,
                                     color: Color(0xff7d7d7d),
@@ -438,9 +439,9 @@ class _AdVideoPageState extends State<AdVideoPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Использовать информацию из объявления',
+                            context.l10n.addListingUseAdInfo,
                             style: TextStyle(
                               fontSize: 15.0,
                               fontWeight: FontWeight.w500,
@@ -450,7 +451,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
                         ),
                         FigToggle(
                           value: _useInfo,
-                          label: 'Использовать информацию из объявления',
+                          label: context.l10n.addListingUseAdInfo,
                           onChanged: (val) {
                             setState(() => _useInfo = val);
                             state.draftUseAdInfo = val;
@@ -459,22 +460,22 @@ class _AdVideoPageState extends State<AdVideoPage> {
                       ],
                     ),
                     const SizedBox(height: 24.0),
-                    const Divider(height: 1.0, color: Color(0xffe5e5ea)),
-                    const SizedBox(height: 24.0),
+                    Divider(height: 1.0, color: Color(0xffe5e5ea)),
+                    SizedBox(height: 24.0),
 
-                    // Блок "Было добавлено"
-                    const Text(
-                      'Было добавлено',
+                    // Блок context.l10n.addListingWasAdded
+                    Text(
+                      context.l10n.addListingWasAdded,
                       style: TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
                         color: Color(0xff000000),
                       ),
                     ),
-                    const SizedBox(height: 16.0),
+                    SizedBox(height: 16.0),
                     if (state.draftVideoList.isEmpty)
-                      const Text(
-                        'Пока ни одного ролика',
+                      Text(
+                        context.l10n.addListingNoVideos,
                         style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                       )
                     else
@@ -539,8 +540,8 @@ class _AdVideoPageState extends State<AdVideoPage> {
                             ),
                           ],
                         )
-                      : const Text(
-                          'Далее',
+                      : Text(
+                          context.l10n.addListingNext,
                           style: TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,

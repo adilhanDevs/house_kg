@@ -1,3 +1,4 @@
+import 'package:house_kgz/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 import 'package:uuid/uuid.dart';
@@ -103,7 +104,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
       final paid = await startFinikPayment(
         context: context,
         amountSom: missing,
-        purposeTitle: 'Пополнение на продвижение объявления',
+        purposeTitle: context.l10n.addListingPromoTopup,
         state: state,
       );
       if (paid != true || !mounted) return false;
@@ -129,7 +130,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
   void _showPromotionError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Продвижение не оплачено: $message'),
+        content: Text(context.l10n.addListingPromoNotPaid(message)),
         duration: const Duration(seconds: 4),
         backgroundColor: const Color(0xffd93025),
       ),
@@ -161,8 +162,8 @@ class _AdPromoPageState extends State<AdPromoPage> {
         if (!promoted && mounted) {
           // Объявление опубликовано, продвижение — нет. Так и говорим.
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Объявление опубликовано, но продвижение не оплачено'),
+            SnackBar(
+              content: Text(context.l10n.addListingPublishedNoPromo),
               duration: Duration(seconds: 3),
               backgroundColor: Color(0xffd93025),
             ),
@@ -176,8 +177,8 @@ class _AdPromoPageState extends State<AdPromoPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(promoted
-                ? 'Объявление успешно опубликовано и продвинуто!'
-                : 'Объявление успешно опубликовано!'),
+                ? context.l10n.addListingPublishedPromoSuccess
+                : context.l10n.addListingPublishedSuccess2),
             duration: const Duration(seconds: 2),
             backgroundColor: const Color(0xffea812e),
           ),
@@ -193,7 +194,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Публикация объявления'),
+            title: Text(context.l10n.addListingPublishingTitle),
             content: Text(errorMsg),
             actions: [
               TextButton(
@@ -211,12 +212,12 @@ class _AdPromoPageState extends State<AdPromoPage> {
                     arguments: slug,
                   );
                 },
-                child: const Text('К предпросмотру', style: TextStyle(color: Color(0xffea812e))),
+                child: Text(context.l10n.addListingToPreview, style: TextStyle(color: Color(0xffea812e))),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Понятно', style: TextStyle(color: Colors.white)),
+                child: Text(context.l10n.addListingGotIt, style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -299,7 +300,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                         const SizedBox(width: 4.0),
                         Flexible(
                           child: Text(
-                            'Списать кирпичи',
+                            context.l10n.addListingSpendBricks,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -379,9 +380,9 @@ class _AdPromoPageState extends State<AdPromoPage> {
                     controller: _sumController,
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
-                    style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color(0xff000000)),
-                    decoration: const InputDecoration(
-                      hintText: 'Введите сумму',
+                    style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color(0xff000000)),
+                    decoration: InputDecoration(
+                      hintText: context.l10n.addListingEnterAmount,
                       hintStyle: TextStyle(fontSize: 12.0, color: Color(0xff7d7d7d)),
                       border: InputBorder.none,
                       isDense: true,
@@ -471,11 +472,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
           ),
 
         // 5. Заголовок «Количество дней» (Y=338)
-        const Positioned(
+        Positioned(
           left: 20.0,
           top: 338.0,
           child: Text(
-            'Количество дней',
+            context.l10n.addListingPromoDays,
             style: TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.bold,
@@ -546,9 +547,9 @@ class _AdPromoPageState extends State<AdPromoPage> {
                         setState(() => _selectedDay = 0);
                       }
                     },
-                    style: const TextStyle(fontSize: 12.0, color: Color(0xff000000)),
-                    decoration: const InputDecoration(
-                      hintText: 'Введите значение',
+                    style: TextStyle(fontSize: 12.0, color: Color(0xff000000)),
+                    decoration: InputDecoration(
+                      hintText: context.l10n.addListingEnterValue,
                       hintStyle: TextStyle(fontSize: 12.0, color: Color(0xff7d7d7d)),
                       border: InputBorder.none,
                       isDense: true,
@@ -567,7 +568,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
           top: 424.0,
           child: FigToggle(
             value: _useTarget,
-            label: 'Использовать точное продвижение',
+            label: context.l10n.addListingPromoExact,
             onChanged: (val) => setState(() => _useTarget = val),
           ),
         ),
@@ -578,7 +579,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
           top: 447.0,
           child: FigToggle(
             value: _useClientBase,
-            label: 'Использовать клиентскую базу',
+            label: context.l10n.addListingPromoClientBase,
             onChanged: (val) => setState(() => _useClientBase = val),
           ),
         ),
@@ -589,12 +590,12 @@ class _AdPromoPageState extends State<AdPromoPage> {
           top: 470.0,
           child: FigToggle(
             value: _useWhatsappBase,
-            label: 'Использовать Whatsapp базу',
+            label: context.l10n.addListingPromoWhatsapp,
             onChanged: (val) => setState(() => _useWhatsappBase = val),
           ),
         ),
 
-        // Маска для скрытия нарисованной на фоне кнопки "Далее"
+        // Маска для скрытия нарисованной на фоне кнопки context.l10n.addListingNext
         Positioned(
           left: 20.0,
           top: 710.0 - safeLift,
@@ -619,9 +620,9 @@ class _AdPromoPageState extends State<AdPromoPage> {
               ),
             ),
             child: _submitting == _PromoAction.next
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text(
-                    'Далее',
+                ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text(
+                    context.l10n.addListingNext,
                     style: TextStyle(
                       fontSize: 17.0,
                       fontWeight: FontWeight.bold,
@@ -659,8 +660,8 @@ class _AdPromoPageState extends State<AdPromoPage> {
                       strokeWidth: 2,
                     ),
                   )
-                : const Text(
-                    'Продолжить без продвижения',
+                : Text(
+                    context.l10n.addListingContinueNoPromo,
                     style: TextStyle(
                       fontSize: 15.0,
                       fontWeight: FontWeight.bold,

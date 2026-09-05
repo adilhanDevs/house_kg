@@ -1,3 +1,4 @@
+import 'package:house_kgz/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -83,7 +84,7 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
       if (failures.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Фото не загрузились: ${failures.first}'),
+            content: Text(context.l10n.addListingPhotoUploadError(failures.first.toString())),
             backgroundColor: const Color(0xffd93025),
             duration: const Duration(seconds: 5),
           ),
@@ -95,7 +96,7 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сохранения фото: $e')),
+          SnackBar(content: Text(context.l10n.addListingPhotoSaveError(e.toString()))),
         );
       }
     } finally {
@@ -149,11 +150,11 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20.0),
+                    SizedBox(height: 20.0),
 
                     // Заголовок и подзаголовок с аккуратными размерами
-                    const Text(
-                      'Добавить/изменить фотографии',
+                    Text(
+                      context.l10n.addListingPhotosEdit,
                       style: TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
@@ -161,9 +162,9 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                         height: 1.25,
                       ),
                     ),
-                    const SizedBox(height: 6.0),
-                    const Text(
-                      'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.',
+                    SizedBox(height: 6.0),
+                    Text(
+                      context.l10n.addListingVideoDummyDesc,
                       style: TextStyle(
                         fontSize: 13.0,
                         height: 1.35,
@@ -187,12 +188,12 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(Icons.add_a_photo_outlined, size: 28.0, color: orangeColor),
-                            const SizedBox(width: 14.0),
+                            SizedBox(width: 14.0),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Добавить фото',
+                                Text(
+                                  context.l10n.addListingAddPhoto,
                                   style: TextStyle(
                                     fontSize: 15.0,
                                     fontWeight: FontWeight.bold,
@@ -202,8 +203,8 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                                 const SizedBox(height: 2.0),
                                 Text(
                                   state.freePhotoSlots > 0
-                                      ? 'Можно до ${AppState.draftMediaLimit} фото'
-                                      : 'Больше ${AppState.draftMediaLimit} фото не добавить',
+                                      ? context.l10n.addListingMaxPhotos(AppState.draftMediaLimit.toString())
+                                      : context.l10n.addListingNoMorePhotos(AppState.draftMediaLimit.toString()),
                                   style: const TextStyle(
                                     fontSize: 12.0,
                                     color: Color(0xff7d7d7d),
@@ -215,12 +216,12 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20.0),
+                    SizedBox(height: 20.0),
 
                     // Сетка из 6 загруженных фото
                     if (state.draftGallery.isEmpty)
-                      const Text(
-                        'Пока ни одной фотографии',
+                      Text(
+                        context.l10n.addListingNoPhotos,
                         style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                       )
                     else
@@ -249,9 +250,9 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Разрешить скачивать фотографии',
+                            context.l10n.addListingAllowDownload,
                             style: TextStyle(
                               fontSize: 14.0,
                               color: Color(0xff3c3c43),
@@ -260,7 +261,7 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                         ),
                         FigToggle(
                           value: _allowDownload,
-                          label: 'Разрешить скачивать фотографии',
+                          label: context.l10n.addListingAllowDownload,
                           onChanged: (val) => setState(() => _allowDownload = val),
                         ),
                       ],
@@ -300,10 +301,10 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                             const SizedBox(width: 12.0),
                             Text(
                               _uploadTotal > 0
-                                  ? 'Загрузка '
+                                  ? context.l10n.addListingUploading +
                                       '${_uploadDone < _uploadTotal ? _uploadDone + 1 : _uploadTotal}'
                                       ' из $_uploadTotal'
-                                  : 'Сохранение…',
+                                  : context.l10n.addListingSaving,
                               style: const TextStyle(
                                 fontSize: 15.0,
                                 fontWeight: FontWeight.bold,
@@ -312,8 +313,8 @@ class _AdPhotosPageState extends State<AdPhotosPage> {
                             ),
                           ],
                         )
-                      : const Text(
-                          'Далее',
+                      : Text(
+                          context.l10n.addListingNext,
                           style: TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,

@@ -1164,4 +1164,621 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get passwordTooShort => 'Пароль должен быть не короче 8 символов';
+
+  @override
+  String get addListingSelectDistrictHints => 'Выберите район Бишкека';
+
+  @override
+  String get addListingSelectDistrict => 'Выберите район';
+
+  @override
+  String get addListingErrDistrict => 'Пожалуйста, выберите район';
+
+  @override
+  String get addListingErrArea => 'Пожалуйста, укажите квадратуру объекта';
+
+  @override
+  String get addListingErrPlotArea => 'Пожалуйста, укажите площадь участка';
+
+  @override
+  String get addListingErrPrice => 'Пожалуйста, укажите цену объекта';
+
+  @override
+  String get addListingTitle => 'Добавить недвижимость';
+
+  @override
+  String get addListingSubtitle => 'Заполните основные параметры объекта';
+
+  @override
+  String get addListingPropertyKind => 'Тип недвижимости';
+
+  @override
+  String get addListingDistrict => 'Район';
+
+  @override
+  String get addListingArea => 'Квадратура';
+
+  @override
+  String get addListingFloor => 'Этаж';
+
+  @override
+  String get addListingTotalFloors => 'Кол-во этажей в здании';
+
+  @override
+  String get addListingBuilder => 'Строительная компания';
+
+  @override
+  String get addListingSelectBuilder => 'Выберите застройщика';
+
+  @override
+  String get addListingBuilderHint => 'Ихлас, Авангард, Elite House и др.';
+
+  @override
+  String get addListingPlotArea => 'Площадь участка, соток';
+
+  @override
+  String get addListingPlotPurpose => 'Назначение участка';
+
+  @override
+  String get addListingCommercialPurpose => 'Назначение помещения';
+
+  @override
+  String get addListingBuildingLine => 'Линия';
+
+  @override
+  String get addListingRoomsCount => 'Количество комнат';
+
+  @override
+  String get addListingRoomAreas => 'Площади комнат';
+
+  @override
+  String get addListingRoomName => 'Название комнаты';
+
+  @override
+  String get addListingSelectRoom => 'Выберите комнату или впишите свою';
+
+  @override
+  String get addListingRoomExample => 'Например, гардеробная';
+
+  @override
+  String get addListingAreaSqM => 'Площадь (м²)';
+
+  @override
+  String get addListingSqM => 'м²';
+
+  @override
+  String get addListingOptionalArea => 'Необязательно, например 3.2';
+
+  @override
+  String get addListingDelete => 'Удалить';
+
+  @override
+  String get addListingAddRoom => 'Добавить комнату';
+
+  @override
+  String get addListingRoomsHint => 'Добавьте только те комнаты, которые есть';
+
+  @override
+  String get addListingStreet => 'Улица и номер дома';
+
+  @override
+  String get addListingStreetHint => 'например, ул. Аалы Токомбаева, 21/3';
+
+  @override
+  String get addListingAddressTitle => 'Улица / Адрес';
+
+  @override
+  String get addListingSeries => 'Серия дома';
+
+  @override
+  String get addListingCondition => 'Состояние / Ремонт';
+
+  @override
+  String get addListingConditionTitle => 'Состояние и ремонт';
+
+  @override
+  String get addListingHeating => 'Отопление';
+
+  @override
+  String get addListingFurniture => 'Мебель';
+
+  @override
+  String get addListingAmenities => 'Удобства и состояние';
+
+  @override
+  String get addListingCeilingHeight => 'Высота потолков, м';
+
+  @override
+  String get addListingSecondary => 'Вторичное жильё';
+
+  @override
+  String get addListingSeparateEntrance => 'Отдельный вход';
+
+  @override
+  String get addListingHas => 'Есть';
+
+  @override
+  String get addListingHasNot => 'Нет';
+
+  @override
+  String get addListingPrice => 'Цена';
+
+  @override
+  String get addListingPriceUSDTitle => 'Стоимость (\$ USD)';
+
+  @override
+  String get addListingMortgagePossible => 'Возможна ипотека';
+
+  @override
+  String get addListingMortgageTitle => 'Возможность ипотеки';
+
+  @override
+  String get addListingExchangePossible => 'Возможен обмен';
+
+  @override
+  String get addListingExchangeTitle => 'Возможность обмена';
+
+  @override
+  String get addListingDescTitle => 'Описание';
+
+  @override
+  String get addListingDescLabel => 'Описание объекта';
+
+  @override
+  String get addListingDescHint =>
+      'Расскажите об объекте подробнее: ремонт, вид из окна, соседи, инфраструктура рядом...';
+
+  @override
+  String get addListingDescPlaceholder =>
+      'Школа, парк, остановка — что рядом с объектом';
+
+  @override
+  String get addListingMoreInfo => 'Подробнее об объекте';
+
+  @override
+  String get addListingMoreInfoSubtitle =>
+      'Расскажите об объекте: ремонт, окружение, что рядом';
+
+  @override
+  String get addListingContactsTitle => 'Контакты и ключевые места';
+
+  @override
+  String get addListingContactsSubtitle =>
+      'Кому звонить и что рядом с объектом';
+
+  @override
+  String get addListingContactName => 'Имя для связи';
+
+  @override
+  String get addListingContactNameHint => 'Если отличается от профиля';
+
+  @override
+  String get addListingContactPhone => 'Телефон для связи';
+
+  @override
+  String get addListingKeyPlaces => 'Ключевые места';
+
+  @override
+  String get addListingWhoAreYou => 'Вы являетесь?';
+
+  @override
+  String get addListingSellerOwner => 'Собственником';
+
+  @override
+  String get addListingSellerRealtor => 'Риелтором';
+
+  @override
+  String get addListingDirectBuy => 'Прямая покупка';
+
+  @override
+  String get addListingNext => 'Далее';
+
+  @override
+  String get addListingCancel => 'Отмена';
+
+  @override
+  String get addListingSave => 'Сохранить';
+
+  @override
+  String get addListingEdit => 'Изменить';
+
+  @override
+  String get addListingPhotosTitleMain => 'Фотографии объекта';
+
+  @override
+  String get addListingPhotosEdit => 'Добавить/изменить фотографии';
+
+  @override
+  String get addListingVideoTitleMain => 'Видеоролик объекта';
+
+  @override
+  String get addListingVideoWatch => 'Смотреть видеообзор REELS';
+
+  @override
+  String get addListingVideoAdd => 'Добавить видеоролик';
+
+  @override
+  String get addListingBasicInfo => 'Основная информация';
+
+  @override
+  String get addListingEditTitle => 'Изменить объявление';
+
+  @override
+  String get addListingEditingTitle => 'Редактирование объявления';
+
+  @override
+  String get addListingSaveChanges => 'Сохранить изменения';
+
+  @override
+  String get addListingArchive => 'Снять с публикации (в архив)';
+
+  @override
+  String get addListingArchiveConfirm => 'Снять с публикации?';
+
+  @override
+  String get addListingArchiveDesc =>
+      'Объявление переместится в архив и не будет видно в каталоге.';
+
+  @override
+  String get addListingUpdatedSuccess => 'Объявление успешно обновлено!';
+
+  @override
+  String get addListingPendingSuccess => 'Объявление отправлено на модерацию!';
+
+  @override
+  String get addListingPublishedNoPromo =>
+      'Объявление опубликовано, но продвижение не оплачено';
+
+  @override
+  String get addListingArchivedSuccess => 'Объявление перемещено в архив';
+
+  @override
+  String addListingErrorSave(Object error) {
+    return 'Ошибка сохранения: \$e';
+  }
+
+  @override
+  String addListingErrorArchive(Object error) {
+    return 'Ошибка архивации: \$e';
+  }
+
+  @override
+  String get addListingUnarchivedSuccess =>
+      'Объявление возвращено из архива и опубликовано!';
+
+  @override
+  String get addListingRepublish => 'Опубликовать снова';
+
+  @override
+  String get addListingToPreview => 'К предпросмотру';
+
+  @override
+  String get addListingPreview => 'Предпросмотр';
+
+  @override
+  String get addListingYourAd => 'Ваше объявление';
+
+  @override
+  String get addListingPublishingTitle => 'Публикация объявления';
+
+  @override
+  String get addListingPublish => 'Опубликовать';
+
+  @override
+  String get addListingPublishing => 'Публикуем...';
+
+  @override
+  String addListingErrorPublish(Object error) {
+    return 'Ошибка публикации: \$e';
+  }
+
+  @override
+  String get addListingRetry => 'Повторить';
+
+  @override
+  String get addListingPromotion => 'Продвижение';
+
+  @override
+  String get addListingContinueNoPromo => 'Продолжить без продвижения';
+
+  @override
+  String get addListingPromoTopup => 'Пополнение на продвижение объявления';
+
+  @override
+  String get addListingEnterAmount => 'Введите сумму';
+
+  @override
+  String get addListingSpendBricks => 'Списать кирпичи';
+
+  @override
+  String get addListingPromoDays => 'Количество дней';
+
+  @override
+  String get addListingEnterValue => 'Введите значение';
+
+  @override
+  String get addListingPromoExact => 'Использовать точное продвижение';
+
+  @override
+  String get addListingPromoClientBase => 'Использовать клиентскую базу';
+
+  @override
+  String get addListingPromoWhatsapp => 'Использовать Whatsapp базу';
+
+  @override
+  String get addListingPublishedPromoSuccess =>
+      'Объявление успешно опубликовано и продвинуто!';
+
+  @override
+  String get addListingPublishedSuccess2 => 'Объявление успешно опубликовано!';
+
+  @override
+  String addListingPromoNotPaid(Object message) {
+    return 'Продвижение не оплачено: \$message';
+  }
+
+  @override
+  String addListingPromoCostError(Object error) {
+    return 'Не удалось получить стоимость продвижения: \$e';
+  }
+
+  @override
+  String get addListingLoadError => 'Не удалось загрузить данные объявления';
+
+  @override
+  String addListingLoadErrorDetails(Object error) {
+    return 'Не удалось загрузить данные объявления: \$e';
+  }
+
+  @override
+  String get addListingNotFound => 'Объявление не найдено на сервере';
+
+  @override
+  String get addListingAddPhoto => 'Добавить фото';
+
+  @override
+  String get addListingCover => 'Обложка';
+
+  @override
+  String get addListingMakeCover => 'Сделать обложкой';
+
+  @override
+  String get addListingCoverUpdated => 'Обложка обновлена';
+
+  @override
+  String get addListingAllowDownload => 'Разрешить скачивать фотографии';
+
+  @override
+  String get addListingNoPhotos => 'Пока ни одной фотографии';
+
+  @override
+  String get addListingUploaded => 'Загружен на сервер';
+
+  @override
+  String get addListingWillUpload => 'Будет загружено при сохранении';
+
+  @override
+  String addListingPhotoUploadError(String error) {
+    return 'Фото не загрузились: $error';
+  }
+
+  @override
+  String addListingPhotoSaveError(Object error) {
+    return 'Ошибка сохранения фото: \$e';
+  }
+
+  @override
+  String addListingPhotoDeleteError(String error) {
+    return 'Не удалось удалить фото: $error';
+  }
+
+  @override
+  String addListingCoverChangeError(String error) {
+    return 'Не удалось сменить обложку: $error';
+  }
+
+  @override
+  String get addListingAddVideoItem => 'Добавить видео';
+
+  @override
+  String get addListingAddMoreVideo => 'Добавить еще видео (+)';
+
+  @override
+  String get addListingNoVideos => 'Пока ни одного ролика';
+
+  @override
+  String addListingNewVideo(String number) {
+    return 'Новое видео $number';
+  }
+
+  @override
+  String addListingVideoItem(String number) {
+    return 'Видеоролик $number';
+  }
+
+  @override
+  String get addListingVideoInfo => 'Информация о видео';
+
+  @override
+  String get addListingVideoInfoDesc =>
+      'Укажите заголовок и краткое описание для REELS';
+
+  @override
+  String get addListingVideoTitle => 'Заголовок видео';
+
+  @override
+  String get addListingVideoTitleHint => 'Например, обзор дома';
+
+  @override
+  String get addListingVideoDesc => 'Описание видео';
+
+  @override
+  String get addListingVideoDescHint => 'Расскажите подробнее о видео...';
+
+  @override
+  String get addListingAddVideoReels => 'Добавьте видео обзор REELS';
+
+  @override
+  String get addListingVideoDummyDesc =>
+      'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.';
+
+  @override
+  String get addListingUseAdInfo => 'Использовать информацию из объявления';
+
+  @override
+  String get addListingWasAdded => 'Было добавлено';
+
+  @override
+  String addListingVideoUploadError(String error) {
+    return 'Ролик не загрузился: $error';
+  }
+
+  @override
+  String get addListingSaving => 'Сохранение…';
+
+  @override
+  String addListingUploadingVideo(Object percent) {
+    return 'Загрузка видео\$percent';
+  }
+
+  @override
+  String get addListingUploading => 'Загрузка ';
+
+  @override
+  String addListingVideoProgress(Object index, Object percent, Object total) {
+    return 'Видео \$_videoIndex из \$_videoTotal\$percent';
+  }
+
+  @override
+  String addListingMaxVideos(String limit) {
+    return 'Можно до $limit роликов';
+  }
+
+  @override
+  String addListingNoMoreVideos(String limit) {
+    return 'Больше $limit роликов не добавить';
+  }
+
+  @override
+  String addListingMaxPhotos(String limit) {
+    return 'Можно до $limit фото';
+  }
+
+  @override
+  String addListingNoMorePhotos(String limit) {
+    return 'Больше $limit фото не добавить';
+  }
+
+  @override
+  String get addListingSavedUploadFailed =>
+      'Изменения сохранены, но файлы не загрузились ';
+
+  @override
+  String get addListingGotIt => 'Понятно';
+
+  @override
+  String get addListingViewStats => 'Просмотр статистики';
+
+  @override
+  String get addListingStatsDesc =>
+      'Статистика показов и интереса покупателей к вашему объекту обновляется в реальном времени.';
+
+  @override
+  String get addListingViews => 'Просмотров';
+
+  @override
+  String get addListingSentToClients => 'Клиентам отправлено';
+
+  @override
+  String get addListingSold => 'Продано';
+
+  @override
+  String get addListingToArchive => 'В архив';
+
+  @override
+  String get addListingArchived => 'В архиве';
+
+  @override
+  String get addListingPublished => 'Опубликовано';
+
+  @override
+  String get addListingModerating => 'На модерации';
+
+  @override
+  String get addListingRejected => 'Отклонено';
+
+  @override
+  String get addListingDraft => 'Черновик';
+
+  @override
+  String get addListingEnterCustomValue => 'Введите свое значение';
+
+  @override
+  String get addListingCityBishkek => 'Бишкек';
+
+  @override
+  String get addListingExample8 => 'Например, 8';
+
+  @override
+  String get addListingFurnitureFull => 'Полностью меблирована';
+
+  @override
+  String get addListingFurniturePartial => 'Частично с мебелью';
+
+  @override
+  String get addListingFurnitureNone => 'Без мебели';
+
+  @override
+  String get addListingConditionEuro => 'Евроремонт';
+
+  @override
+  String get addListingConditionGood => 'Хорошее состояние';
+
+  @override
+  String get addListingConditionShell => 'Под самоотделку';
+
+  @override
+  String get addListingConditionMedium => 'Среднее состояние';
+
+  @override
+  String get addListingConditionNone => 'Без ремонта';
+
+  @override
+  String get addListingHeatingCentral => 'Центральное';
+
+  @override
+  String get addListingHeatingGas => 'Газовое';
+
+  @override
+  String get addListingHeatingElectric => 'Электрическое';
+
+  @override
+  String get addListingHeatingAutonomous => 'Автономное';
+
+  @override
+  String get addListingRoomLiving => 'Гостиная';
+
+  @override
+  String get addListingRoomKitchen => 'Кухня';
+
+  @override
+  String get addListingRoomBedroom => 'Спальная';
+
+  @override
+  String get addListingRoomBalcony => 'Балкон';
+
+  @override
+  String get addListingRoomBathroom => 'Сан.узел';
+
+  @override
+  String get addListingRoomHall => 'Холл';
+
+  @override
+  String get addListingRoomWardrobe => 'Гардеробная';
+
+  @override
+  String get addListingRoomTerrace => 'Терраса';
+
+  @override
+  String get addListingHasGas => 'Наличие газа';
 }

@@ -1165,4 +1165,623 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get passwordTooShort => 'Сырсөз 8 белгиден кем болбошу керек';
+
+  @override
+  String get addListingSelectDistrictHints => 'Бишкектин районун тандаңыз';
+
+  @override
+  String get addListingSelectDistrict => 'Районду тандаңыз';
+
+  @override
+  String get addListingErrDistrict => 'Сураныч, районду тандаңыз';
+
+  @override
+  String get addListingErrArea => 'Сураныч, объектин аянтын көрсөтүңүз';
+
+  @override
+  String get addListingErrPlotArea => 'Сураныч, тилкенин аянтын көрсөтүңүз';
+
+  @override
+  String get addListingErrPrice => 'Сураныч, объектин баасын көрсөтүңүз';
+
+  @override
+  String get addListingTitle => 'Кыймылсыз мүлк кошуу';
+
+  @override
+  String get addListingSubtitle => 'Объектин негизги параметрлерин толтуруңуз';
+
+  @override
+  String get addListingPropertyKind => 'Кыймылсыз мүлктүн түрү';
+
+  @override
+  String get addListingDistrict => 'Район';
+
+  @override
+  String get addListingArea => 'Аянты';
+
+  @override
+  String get addListingFloor => 'Кабат';
+
+  @override
+  String get addListingTotalFloors => 'Имараттагы кабаттардын саны';
+
+  @override
+  String get addListingBuilder => 'Курулуш компаниясы';
+
+  @override
+  String get addListingSelectBuilder => 'Куруучуну тандаңыз';
+
+  @override
+  String get addListingBuilderHint => 'Ихлас, Авангард, Elite House ж.б.';
+
+  @override
+  String get addListingPlotArea => 'Жердин аянты, сотых';
+
+  @override
+  String get addListingPlotPurpose => 'Жердин багыты';
+
+  @override
+  String get addListingCommercialPurpose => 'Имараттын багыты';
+
+  @override
+  String get addListingBuildingLine => 'Линия';
+
+  @override
+  String get addListingRoomsCount => 'Бөлмөлөрдүн саны';
+
+  @override
+  String get addListingRoomAreas => 'Бөлмөлөрдүн аянты';
+
+  @override
+  String get addListingRoomName => 'Бөлмөнүн аталышы';
+
+  @override
+  String get addListingSelectRoom => 'Бөлмөнү тандаңыз же өзүңүздүкүн жазыңыз';
+
+  @override
+  String get addListingRoomExample => 'Мисалы, гардероб';
+
+  @override
+  String get addListingAreaSqM => 'Аянты (м²)';
+
+  @override
+  String get addListingSqM => 'м²';
+
+  @override
+  String get addListingOptionalArea => 'Милдеттүү эмес, мисалы 3.2';
+
+  @override
+  String get addListingDelete => 'Өчүрүү';
+
+  @override
+  String get addListingAddRoom => 'Бөлмө кошуу';
+
+  @override
+  String get addListingRoomsHint => 'Болгон бөлмөлөрдү гана кошуңуз';
+
+  @override
+  String get addListingStreet => 'Көчө жана үйдүн номери';
+
+  @override
+  String get addListingStreetHint => 'мисалы, Аалы Токомбаев көч., 21/3';
+
+  @override
+  String get addListingAddressTitle => 'Көчө / Дарек';
+
+  @override
+  String get addListingSeries => 'Үйдүн сериясы';
+
+  @override
+  String get addListingCondition => 'Абалы / Оңдоо';
+
+  @override
+  String get addListingConditionTitle => 'Абалы жана оңдоо';
+
+  @override
+  String get addListingHeating => 'Жылытуу';
+
+  @override
+  String get addListingFurniture => 'Эмерек';
+
+  @override
+  String get addListingAmenities => 'Ыңгайлуулуктар жана абалы';
+
+  @override
+  String get addListingCeilingHeight => 'Шыптын бийиктиги, м';
+
+  @override
+  String get addListingSecondary => 'Экинчилик турак жай';
+
+  @override
+  String get addListingSeparateEntrance => 'Өзүнчө кирүү';
+
+  @override
+  String get addListingHas => 'Бар';
+
+  @override
+  String get addListingHasNot => 'Жок';
+
+  @override
+  String get addListingPrice => 'Баасы';
+
+  @override
+  String get addListingPriceUSDTitle => 'Баасы (\$ USD)';
+
+  @override
+  String get addListingMortgagePossible => 'Ипотека мүмкүн';
+
+  @override
+  String get addListingMortgageTitle => 'Ипотека мүмкүнчүлүгү';
+
+  @override
+  String get addListingExchangePossible => 'Алмашуу мүмкүн';
+
+  @override
+  String get addListingExchangeTitle => 'Алмашуу мүмкүнчүлүгү';
+
+  @override
+  String get addListingDescTitle => 'Сүрөттөмө';
+
+  @override
+  String get addListingDescLabel => 'Объектин сүрөттөмөсү';
+
+  @override
+  String get addListingDescHint =>
+      'Объект жөнүндө кененирээк айтып бериңиз: оңдоо, терезеден көрүнүш, коңшулар, жакын жердеги инфраструктура...';
+
+  @override
+  String get addListingDescPlaceholder =>
+      'Мектеп, сейил бак, аялдама — объектинин жанында эмне бар';
+
+  @override
+  String get addListingMoreInfo => 'Объект жөнүндө кененирээк';
+
+  @override
+  String get addListingMoreInfoSubtitle =>
+      'Объект жөнүндө айтып бериңиз: оңдоо, айлана-чөйрө, жанында эмне бар';
+
+  @override
+  String get addListingContactsTitle => 'Байланыштар жана негизги жерлер';
+
+  @override
+  String get addListingContactsSubtitle =>
+      'Кимге чалуу керек жана объектинин жанында эмне бар';
+
+  @override
+  String get addListingContactName => 'Байланыш үчүн аты';
+
+  @override
+  String get addListingContactNameHint => 'Эгер профилден айырмаланса';
+
+  @override
+  String get addListingContactPhone => 'Байланыш телефону';
+
+  @override
+  String get addListingKeyPlaces => 'Негизги жерлер';
+
+  @override
+  String get addListingWhoAreYou => 'Сиз кимсиз?';
+
+  @override
+  String get addListingSellerOwner => 'Кожоюн';
+
+  @override
+  String get addListingSellerRealtor => 'Риелтор';
+
+  @override
+  String get addListingDirectBuy => 'Түз сатып алуу';
+
+  @override
+  String get addListingNext => 'Кийинки';
+
+  @override
+  String get addListingCancel => 'Жокко чыгаруу';
+
+  @override
+  String get addListingSave => 'Сактоо';
+
+  @override
+  String get addListingEdit => 'Өзгөртүү';
+
+  @override
+  String get addListingPhotosTitleMain => 'Объектинин сүрөттөрү';
+
+  @override
+  String get addListingPhotosEdit => 'Сүрөттөрдү кошуу/өзгөртүү';
+
+  @override
+  String get addListingVideoTitleMain => 'Объектинин видеосу';
+
+  @override
+  String get addListingVideoWatch => 'REELS видео серепти көрүү';
+
+  @override
+  String get addListingVideoAdd => 'Видеоролик кошуу';
+
+  @override
+  String get addListingBasicInfo => 'Негизги маалымат';
+
+  @override
+  String get addListingEditTitle => 'Жарыяны өзгөртүү';
+
+  @override
+  String get addListingEditingTitle => 'Жарыяны оңдоо';
+
+  @override
+  String get addListingSaveChanges => 'Өзгөртүүлөрдү сактоо';
+
+  @override
+  String get addListingArchive => 'Жарыялоодон алып салуу (архивге)';
+
+  @override
+  String get addListingArchiveConfirm => 'Жарыялоодон алып салуу керекпи?';
+
+  @override
+  String get addListingArchiveDesc =>
+      'Жарыя архивге которулуп, каталогдо көрүнбөйт.';
+
+  @override
+  String get addListingUpdatedSuccess => 'Жарыя ийгиликтүү жаңыртылды!';
+
+  @override
+  String get addListingPendingSuccess => 'Жарыя модерацияга жөнөтүлдү!';
+
+  @override
+  String get addListingPublishedNoPromo =>
+      'Жарыя жарыяланды, бирок алдыга жылдыруу төлөнгөн жок';
+
+  @override
+  String get addListingArchivedSuccess => 'Жарыя архивге которулду';
+
+  @override
+  String addListingErrorSave(Object error) {
+    return 'Сактоо катасы: $error';
+  }
+
+  @override
+  String addListingErrorArchive(Object error) {
+    return 'Архивдөө катасы: $error';
+  }
+
+  @override
+  String get addListingUnarchivedSuccess =>
+      'Жарыя архивден кайтарылып, жарыяланды!';
+
+  @override
+  String get addListingRepublish => 'Кайра жарыялоо';
+
+  @override
+  String get addListingToPreview => 'Алдын ала көрүүгө';
+
+  @override
+  String get addListingPreview => 'Алдын ала көрүү';
+
+  @override
+  String get addListingYourAd => 'Сиздин жарыяңыз';
+
+  @override
+  String get addListingPublishingTitle => 'Жарыяны жарыялоо';
+
+  @override
+  String get addListingPublish => 'Жарыялоо';
+
+  @override
+  String get addListingPublishing => 'Жарыялоодо...';
+
+  @override
+  String addListingErrorPublish(Object error) {
+    return 'Жарыялоо катасы: $error';
+  }
+
+  @override
+  String get addListingRetry => 'Кайталоо';
+
+  @override
+  String get addListingPromotion => 'Алдыга жылдыруу';
+
+  @override
+  String get addListingContinueNoPromo => 'Алдыга жылдыруусуз улантуу';
+
+  @override
+  String get addListingPromoTopup => 'Жарыяны алдыга жылдыруу үчүн толуктоо';
+
+  @override
+  String get addListingEnterAmount => 'Сумманы киргизиңиз';
+
+  @override
+  String get addListingSpendBricks => 'Кирпичтерди эсептен чыгаруу';
+
+  @override
+  String get addListingPromoDays => 'Күндөрдүн саны';
+
+  @override
+  String get addListingEnterValue => 'Маанини киргизиңиз';
+
+  @override
+  String get addListingPromoExact => 'Так алдыга жылдырууну колдонуу';
+
+  @override
+  String get addListingPromoClientBase => 'Кардарлар базасын колдонуу';
+
+  @override
+  String get addListingPromoWhatsapp => 'Whatsapp базасын колдонуу';
+
+  @override
+  String get addListingPublishedPromoSuccess =>
+      'Жарыя ийгиликтүү жарыяланып, алдыга жылдырылды!';
+
+  @override
+  String get addListingPublishedSuccess2 => 'Жарыя ийгиликтүү жарыяланды!';
+
+  @override
+  String addListingPromoNotPaid(Object message) {
+    return 'Алдыга жылдыруу төлөнгөн жок: $message';
+  }
+
+  @override
+  String addListingPromoCostError(Object error) {
+    return 'Алдыга жылдыруу баасын алуу мүмкүн эмес: $error';
+  }
+
+  @override
+  String get addListingLoadError => 'Жарыя маалыматтарын жүктөө мүмкүн эмес';
+
+  @override
+  String addListingLoadErrorDetails(Object error) {
+    return 'Жарыя маалыматтарын жүктөө мүмкүн эмес: $error';
+  }
+
+  @override
+  String get addListingNotFound => 'Жарыя серверден табылган жок';
+
+  @override
+  String get addListingAddPhoto => 'Сүрөт кошуу';
+
+  @override
+  String get addListingCover => 'Мукаба';
+
+  @override
+  String get addListingMakeCover => 'Мукаба кылуу';
+
+  @override
+  String get addListingCoverUpdated => 'Мукаба жаңыртылды';
+
+  @override
+  String get addListingAllowDownload =>
+      'Сүрөттөрдү жүктөп алууга уруксат берүү';
+
+  @override
+  String get addListingNoPhotos => 'Азырынча бир да сүрөт жок';
+
+  @override
+  String get addListingUploaded => 'Серверге жүктөлдү';
+
+  @override
+  String get addListingWillUpload => 'Сактоо учурунда жүктөлөт';
+
+  @override
+  String addListingPhotoUploadError(String error) {
+    return 'Сүрөттөр жүктөлгөн жок: $error';
+  }
+
+  @override
+  String addListingPhotoSaveError(Object error) {
+    return 'Сүрөттү сактоо катасы: $error';
+  }
+
+  @override
+  String addListingPhotoDeleteError(String error) {
+    return 'Сүрөттү өчүрүү мүмкүн эмес: $error';
+  }
+
+  @override
+  String addListingCoverChangeError(String error) {
+    return 'Мукабаны өзгөртүү мүмкүн эмес: $error';
+  }
+
+  @override
+  String get addListingAddVideoItem => 'Видео кошуу';
+
+  @override
+  String get addListingAddMoreVideo => 'Дагы видео кошуу (+)';
+
+  @override
+  String get addListingNoVideos => 'Азырынча бир да ролик жок';
+
+  @override
+  String addListingNewVideo(String number) {
+    return 'Жаңы видео $number';
+  }
+
+  @override
+  String addListingVideoItem(String number) {
+    return 'Видеоролик $number';
+  }
+
+  @override
+  String get addListingVideoInfo => 'Видео жөнүндө маалымат';
+
+  @override
+  String get addListingVideoInfoDesc =>
+      'REELS үчүн аталышты жана кыскача сүрөттөмөнү көрсөтүңүз';
+
+  @override
+  String get addListingVideoTitle => 'Видеонун аталышы';
+
+  @override
+  String get addListingVideoTitleHint => 'Мисалы, үйдү карап чыгуу';
+
+  @override
+  String get addListingVideoDesc => 'Видеонун сүрөттөмөсү';
+
+  @override
+  String get addListingVideoDescHint =>
+      'Видео жөнүндө кененирээк айтып бериңиз...';
+
+  @override
+  String get addListingAddVideoReels => 'REELS видео серепти кошуңуз';
+
+  @override
+  String get addListingVideoDummyDesc =>
+      'Сатурн — Күндөн алыстыгы боюнча алтынчы жана Күн системасында Юпитерден кийинки экинчи чоң планета.';
+
+  @override
+  String get addListingUseAdInfo => 'Жарыя маалыматын колдонуу';
+
+  @override
+  String get addListingWasAdded => 'Кошулду';
+
+  @override
+  String addListingVideoUploadError(String error) {
+    return 'Ролик жүктөлгөн жок: $error';
+  }
+
+  @override
+  String get addListingSaving => 'Сакталууда...';
+
+  @override
+  String addListingUploadingVideo(Object percent) {
+    return 'Видео жүктөлүүдө $percent';
+  }
+
+  @override
+  String get addListingUploading => 'Жүктөлүүдө ';
+
+  @override
+  String addListingVideoProgress(Object index, Object percent, Object total) {
+    return 'Видео $index / $total $percent';
+  }
+
+  @override
+  String addListingMaxVideos(String limit) {
+    return '$limit роликке чейин болот';
+  }
+
+  @override
+  String addListingNoMoreVideos(String limit) {
+    return '$limit роликтен ашык кошууга болбойт';
+  }
+
+  @override
+  String addListingMaxPhotos(String limit) {
+    return '$limit сүрөткө чейин болот';
+  }
+
+  @override
+  String addListingNoMorePhotos(String limit) {
+    return '$limit сүрөттөн ашык кошууга болбойт';
+  }
+
+  @override
+  String get addListingSavedUploadFailed =>
+      'Өзгөртүүлөр сакталды, бирок файлдар жүктөлгөн жок ';
+
+  @override
+  String get addListingGotIt => 'Түшүнүктүү';
+
+  @override
+  String get addListingViewStats => 'Статистиканы көрүү';
+
+  @override
+  String get addListingStatsDesc =>
+      'Көрсөтүүлөрдүн статистикасы жана сатып алуучулардын объектиңизге болгон кызыгуусу реалдуу убакыт режиминде жаңыртылып турат.';
+
+  @override
+  String get addListingViews => 'Көрүүлөр';
+
+  @override
+  String get addListingSentToClients => 'Кардарларга жөнөтүлдү';
+
+  @override
+  String get addListingSold => 'Сатылды';
+
+  @override
+  String get addListingToArchive => 'Архивге';
+
+  @override
+  String get addListingArchived => 'Архивде';
+
+  @override
+  String get addListingPublished => 'Жарыяланды';
+
+  @override
+  String get addListingModerating => 'Модерацияда';
+
+  @override
+  String get addListingRejected => 'Четке кагылды';
+
+  @override
+  String get addListingDraft => 'Каралама';
+
+  @override
+  String get addListingEnterCustomValue => 'Өзүңүздүн мааниңизди киргизиңиз';
+
+  @override
+  String get addListingCityBishkek => 'Бишкек';
+
+  @override
+  String get addListingExample8 => 'Мисалы, 8';
+
+  @override
+  String get addListingFurnitureFull => 'Толугу менен эмеректелген';
+
+  @override
+  String get addListingFurniturePartial => 'Жарым-жартылай эмеректелген';
+
+  @override
+  String get addListingFurnitureNone => 'Эмерексиз';
+
+  @override
+  String get addListingConditionEuro => 'Евроремонт';
+
+  @override
+  String get addListingConditionGood => 'Жакшы абал';
+
+  @override
+  String get addListingConditionShell => 'Өз алдынча бүтүрүү үчүн';
+
+  @override
+  String get addListingConditionMedium => 'Орточо абал';
+
+  @override
+  String get addListingConditionNone => 'Ремонтсуз';
+
+  @override
+  String get addListingHeatingCentral => 'Борбордук';
+
+  @override
+  String get addListingHeatingGas => 'Газ';
+
+  @override
+  String get addListingHeatingElectric => 'Электрдик';
+
+  @override
+  String get addListingHeatingAutonomous => 'Автономдук';
+
+  @override
+  String get addListingRoomLiving => 'Конок бөлмөсү';
+
+  @override
+  String get addListingRoomKitchen => 'Ашкана';
+
+  @override
+  String get addListingRoomBedroom => 'Уктоочу бөлмө';
+
+  @override
+  String get addListingRoomBalcony => 'Балкон';
+
+  @override
+  String get addListingRoomBathroom => 'Санузел';
+
+  @override
+  String get addListingRoomHall => 'Холл';
+
+  @override
+  String get addListingRoomWardrobe => 'Гардероб';
+
+  @override
+  String get addListingRoomTerrace => 'Терраса';
+
+  @override
+  String get addListingHasGas => 'Газдын болушу';
 }

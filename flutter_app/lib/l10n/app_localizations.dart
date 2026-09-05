@@ -2263,6 +2263,1140 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Пароль должен быть не короче 8 символов'**
   String get passwordTooShort;
+
+  /// No description provided for @addListingSelectDistrictHints.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите район Бишкека'**
+  String get addListingSelectDistrictHints;
+
+  /// No description provided for @addListingSelectDistrict.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите район'**
+  String get addListingSelectDistrict;
+
+  /// No description provided for @addListingErrDistrict.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожалуйста, выберите район'**
+  String get addListingErrDistrict;
+
+  /// No description provided for @addListingErrArea.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожалуйста, укажите квадратуру объекта'**
+  String get addListingErrArea;
+
+  /// No description provided for @addListingErrPlotArea.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожалуйста, укажите площадь участка'**
+  String get addListingErrPlotArea;
+
+  /// No description provided for @addListingErrPrice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожалуйста, укажите цену объекта'**
+  String get addListingErrPrice;
+
+  /// No description provided for @addListingTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить недвижимость'**
+  String get addListingTitle;
+
+  /// No description provided for @addListingSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заполните основные параметры объекта'**
+  String get addListingSubtitle;
+
+  /// No description provided for @addListingPropertyKind.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тип недвижимости'**
+  String get addListingPropertyKind;
+
+  /// No description provided for @addListingDistrict.
+  ///
+  /// In ru, this message translates to:
+  /// **'Район'**
+  String get addListingDistrict;
+
+  /// No description provided for @addListingArea.
+  ///
+  /// In ru, this message translates to:
+  /// **'Квадратура'**
+  String get addListingArea;
+
+  /// No description provided for @addListingFloor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этаж'**
+  String get addListingFloor;
+
+  /// No description provided for @addListingTotalFloors.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кол-во этажей в здании'**
+  String get addListingTotalFloors;
+
+  /// No description provided for @addListingBuilder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Строительная компания'**
+  String get addListingBuilder;
+
+  /// No description provided for @addListingSelectBuilder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите застройщика'**
+  String get addListingSelectBuilder;
+
+  /// No description provided for @addListingBuilderHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ихлас, Авангард, Elite House и др.'**
+  String get addListingBuilderHint;
+
+  /// No description provided for @addListingPlotArea.
+  ///
+  /// In ru, this message translates to:
+  /// **'Площадь участка, соток'**
+  String get addListingPlotArea;
+
+  /// No description provided for @addListingPlotPurpose.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначение участка'**
+  String get addListingPlotPurpose;
+
+  /// No description provided for @addListingCommercialPurpose.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначение помещения'**
+  String get addListingCommercialPurpose;
+
+  /// No description provided for @addListingBuildingLine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Линия'**
+  String get addListingBuildingLine;
+
+  /// No description provided for @addListingRoomsCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Количество комнат'**
+  String get addListingRoomsCount;
+
+  /// No description provided for @addListingRoomAreas.
+  ///
+  /// In ru, this message translates to:
+  /// **'Площади комнат'**
+  String get addListingRoomAreas;
+
+  /// No description provided for @addListingRoomName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название комнаты'**
+  String get addListingRoomName;
+
+  /// No description provided for @addListingSelectRoom.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите комнату или впишите свою'**
+  String get addListingSelectRoom;
+
+  /// No description provided for @addListingRoomExample.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например, гардеробная'**
+  String get addListingRoomExample;
+
+  /// No description provided for @addListingAreaSqM.
+  ///
+  /// In ru, this message translates to:
+  /// **'Площадь (м²)'**
+  String get addListingAreaSqM;
+
+  /// No description provided for @addListingSqM.
+  ///
+  /// In ru, this message translates to:
+  /// **'м²'**
+  String get addListingSqM;
+
+  /// No description provided for @addListingOptionalArea.
+  ///
+  /// In ru, this message translates to:
+  /// **'Необязательно, например 3.2'**
+  String get addListingOptionalArea;
+
+  /// No description provided for @addListingDelete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get addListingDelete;
+
+  /// No description provided for @addListingAddRoom.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить комнату'**
+  String get addListingAddRoom;
+
+  /// No description provided for @addListingRoomsHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавьте только те комнаты, которые есть'**
+  String get addListingRoomsHint;
+
+  /// No description provided for @addListingStreet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Улица и номер дома'**
+  String get addListingStreet;
+
+  /// No description provided for @addListingStreetHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'например, ул. Аалы Токомбаева, 21/3'**
+  String get addListingStreetHint;
+
+  /// No description provided for @addListingAddressTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Улица / Адрес'**
+  String get addListingAddressTitle;
+
+  /// No description provided for @addListingSeries.
+  ///
+  /// In ru, this message translates to:
+  /// **'Серия дома'**
+  String get addListingSeries;
+
+  /// No description provided for @addListingCondition.
+  ///
+  /// In ru, this message translates to:
+  /// **'Состояние / Ремонт'**
+  String get addListingCondition;
+
+  /// No description provided for @addListingConditionTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Состояние и ремонт'**
+  String get addListingConditionTitle;
+
+  /// No description provided for @addListingHeating.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отопление'**
+  String get addListingHeating;
+
+  /// No description provided for @addListingFurniture.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мебель'**
+  String get addListingFurniture;
+
+  /// No description provided for @addListingAmenities.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удобства и состояние'**
+  String get addListingAmenities;
+
+  /// No description provided for @addListingCeilingHeight.
+  ///
+  /// In ru, this message translates to:
+  /// **'Высота потолков, м'**
+  String get addListingCeilingHeight;
+
+  /// No description provided for @addListingSecondary.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вторичное жильё'**
+  String get addListingSecondary;
+
+  /// No description provided for @addListingSeparateEntrance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отдельный вход'**
+  String get addListingSeparateEntrance;
+
+  /// No description provided for @addListingHas.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть'**
+  String get addListingHas;
+
+  /// No description provided for @addListingHasNot.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет'**
+  String get addListingHasNot;
+
+  /// No description provided for @addListingPrice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цена'**
+  String get addListingPrice;
+
+  /// No description provided for @addListingPriceUSDTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стоимость (\$ USD)'**
+  String get addListingPriceUSDTitle;
+
+  /// No description provided for @addListingMortgagePossible.
+  ///
+  /// In ru, this message translates to:
+  /// **'Возможна ипотека'**
+  String get addListingMortgagePossible;
+
+  /// No description provided for @addListingMortgageTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Возможность ипотеки'**
+  String get addListingMortgageTitle;
+
+  /// No description provided for @addListingExchangePossible.
+  ///
+  /// In ru, this message translates to:
+  /// **'Возможен обмен'**
+  String get addListingExchangePossible;
+
+  /// No description provided for @addListingExchangeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Возможность обмена'**
+  String get addListingExchangeTitle;
+
+  /// No description provided for @addListingDescTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Описание'**
+  String get addListingDescTitle;
+
+  /// No description provided for @addListingDescLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Описание объекта'**
+  String get addListingDescLabel;
+
+  /// No description provided for @addListingDescHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расскажите об объекте подробнее: ремонт, вид из окна, соседи, инфраструктура рядом...'**
+  String get addListingDescHint;
+
+  /// No description provided for @addListingDescPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Школа, парк, остановка — что рядом с объектом'**
+  String get addListingDescPlaceholder;
+
+  /// No description provided for @addListingMoreInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подробнее об объекте'**
+  String get addListingMoreInfo;
+
+  /// No description provided for @addListingMoreInfoSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расскажите об объекте: ремонт, окружение, что рядом'**
+  String get addListingMoreInfoSubtitle;
+
+  /// No description provided for @addListingContactsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контакты и ключевые места'**
+  String get addListingContactsTitle;
+
+  /// No description provided for @addListingContactsSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кому звонить и что рядом с объектом'**
+  String get addListingContactsSubtitle;
+
+  /// No description provided for @addListingContactName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя для связи'**
+  String get addListingContactName;
+
+  /// No description provided for @addListingContactNameHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если отличается от профиля'**
+  String get addListingContactNameHint;
+
+  /// No description provided for @addListingContactPhone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Телефон для связи'**
+  String get addListingContactPhone;
+
+  /// No description provided for @addListingKeyPlaces.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ключевые места'**
+  String get addListingKeyPlaces;
+
+  /// No description provided for @addListingWhoAreYou.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы являетесь?'**
+  String get addListingWhoAreYou;
+
+  /// No description provided for @addListingSellerOwner.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собственником'**
+  String get addListingSellerOwner;
+
+  /// No description provided for @addListingSellerRealtor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Риелтором'**
+  String get addListingSellerRealtor;
+
+  /// No description provided for @addListingDirectBuy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прямая покупка'**
+  String get addListingDirectBuy;
+
+  /// No description provided for @addListingNext.
+  ///
+  /// In ru, this message translates to:
+  /// **'Далее'**
+  String get addListingNext;
+
+  /// No description provided for @addListingCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get addListingCancel;
+
+  /// No description provided for @addListingSave.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get addListingSave;
+
+  /// No description provided for @addListingEdit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить'**
+  String get addListingEdit;
+
+  /// No description provided for @addListingPhotosTitleMain.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фотографии объекта'**
+  String get addListingPhotosTitleMain;
+
+  /// No description provided for @addListingPhotosEdit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить/изменить фотографии'**
+  String get addListingPhotosEdit;
+
+  /// No description provided for @addListingVideoTitleMain.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеоролик объекта'**
+  String get addListingVideoTitleMain;
+
+  /// No description provided for @addListingVideoWatch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Смотреть видеообзор REELS'**
+  String get addListingVideoWatch;
+
+  /// No description provided for @addListingVideoAdd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить видеоролик'**
+  String get addListingVideoAdd;
+
+  /// No description provided for @addListingBasicInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Основная информация'**
+  String get addListingBasicInfo;
+
+  /// No description provided for @addListingEditTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить объявление'**
+  String get addListingEditTitle;
+
+  /// No description provided for @addListingEditingTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактирование объявления'**
+  String get addListingEditingTitle;
+
+  /// No description provided for @addListingSaveChanges.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить изменения'**
+  String get addListingSaveChanges;
+
+  /// No description provided for @addListingArchive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Снять с публикации (в архив)'**
+  String get addListingArchive;
+
+  /// No description provided for @addListingArchiveConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Снять с публикации?'**
+  String get addListingArchiveConfirm;
+
+  /// No description provided for @addListingArchiveDesc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление переместится в архив и не будет видно в каталоге.'**
+  String get addListingArchiveDesc;
+
+  /// No description provided for @addListingUpdatedSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление успешно обновлено!'**
+  String get addListingUpdatedSuccess;
+
+  /// No description provided for @addListingPendingSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление отправлено на модерацию!'**
+  String get addListingPendingSuccess;
+
+  /// No description provided for @addListingPublishedNoPromo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление опубликовано, но продвижение не оплачено'**
+  String get addListingPublishedNoPromo;
+
+  /// No description provided for @addListingArchivedSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление перемещено в архив'**
+  String get addListingArchivedSuccess;
+
+  /// No description provided for @addListingErrorSave.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка сохранения: \$e'**
+  String addListingErrorSave(Object error);
+
+  /// No description provided for @addListingErrorArchive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка архивации: \$e'**
+  String addListingErrorArchive(Object error);
+
+  /// No description provided for @addListingUnarchivedSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление возвращено из архива и опубликовано!'**
+  String get addListingUnarchivedSuccess;
+
+  /// No description provided for @addListingRepublish.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опубликовать снова'**
+  String get addListingRepublish;
+
+  /// No description provided for @addListingToPreview.
+  ///
+  /// In ru, this message translates to:
+  /// **'К предпросмотру'**
+  String get addListingToPreview;
+
+  /// No description provided for @addListingPreview.
+  ///
+  /// In ru, this message translates to:
+  /// **'Предпросмотр'**
+  String get addListingPreview;
+
+  /// No description provided for @addListingYourAd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваше объявление'**
+  String get addListingYourAd;
+
+  /// No description provided for @addListingPublishingTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Публикация объявления'**
+  String get addListingPublishingTitle;
+
+  /// No description provided for @addListingPublish.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опубликовать'**
+  String get addListingPublish;
+
+  /// No description provided for @addListingPublishing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Публикуем...'**
+  String get addListingPublishing;
+
+  /// No description provided for @addListingErrorPublish.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка публикации: \$e'**
+  String addListingErrorPublish(Object error);
+
+  /// No description provided for @addListingRetry.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить'**
+  String get addListingRetry;
+
+  /// No description provided for @addListingPromotion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продвижение'**
+  String get addListingPromotion;
+
+  /// No description provided for @addListingContinueNoPromo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продолжить без продвижения'**
+  String get addListingContinueNoPromo;
+
+  /// No description provided for @addListingPromoTopup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пополнение на продвижение объявления'**
+  String get addListingPromoTopup;
+
+  /// No description provided for @addListingEnterAmount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите сумму'**
+  String get addListingEnterAmount;
+
+  /// No description provided for @addListingSpendBricks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Списать кирпичи'**
+  String get addListingSpendBricks;
+
+  /// No description provided for @addListingPromoDays.
+  ///
+  /// In ru, this message translates to:
+  /// **'Количество дней'**
+  String get addListingPromoDays;
+
+  /// No description provided for @addListingEnterValue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите значение'**
+  String get addListingEnterValue;
+
+  /// No description provided for @addListingPromoExact.
+  ///
+  /// In ru, this message translates to:
+  /// **'Использовать точное продвижение'**
+  String get addListingPromoExact;
+
+  /// No description provided for @addListingPromoClientBase.
+  ///
+  /// In ru, this message translates to:
+  /// **'Использовать клиентскую базу'**
+  String get addListingPromoClientBase;
+
+  /// No description provided for @addListingPromoWhatsapp.
+  ///
+  /// In ru, this message translates to:
+  /// **'Использовать Whatsapp базу'**
+  String get addListingPromoWhatsapp;
+
+  /// No description provided for @addListingPublishedPromoSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление успешно опубликовано и продвинуто!'**
+  String get addListingPublishedPromoSuccess;
+
+  /// No description provided for @addListingPublishedSuccess2.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление успешно опубликовано!'**
+  String get addListingPublishedSuccess2;
+
+  /// No description provided for @addListingPromoNotPaid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продвижение не оплачено: \$message'**
+  String addListingPromoNotPaid(Object message);
+
+  /// No description provided for @addListingPromoCostError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось получить стоимость продвижения: \$e'**
+  String addListingPromoCostError(Object error);
+
+  /// No description provided for @addListingLoadError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить данные объявления'**
+  String get addListingLoadError;
+
+  /// No description provided for @addListingLoadErrorDetails.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить данные объявления: \$e'**
+  String addListingLoadErrorDetails(Object error);
+
+  /// No description provided for @addListingNotFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление не найдено на сервере'**
+  String get addListingNotFound;
+
+  /// No description provided for @addListingAddPhoto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить фото'**
+  String get addListingAddPhoto;
+
+  /// No description provided for @addListingCover.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обложка'**
+  String get addListingCover;
+
+  /// No description provided for @addListingMakeCover.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сделать обложкой'**
+  String get addListingMakeCover;
+
+  /// No description provided for @addListingCoverUpdated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обложка обновлена'**
+  String get addListingCoverUpdated;
+
+  /// No description provided for @addListingAllowDownload.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить скачивать фотографии'**
+  String get addListingAllowDownload;
+
+  /// No description provided for @addListingNoPhotos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока ни одной фотографии'**
+  String get addListingNoPhotos;
+
+  /// No description provided for @addListingUploaded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загружен на сервер'**
+  String get addListingUploaded;
+
+  /// No description provided for @addListingWillUpload.
+  ///
+  /// In ru, this message translates to:
+  /// **'Будет загружено при сохранении'**
+  String get addListingWillUpload;
+
+  /// No description provided for @addListingPhotoUploadError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото не загрузились: {error}'**
+  String addListingPhotoUploadError(String error);
+
+  /// No description provided for @addListingPhotoSaveError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка сохранения фото: \$e'**
+  String addListingPhotoSaveError(Object error);
+
+  /// No description provided for @addListingPhotoDeleteError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить фото: {error}'**
+  String addListingPhotoDeleteError(String error);
+
+  /// No description provided for @addListingCoverChangeError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось сменить обложку: {error}'**
+  String addListingCoverChangeError(String error);
+
+  /// No description provided for @addListingAddVideoItem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить видео'**
+  String get addListingAddVideoItem;
+
+  /// No description provided for @addListingAddMoreVideo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить еще видео (+)'**
+  String get addListingAddMoreVideo;
+
+  /// No description provided for @addListingNoVideos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока ни одного ролика'**
+  String get addListingNoVideos;
+
+  /// No description provided for @addListingNewVideo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новое видео {number}'**
+  String addListingNewVideo(String number);
+
+  /// No description provided for @addListingVideoItem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеоролик {number}'**
+  String addListingVideoItem(String number);
+
+  /// No description provided for @addListingVideoInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Информация о видео'**
+  String get addListingVideoInfo;
+
+  /// No description provided for @addListingVideoInfoDesc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Укажите заголовок и краткое описание для REELS'**
+  String get addListingVideoInfoDesc;
+
+  /// No description provided for @addListingVideoTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заголовок видео'**
+  String get addListingVideoTitle;
+
+  /// No description provided for @addListingVideoTitleHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например, обзор дома'**
+  String get addListingVideoTitleHint;
+
+  /// No description provided for @addListingVideoDesc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Описание видео'**
+  String get addListingVideoDesc;
+
+  /// No description provided for @addListingVideoDescHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расскажите подробнее о видео...'**
+  String get addListingVideoDescHint;
+
+  /// No description provided for @addListingAddVideoReels.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавьте видео обзор REELS'**
+  String get addListingAddVideoReels;
+
+  /// No description provided for @addListingVideoDummyDesc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.'**
+  String get addListingVideoDummyDesc;
+
+  /// No description provided for @addListingUseAdInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Использовать информацию из объявления'**
+  String get addListingUseAdInfo;
+
+  /// No description provided for @addListingWasAdded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Было добавлено'**
+  String get addListingWasAdded;
+
+  /// No description provided for @addListingVideoUploadError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ролик не загрузился: {error}'**
+  String addListingVideoUploadError(String error);
+
+  /// No description provided for @addListingSaving.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранение…'**
+  String get addListingSaving;
+
+  /// No description provided for @addListingUploadingVideo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка видео\$percent'**
+  String addListingUploadingVideo(Object percent);
+
+  /// No description provided for @addListingUploading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка '**
+  String get addListingUploading;
+
+  /// No description provided for @addListingVideoProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео \$_videoIndex из \$_videoTotal\$percent'**
+  String addListingVideoProgress(Object index, Object percent, Object total);
+
+  /// No description provided for @addListingMaxVideos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно до {limit} роликов'**
+  String addListingMaxVideos(String limit);
+
+  /// No description provided for @addListingNoMoreVideos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Больше {limit} роликов не добавить'**
+  String addListingNoMoreVideos(String limit);
+
+  /// No description provided for @addListingMaxPhotos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно до {limit} фото'**
+  String addListingMaxPhotos(String limit);
+
+  /// No description provided for @addListingNoMorePhotos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Больше {limit} фото не добавить'**
+  String addListingNoMorePhotos(String limit);
+
+  /// No description provided for @addListingSavedUploadFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменения сохранены, но файлы не загрузились '**
+  String get addListingSavedUploadFailed;
+
+  /// No description provided for @addListingGotIt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Понятно'**
+  String get addListingGotIt;
+
+  /// No description provided for @addListingViewStats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Просмотр статистики'**
+  String get addListingViewStats;
+
+  /// No description provided for @addListingStatsDesc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Статистика показов и интереса покупателей к вашему объекту обновляется в реальном времени.'**
+  String get addListingStatsDesc;
+
+  /// No description provided for @addListingViews.
+  ///
+  /// In ru, this message translates to:
+  /// **'Просмотров'**
+  String get addListingViews;
+
+  /// No description provided for @addListingSentToClients.
+  ///
+  /// In ru, this message translates to:
+  /// **'Клиентам отправлено'**
+  String get addListingSentToClients;
+
+  /// No description provided for @addListingSold.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продано'**
+  String get addListingSold;
+
+  /// No description provided for @addListingToArchive.
+  ///
+  /// In ru, this message translates to:
+  /// **'В архив'**
+  String get addListingToArchive;
+
+  /// No description provided for @addListingArchived.
+  ///
+  /// In ru, this message translates to:
+  /// **'В архиве'**
+  String get addListingArchived;
+
+  /// No description provided for @addListingPublished.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опубликовано'**
+  String get addListingPublished;
+
+  /// No description provided for @addListingModerating.
+  ///
+  /// In ru, this message translates to:
+  /// **'На модерации'**
+  String get addListingModerating;
+
+  /// No description provided for @addListingRejected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отклонено'**
+  String get addListingRejected;
+
+  /// No description provided for @addListingDraft.
+  ///
+  /// In ru, this message translates to:
+  /// **'Черновик'**
+  String get addListingDraft;
+
+  /// No description provided for @addListingEnterCustomValue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите свое значение'**
+  String get addListingEnterCustomValue;
+
+  /// No description provided for @addListingCityBishkek.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бишкек'**
+  String get addListingCityBishkek;
+
+  /// No description provided for @addListingExample8.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например, 8'**
+  String get addListingExample8;
+
+  /// No description provided for @addListingFurnitureFull.
+  ///
+  /// In ru, this message translates to:
+  /// **'Полностью меблирована'**
+  String get addListingFurnitureFull;
+
+  /// No description provided for @addListingFurniturePartial.
+  ///
+  /// In ru, this message translates to:
+  /// **'Частично с мебелью'**
+  String get addListingFurniturePartial;
+
+  /// No description provided for @addListingFurnitureNone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без мебели'**
+  String get addListingFurnitureNone;
+
+  /// No description provided for @addListingConditionEuro.
+  ///
+  /// In ru, this message translates to:
+  /// **'Евроремонт'**
+  String get addListingConditionEuro;
+
+  /// No description provided for @addListingConditionGood.
+  ///
+  /// In ru, this message translates to:
+  /// **'Хорошее состояние'**
+  String get addListingConditionGood;
+
+  /// No description provided for @addListingConditionShell.
+  ///
+  /// In ru, this message translates to:
+  /// **'Под самоотделку'**
+  String get addListingConditionShell;
+
+  /// No description provided for @addListingConditionMedium.
+  ///
+  /// In ru, this message translates to:
+  /// **'Среднее состояние'**
+  String get addListingConditionMedium;
+
+  /// No description provided for @addListingConditionNone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без ремонта'**
+  String get addListingConditionNone;
+
+  /// No description provided for @addListingHeatingCentral.
+  ///
+  /// In ru, this message translates to:
+  /// **'Центральное'**
+  String get addListingHeatingCentral;
+
+  /// No description provided for @addListingHeatingGas.
+  ///
+  /// In ru, this message translates to:
+  /// **'Газовое'**
+  String get addListingHeatingGas;
+
+  /// No description provided for @addListingHeatingElectric.
+  ///
+  /// In ru, this message translates to:
+  /// **'Электрическое'**
+  String get addListingHeatingElectric;
+
+  /// No description provided for @addListingHeatingAutonomous.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автономное'**
+  String get addListingHeatingAutonomous;
+
+  /// No description provided for @addListingRoomLiving.
+  ///
+  /// In ru, this message translates to:
+  /// **'Гостиная'**
+  String get addListingRoomLiving;
+
+  /// No description provided for @addListingRoomKitchen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кухня'**
+  String get addListingRoomKitchen;
+
+  /// No description provided for @addListingRoomBedroom.
+  ///
+  /// In ru, this message translates to:
+  /// **'Спальная'**
+  String get addListingRoomBedroom;
+
+  /// No description provided for @addListingRoomBalcony.
+  ///
+  /// In ru, this message translates to:
+  /// **'Балкон'**
+  String get addListingRoomBalcony;
+
+  /// No description provided for @addListingRoomBathroom.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сан.узел'**
+  String get addListingRoomBathroom;
+
+  /// No description provided for @addListingRoomHall.
+  ///
+  /// In ru, this message translates to:
+  /// **'Холл'**
+  String get addListingRoomHall;
+
+  /// No description provided for @addListingRoomWardrobe.
+  ///
+  /// In ru, this message translates to:
+  /// **'Гардеробная'**
+  String get addListingRoomWardrobe;
+
+  /// No description provided for @addListingRoomTerrace.
+  ///
+  /// In ru, this message translates to:
+  /// **'Терраса'**
+  String get addListingRoomTerrace;
+
+  /// No description provided for @addListingHasGas.
+  ///
+  /// In ru, this message translates to:
+  /// **'Наличие газа'**
+  String get addListingHasGas;
 }
 
 class _AppLocalizationsDelegate

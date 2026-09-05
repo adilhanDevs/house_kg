@@ -1,3 +1,4 @@
+import 'package:house_kgz/l10n/l10n.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -150,10 +151,10 @@ class _AdEditPageState extends State<AdEditPage> {
       if (data != null) {
         _populateFields(data);
       } else {
-        _error = 'Объявление не найдено на сервере';
+        _error = context.l10n.addListingNotFound;
       }
     } catch (e) {
-      _error = 'Не удалось загрузить данные объявления: $e';
+      _error = context.l10n.addListingLoadErrorDetails(e.toString());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -279,13 +280,13 @@ class _AdEditPageState extends State<AdEditPage> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Обложка обновлена'), duration: Duration(seconds: 2)),
+        SnackBar(content: Text(context.l10n.addListingCoverUpdated), duration: Duration(seconds: 2)),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Не удалось сменить обложку: ${_uploadErrorText(e)}'),
+            content: Text(context.l10n.addListingCoverChangeError(_uploadErrorText(e))),
             backgroundColor: const Color(0xffd93025),
           ),
         );
@@ -313,7 +314,7 @@ class _AdEditPageState extends State<AdEditPage> {
       setState(() => _photos.add(photo));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Не удалось удалить фото: ${_uploadErrorText(e)}'),
+          content: Text(context.l10n.addListingPhotoDeleteError(_uploadErrorText(e))),
           backgroundColor: const Color(0xffd93025),
         ),
       );
@@ -517,7 +518,7 @@ class _AdEditPageState extends State<AdEditPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Изменения сохранены, но файлы не загрузились '
+              context.l10n.addListingSavedUploadFailed +
               '(${failures.length}): ${failures.first}',
             ),
             backgroundColor: const Color(0xfff5222d),
@@ -529,8 +530,8 @@ class _AdEditPageState extends State<AdEditPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Объявление успешно обновлено!'),
+        SnackBar(
+          content: Text(context.l10n.addListingUpdatedSuccess),
           backgroundColor: Color(0xff2e7d32),
           duration: Duration(seconds: 2),
         ),
@@ -540,7 +541,7 @@ class _AdEditPageState extends State<AdEditPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка сохранения: $e'),
+            content: Text(context.l10n.addListingErrorSave(e.toString())),
             backgroundColor: const Color(0xfff5222d),
           ),
         );
@@ -564,10 +565,10 @@ class _AdEditPageState extends State<AdEditPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16.0),
               child: Text(
-                'Выберите район',
+                context.l10n.addListingSelectDistrict,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
@@ -611,10 +612,10 @@ class _AdEditPageState extends State<AdEditPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16.0),
               child: Text(
-                'Серия дома',
+                context.l10n.addListingSeries,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
@@ -655,11 +656,11 @@ class _AdEditPageState extends State<AdEditPage> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
           onPressed: () => Navigator.maybePop(context),
         ),
-        title: const Text(
-          'Редактирование объявления',
+        title: Text(
+          context.l10n.addListingEditingTitle,
           style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -668,7 +669,7 @@ class _AdEditPageState extends State<AdEditPage> {
               onPressed: _isSaving ? null : _saveChanges,
               child: _isSaving
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: orangeColor))
-                  : const Text('Сохранить', style: TextStyle(color: orangeColor, fontWeight: FontWeight.bold, fontSize: 16)),
+                  : Text(context.l10n.addListingSave, style: TextStyle(color: orangeColor, fontWeight: FontWeight.bold, fontSize: 16)),
             ),
         ],
       ),
@@ -683,7 +684,7 @@ class _AdEditPageState extends State<AdEditPage> {
                       children: [
                         Text(_error!, style: const TextStyle(color: Colors.red)),
                         const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _loadListing, child: const Text('Повторить')),
+                        ElevatedButton(onPressed: _loadListing, child: Text(context.l10n.addListingRetry)),
                       ],
                     ),
                   ),
@@ -694,24 +695,24 @@ class _AdEditPageState extends State<AdEditPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 1. Медиа-секция
-                      _buildSectionTitle('Фотографии объекта'),
+                      _buildSectionTitle(context.l10n.addListingPhotosTitleMain),
                       const SizedBox(height: 10),
                       _buildMediaSection(orangeColor),
                       const SizedBox(height: 24),
 
                       // 2. Видеоролик
-                      _buildSectionTitle('Видеоролик объекта'),
+                      _buildSectionTitle(context.l10n.addListingVideoTitleMain),
                       const SizedBox(height: 10),
                       _buildVideoSection(orangeColor),
                       const SizedBox(height: 24),
 
                       // 3. Основные данные
-                      _buildSectionTitle('Основная информация'),
+                      _buildSectionTitle(context.l10n.addListingBasicInfo),
                       const SizedBox(height: 12),
                       _buildCardWrapper([
                         // Район
                         _buildPickerTile(
-                          label: 'Район',
+                          label: context.l10n.addListingDistrict,
                           value: _selectedDistrictName,
                           onTap: _showDistrictPicker,
                           icon: Icons.location_on_outlined,
@@ -721,15 +722,15 @@ class _AdEditPageState extends State<AdEditPage> {
                         // Адрес
                         _buildTextField(
                           controller: _addressController,
-                          label: 'Улица / Адрес',
-                          hint: 'например, ул. Аалы Токомбаева, 21/3',
+                          label: context.l10n.addListingAddressTitle,
+                          hint: context.l10n.addListingStreetHint,
                           icon: Icons.map_outlined,
                         ),
                         const Divider(height: 1),
 
                         // Серия дома
                         _buildPickerTile(
-                          label: 'Серия дома',
+                          label: context.l10n.addListingSeries,
                           value: _seriesList.firstWhere((s) => s['code'] == _selectedSeries, orElse: () => {'name': _selectedSeries})['name']!,
                           onTap: _showSeriesPicker,
                           icon: Icons.apartment_outlined,
@@ -740,7 +741,7 @@ class _AdEditPageState extends State<AdEditPage> {
                         _buildTextField(
                           controller: _builderController,
                           label: 'Застройщик / ЖК',
-                          hint: 'Ихлас, Авангард, Elite House и др.',
+                          hint: context.l10n.addListingBuilderHint,
                           icon: Icons.domain_outlined,
                         ),
                         const Divider(height: 1),
@@ -751,7 +752,7 @@ class _AdEditPageState extends State<AdEditPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Количество комнат', style: TextStyle(fontSize: 13, color: Color(0xff8e8e93))),
+                              Text(context.l10n.addListingRoomsCount, style: TextStyle(fontSize: 13, color: Color(0xff8e8e93))),
                               const SizedBox(height: 8),
                               Row(
                                 children: [1, 2, 3, 4, 5].map((r) {
@@ -794,7 +795,7 @@ class _AdEditPageState extends State<AdEditPage> {
                             Expanded(
                               child: _buildTextField(
                                 controller: _areaController,
-                                label: 'Площадь (м²)',
+                                label: context.l10n.addListingAreaSqM,
                                 hint: '118',
                                 keyboardType: TextInputType.number,
                               ),
@@ -803,7 +804,7 @@ class _AdEditPageState extends State<AdEditPage> {
                             Expanded(
                               child: _buildTextField(
                                 controller: _floorController,
-                                label: 'Этаж',
+                                label: context.l10n.addListingFloor,
                                 hint: '8',
                                 keyboardType: TextInputType.number,
                               ),
@@ -833,60 +834,45 @@ class _AdEditPageState extends State<AdEditPage> {
                       const SizedBox(height: 24),
 
                       // 4. Параметры и удобства
-                      _buildSectionTitle('Удобства и состояние'),
+                      _buildSectionTitle(context.l10n.addListingAmenities),
                       const SizedBox(height: 12),
                       _buildCardWrapper([
                         _buildDropdownTile(
-                          label: 'Состояние / Ремонт',
+                          label: context.l10n.addListingCondition,
                           value: _selectedCondition,
-                          items: const {
-                            'euro': 'Евроремонт',
-                            'good': 'Хорошее состояние',
-                            'shell': 'Под самоотделку',
-                            'medium': 'Среднее состояние',
-                            'none': 'Без ремонта',
-                          },
+                          items: getConditionLabels(context),
                           onChanged: (val) => setState(() => _selectedCondition = val!),
                         ),
                         const Divider(height: 1),
                         _buildDropdownTile(
-                          label: 'Мебель',
+                          label: context.l10n.addListingFurniture,
                           value: _selectedFurniture,
-                          items: const {
-                            'full': 'Полностью меблирована',
-                            'partial': 'Частично с мебелью',
-                            'none': 'Без мебели',
-                          },
+                          items: getFurnitureLabels(context),
                           onChanged: (val) => setState(() => _selectedFurniture = val!),
                         ),
                         const Divider(height: 1),
                         _buildDropdownTile(
-                          label: 'Отопление',
+                          label: context.l10n.addListingHeating,
                           value: _selectedHeating,
-                          items: const {
-                            'central': 'Центральное',
-                            'gas': 'Газовое',
-                            'electric': 'Электрическое',
-                            'autonomous': 'Автономное',
-                          },
+                          items: getHeatingLabels(context),
                           onChanged: (val) => setState(() => _selectedHeating = val!),
                         ),
                         const Divider(height: 1),
-                        _buildSwitchTile('Наличие газа', _hasGas, (v) => setState(() => _hasGas = v)),
+                        _buildSwitchTile(context.l10n.addListingHasGas, _hasGas, (v) => setState(() => _hasGas = v)),
                         const Divider(height: 1),
-                        _buildSwitchTile('Возможность ипотеки', _mortgageReady, (v) => setState(() => _mortgageReady = v)),
+                        _buildSwitchTile(context.l10n.addListingMortgageTitle, _mortgageReady, (v) => setState(() => _mortgageReady = v)),
                         const Divider(height: 1),
-                        _buildSwitchTile('Возможность обмена', _exchangePossible, (v) => setState(() => _exchangePossible = v)),
+                        _buildSwitchTile(context.l10n.addListingExchangeTitle, _exchangePossible, (v) => setState(() => _exchangePossible = v)),
                       ]),
                       const SizedBox(height: 24),
 
                       // 5. Экспликация комнат — список, а не фиксированный набор
-                      _buildSectionTitle('Площади комнат'),
-                      const SizedBox(height: 6),
-                      const Padding(
+                      _buildSectionTitle(context.l10n.addListingRoomAreas),
+                      SizedBox(height: 6),
+                      Padding(
                         padding: EdgeInsets.only(bottom: 12),
                         child: Text(
-                          'Добавьте только те комнаты, которые есть',
+                          context.l10n.addListingRoomsHint,
                           style: TextStyle(fontSize: 13, color: Color(0xff7d7d7d)),
                         ),
                       ),
@@ -924,7 +910,7 @@ class _AdEditPageState extends State<AdEditPage> {
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  for (final name in roomNameSuggestions)
+                                  for (final name in getRoomNameSuggestions(context))
                                     GestureDetector(
                                       onTap: () =>
                                           setState(() => _roomNameController.text = name),
@@ -951,14 +937,14 @@ class _AdEditPageState extends State<AdEditPage> {
                                     child: _buildTextField(
                                       controller: _roomNameController,
                                       label: 'Комната',
-                                      hint: 'Например, гардеробная',
+                                      hint: context.l10n.addListingRoomExample,
                                     ),
                                   ),
                                   Expanded(
                                     flex: 2,
                                     child: _buildTextField(
                                       controller: _roomAreaController,
-                                      label: 'м²',
+                                      label: context.l10n.addListingSqM,
                                       hint: '12',
                                       keyboardType: TextInputType.number,
                                     ),
@@ -988,7 +974,7 @@ class _AdEditPageState extends State<AdEditPage> {
                       const SizedBox(height: 24),
 
                       // 6. Описание объекта
-                      _buildSectionTitle('Описание объекта'),
+                      _buildSectionTitle(context.l10n.addListingDescLabel),
                       const SizedBox(height: 12),
                       Container(
                         decoration: BoxDecoration(
@@ -1001,8 +987,8 @@ class _AdEditPageState extends State<AdEditPage> {
                           controller: _descriptionController,
                           minLines: 4,
                           maxLines: 10,
-                          decoration: const InputDecoration(
-                            hintText: 'Расскажите об объекте подробнее: ремонт, вид из окна, соседи, инфраструктура рядом...',
+                          decoration: InputDecoration(
+                            hintText: context.l10n.addListingDescHint,
                             border: InputBorder.none,
                           ),
                         ),
@@ -1021,9 +1007,9 @@ class _AdEditPageState extends State<AdEditPage> {
                           ),
                           onPressed: _isSaving ? null : _saveChanges,
                           child: _isSaving
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text(
-                                  'Сохранить изменения',
+                              ? CircularProgressIndicator(color: Colors.white)
+                              : Text(
+                                  context.l10n.addListingSaveChanges,
                                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                         ),
@@ -1131,7 +1117,7 @@ class _AdEditPageState extends State<AdEditPage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        isCover ? 'Обложка' : 'Сделать обложкой',
+                        isCover ? context.l10n.addListingCover : context.l10n.addListingMakeCover,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 9,
@@ -1232,11 +1218,11 @@ class _AdEditPageState extends State<AdEditPage> {
                         _videos[i]['title'] != null && _videos[i]['title'].toString().isNotEmpty
                             ? _videos[i]['title'].toString()
                             : 'Видеоролик ${i + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Загружен на сервер',
+                      SizedBox(height: 2),
+                      Text(
+                        context.l10n.addListingUploaded,
                         style: TextStyle(color: Color(0xff8e8e93), fontSize: 12),
                       ),
                     ],
@@ -1271,11 +1257,11 @@ class _AdEditPageState extends State<AdEditPage> {
                     children: [
                       Text(
                         'Новое видео ${_videos.length + j + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Будет загружено при сохранении',
+                      SizedBox(height: 2),
+                      Text(
+                        context.l10n.addListingWillUpload,
                         style: TextStyle(color: Color(0xff8e8e93), fontSize: 12),
                       ),
                     ],
@@ -1298,7 +1284,7 @@ class _AdEditPageState extends State<AdEditPage> {
               onPressed: _pickVideo,
               icon: const Icon(Icons.video_call_outlined, color: Color(0xffea812e), size: 20),
               label: Text(
-                totalVideos == 0 ? 'Добавить видеоролик' : 'Добавить еще видео (+)',
+                totalVideos == 0 ? context.l10n.addListingVideoAdd : 'Добавить еще видео (+)',
                 style: const TextStyle(color: Color(0xffea812e), fontWeight: FontWeight.bold, fontSize: 14),
               ),
               style: OutlinedButton.styleFrom(

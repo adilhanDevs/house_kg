@@ -1,7 +1,6 @@
 {
   "@@locale": "ru",
   "appTitle": "House KGZ",
-
   "cancel": "Отмена",
   "save": "Сохранить",
   "delete": "Удалить",
@@ -24,43 +23,36 @@
   "dataLoadError": "Не удалось загрузить данные",
   "noInternet": "Нет подключения к интернету",
   "fillAllFields": "Заполните все поля",
-
   "tabHome": "Главная",
   "tabCatalog": "Поиск",
   "tabHistory": "История",
   "tabFavourites": "Избранное",
   "tabProfile": "Профиль",
-
   "langTitle": "Язык",
   "langRu": "Русский",
   "langKy": "Кыргызский",
   "langKyShort": "Кыргызча",
   "langRuShort": "Русский",
-
   "roleClient": "Клиент",
   "roleOwner": "Собственник",
   "roleRealtor": "Риелтор",
   "roleAgency": "Агентство",
   "rolePro": "Исполнитель",
-
   "kindHouse": "Дома",
   "kindApartment": "Квартиры",
   "kindPlot": "Участки",
   "kindNewBuilding": "Новостройки",
   "kindRoom": "Комната",
   "kindCommercial": "Коммерция",
-
   "sellerOwner": "Только собственник",
   "sellerRealtor": "Риелторы",
   "sellerAgency": "Агентство недвижимости",
-
   "statusDraft": "Черновик",
   "statusPending": "На модерации",
   "statusActive": "Активно",
   "statusRejected": "Отклонено",
   "statusArchived": "В архиве",
   "statusSold": "Продано",
-
   "welcomeTitle": "Поиск недвижимости в Кыргызстане",
   "welcomeSubtitle": "Квартиры, дома, участки и коммерческая недвижимость",
   "login": "Войти",
@@ -84,7 +76,6 @@
   "passwordsDoNotMatch": "Пароли не совпадают",
   "enterName": "Введите ваше имя",
   "loginError": "Ошибка авторизации",
-
   "passwordResetTitle": "Восстановление пароля",
   "passwordResetSubtitle": "Укажите номер телефона, и мы отправим код для сброса пароля",
   "sendCode": "Отправить код",
@@ -92,27 +83,31 @@
   "newPasswordHint": "Введите новый пароль",
   "repeatNewPassword": "Повторите новый пароль",
   "savePassword": "Сохранить пароль",
-
   "codeTitle": "Код подтверждения",
   "codeSubtitle": "Введите 4-значный код, отправленный на номер {phone}",
   "@codeSubtitle": {
     "placeholders": {
-      "phone": { "type": "String" }
+      "phone": {
+        "type": "String"
+      }
     }
   },
   "resendCodeIn": "Повторить через {seconds} сек.",
   "@resendCodeIn": {
     "placeholders": {
-      "seconds": { "type": "int" }
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "resendCode": "Отправить код повторно",
   "codeSending": "Отправка кода...",
-
   "homeGreeting": "Здравствуйте, {name}!",
   "@homeGreeting": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "homeGreetingGuest": "Здравствуйте!",
@@ -128,33 +123,39 @@
   "homeCommercial": "Коммерция",
   "homeSearchHint": "Поиск по адресу, району...",
   "homeNoNewListings": "Пока нет новых объявлений",
-
   "cardRoomsShort": "{count}-комн.",
   "@cardRoomsShort": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "cardAreaMeters": "{area}м",
   "@cardAreaMeters": {
     "placeholders": {
-      "area": { "type": "String" }
+      "area": {
+        "type": "String"
+      }
     }
   },
   "cardFloor": "{floor} этаж",
   "@cardFloor": {
     "placeholders": {
-      "floor": { "type": "int" }
+      "floor": {
+        "type": "int"
+      }
     }
   },
   "cardLandAreaSotka": "{area} сот.",
   "@cardLandAreaSotka": {
     "placeholders": {
-      "area": { "type": "String" }
+      "area": {
+        "type": "String"
+      }
     }
   },
   "cardPlot": "Участок",
-
   "catalogTitle": "Каталог",
   "catalogFilters": "Фильтры",
   "catalogPrice": "Цена",
@@ -173,7 +174,9 @@
   "catalogFoundCount": "Найдено объявлений: {count}",
   "@catalogFoundCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "catalogShowListings": "Показать объявления",
@@ -184,7 +187,6 @@
   "catalogFilterNameHint": "Например, 2-комн. в центре",
   "catalogSavedFilters": "Мои фильтры",
   "catalogNoSavedFilters": "Нет сохраненных фильтров",
-
   "listingCharacteristics": "Характеристики",
   "listingDescription": "Описание",
   "listingLocation": "Расположение",
@@ -205,35 +207,46 @@
   "listingViewsCount": "Количество просмотров: {count}",
   "@listingViewsCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "listingPublishedAt": "Опубликовано: {date}",
   "@listingPublishedAt": {
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "listingRoomsCount": "{count}-комн.",
   "@listingRoomsCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "listingAreaSqM": "{area} м²",
   "@listingAreaSqM": {
     "placeholders": {
-      "area": { "type": "String" }
+      "area": {
+        "type": "String"
+      }
     }
   },
   "listingFloorOf": "{floor}/{total} этаж",
   "@listingFloorOf": {
     "placeholders": {
-      "floor": { "type": "int" },
-      "total": { "type": "int" }
+      "floor": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
-
   "adCreate": "Подать объявление",
   "adEdit": "Изменить объявление",
   "adPublish": "Опубликовать",
@@ -264,13 +277,17 @@
   "adPromoDays": "{days} дней",
   "@adPromoDays": {
     "placeholders": {
-      "days": { "type": "int" }
+      "days": {
+        "type": "int"
+      }
     }
   },
   "adPromoCost": "{cost} кирпичей",
   "@adPromoCost": {
     "placeholders": {
-      "cost": { "type": "int" }
+      "cost": {
+        "type": "int"
+      }
     }
   },
   "adPreview": "Предпросмотр",
@@ -278,17 +295,14 @@
   "adSavedSuccess": "Объявление сохранено",
   "adMustHavePhotos": "Добавьте хотя бы одну фотографию",
   "adMustSelectCategory": "Выберите категорию",
-
   "favouritesTitle": "Вам понравилось",
   "favouritesEmpty": "Нет избранных объявлений",
   "favouritesEmptySubtitle": "Нажимайте на сердечко в карточках объектов, чтобы сохранить их здесь",
-
   "historyTitle": "История просмотров",
   "historyEmpty": "Вы еще не просматривали объявления",
   "historyClear": "Очистить историю",
   "historyClearConfirmTitle": "Очистить историю просмотров?",
   "historyClearConfirmBody": "Все просмотренные объявления будут удалены из истории.",
-
   "notificationsTitle": "Уведомления",
   "notificationsLatest": "Последние уведомления",
   "notificationsEmpty": "Уведомлений пока нет",
@@ -304,7 +318,6 @@
   "chatInputHint": "Введите сообщение...",
   "chatSend": "Отправить",
   "chatNoDialogs": "Диалогов пока нет",
-
   "profileTitle": "Ваш профиль",
   "profileNoName": "Без имени",
   "profileFavoritesRow": "Вам понравилось",
@@ -320,18 +333,21 @@
   "profileLogoutConfirmTitle": "Выйти из аккаунта?",
   "profileLogoutConfirmBody": "Избранное и фильтры этого сеанса будут забыты.",
   "profileLoggingOut": "Выход...",
-
   "proProfileTitle": "Профиль продавца",
   "proSold": "Продано: {count}",
   "@proSold": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "proObjectsCount": "{count} объектов недвижимости",
   "@proObjectsCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "proAddListing": "Добавить объявление",
@@ -347,19 +363,19 @@
   "proWalletBalance": "{count} кирпичей",
   "@proWalletBalance": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "proWalletTitle": "Баланс",
   "proTopUp": "Пополнить",
-
   "proSignupTitle": "Регистрация продавца",
   "proSignupIin": "ИНН / ПИН",
   "proSignupIinHint": "14 цифр",
   "proIdentityTitle": "Подтверждение личности",
   "proIdentitySelfie": "Сделайте селфи",
   "proIdentityPassport": "Фото паспорта",
-
   "accountTitle": "Личные данные",
   "accountName": "Имя и фамилия",
   "accountWhatsapp": "Номер WhatsApp",
@@ -374,7 +390,6 @@
   "accountDeleteAccount": "Удалить аккаунт",
   "accountDeleteConfirmTitle": "Удалить аккаунт?",
   "accountDeleteConfirmBody": "Это действие необратимо. Все ваши данные и объявления будут удалены.",
-
   "tariffsTitle": "Тарифы",
   "tariffsCurrent": "Текущий тариф",
   "tariffsConnect": "Подключить",
@@ -383,46 +398,53 @@
   "tariffsPerMonth": "{price} сом/мес",
   "@tariffsPerMonth": {
     "placeholders": {
-      "price": { "type": "String" }
+      "price": {
+        "type": "String"
+      }
     }
   },
   "tariffsPayBricks": "Оплатить кирпичами ({count})",
   "@tariffsPayBricks": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "tariffsPaySom": "Оплатить {price} сом",
   "@tariffsPaySom": {
     "placeholders": {
-      "price": { "type": "String" }
+      "price": {
+        "type": "String"
+      }
     }
   },
-
   "topupTitle": "Пополнение баланса",
   "topupAmount": "Сумма пополнения (сом)",
   "topupBonusHint": "1 сом = 1 кирпич + 10% бонус",
   "topupYouWillGet": "Вам будет начислено: {bricks} кирпичей",
   "@topupYouWillGet": {
     "placeholders": {
-      "bricks": { "type": "int" }
+      "bricks": {
+        "type": "int"
+      }
     }
   },
   "topupPayButton": "Оплатить {amount} сом",
   "@topupPayButton": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "topupSelectMethod": "Выберите способ оплаты",
-
   "walletHistoryTitle": "История пополнения и трат",
   "walletTabAll": "Все операции",
   "walletTabTopup": "Пополнение",
   "walletTabSpend": "Списание",
   "walletTabBonus": "Бонусы",
   "walletHistoryEmpty": "Нет операций",
-
   "supportTitle": "Служба поддержки",
   "supportFaq": "Часто задаваемые вопросы",
   "supportWhatsapp": "Написать в WhatsApp",
@@ -444,16 +466,16 @@
   "supportFaqProAnswer": "Пройдите быструю верификацию в профиле, загрузив фото вашего риелторского удостоверения или паспорта.",
   "supportFaqBricksQuestion": "Сколько списывается кирпичей за публикацию?",
   "supportFaqBricksAnswer": "Списание зависит от категории объекта и дополнительных опций (выделение цветом, топ списка, автоподъем).",
-
   "dateToday": "Сегодня",
   "dateYesterday": "Вчера",
   "dateDaysAgo": "{days} дн. назад",
   "@dateDaysAgo": {
     "placeholders": {
-      "days": { "type": "int" }
+      "days": {
+        "type": "int"
+      }
     }
   },
-
   "filterPlotPurpose": "Назначение участка",
   "filterCommercialPurpose": "Назначение объекта",
   "filterBuildingLine": "Линия застройки",
@@ -466,7 +488,9 @@
   "historyRemovePicked": "Убрать из истории ({count})",
   "@historyRemovePicked": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "walletFilterAll": "Все операции",
@@ -475,7 +499,6 @@
   "walletFilterBonus": "Бонусы",
   "walletHistorySubtitle": "История операций кошелька и начисления бонусов",
   "walletEmpty": "Нет операций",
-
   "filterPropertyType": "Тип недвижимости",
   "filterSecondary": "Вторичка",
   "filterSeries103": "103 серия",
@@ -486,12 +509,10 @@
   "filterPrice": "Стоимость",
   "filterPriceFrom": "От",
   "filterPriceTo": "До",
-
   "langRussian": "Русский",
   "langKyrgyz": "Кыргызча",
   "languageRussian": "Русский",
   "languageKyrgyz": "Кыргызча",
-
   "historySelect": "Выбрать",
   "historyDone": "Готово",
   "historyOrderTitle": "Сортировка",
@@ -508,7 +529,9 @@
   "filterShowVariants": "Показать {count} вариантов",
   "@filterShowVariants": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "contactSeller": "Связаться с продавцом",
@@ -518,13 +541,17 @@
   "sellerObjectsCount": "{count} объектов недвижимости",
   "@sellerObjectsCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "sellerSoldCount": "Продано: {count} объектов",
   "@sellerSoldCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "sellerNoListings": "У продавца пока нет объявлений в этой категории",
@@ -532,5 +559,264 @@
   "sellerMustLoginToWrite": "Войдите, чтобы написать продавцу",
   "sellerNotFound": "Продавец не определён",
   "sellerNoListingToDiscuss": "Не удалось определить объявление для переписки",
-  "passwordTooShort": "Пароль должен быть не короче 8 символов"
+  "passwordTooShort": "Пароль должен быть не короче 8 символов",
+  "addListingSelectDistrictHints": "Выберите район Бишкека",
+  "addListingSelectDistrict": "Выберите район",
+  "addListingErrDistrict": "Пожалуйста, выберите район",
+  "addListingErrArea": "Пожалуйста, укажите квадратуру объекта",
+  "addListingErrPlotArea": "Пожалуйста, укажите площадь участка",
+  "addListingErrPrice": "Пожалуйста, укажите цену объекта",
+  "addListingTitle": "Добавить недвижимость",
+  "addListingSubtitle": "Заполните основные параметры объекта",
+  "addListingPropertyKind": "Тип недвижимости",
+  "addListingDistrict": "Район",
+  "addListingArea": "Квадратура",
+  "addListingFloor": "Этаж",
+  "addListingTotalFloors": "Кол-во этажей в здании",
+  "addListingBuilder": "Строительная компания",
+  "addListingSelectBuilder": "Выберите застройщика",
+  "addListingBuilderHint": "Ихлас, Авангард, Elite House и др.",
+  "addListingPlotArea": "Площадь участка, соток",
+  "addListingPlotPurpose": "Назначение участка",
+  "addListingCommercialPurpose": "Назначение помещения",
+  "addListingBuildingLine": "Линия",
+  "addListingRoomsCount": "Количество комнат",
+  "addListingRoomAreas": "Площади комнат",
+  "addListingRoomName": "Название комнаты",
+  "addListingSelectRoom": "Выберите комнату или впишите свою",
+  "addListingRoomExample": "Например, гардеробная",
+  "addListingAreaSqM": "Площадь (м²)",
+  "addListingSqM": "м²",
+  "addListingOptionalArea": "Необязательно, например 3.2",
+  "addListingDelete": "Удалить",
+  "addListingAddRoom": "Добавить комнату",
+  "addListingRoomsHint": "Добавьте только те комнаты, которые есть",
+  "addListingStreet": "Улица и номер дома",
+  "addListingStreetHint": "например, ул. Аалы Токомбаева, 21/3",
+  "addListingAddressTitle": "Улица / Адрес",
+  "addListingSeries": "Серия дома",
+  "addListingCondition": "Состояние / Ремонт",
+  "addListingConditionTitle": "Состояние и ремонт",
+  "addListingHeating": "Отопление",
+  "addListingFurniture": "Мебель",
+  "addListingAmenities": "Удобства и состояние",
+  "addListingCeilingHeight": "Высота потолков, м",
+  "addListingSecondary": "Вторичное жильё",
+  "addListingSeparateEntrance": "Отдельный вход",
+  "addListingHas": "Есть",
+  "addListingHasNot": "Нет",
+  "addListingPrice": "Цена",
+  "addListingPriceUSDTitle": "Стоимость ($ USD)",
+  "addListingMortgagePossible": "Возможна ипотека",
+  "addListingMortgageTitle": "Возможность ипотеки",
+  "addListingExchangePossible": "Возможен обмен",
+  "addListingExchangeTitle": "Возможность обмена",
+  "addListingDescTitle": "Описание",
+  "addListingDescLabel": "Описание объекта",
+  "addListingDescHint": "Расскажите об объекте подробнее: ремонт, вид из окна, соседи, инфраструктура рядом...",
+  "addListingDescPlaceholder": "Школа, парк, остановка — что рядом с объектом",
+  "addListingMoreInfo": "Подробнее об объекте",
+  "addListingMoreInfoSubtitle": "Расскажите об объекте: ремонт, окружение, что рядом",
+  "addListingContactsTitle": "Контакты и ключевые места",
+  "addListingContactsSubtitle": "Кому звонить и что рядом с объектом",
+  "addListingContactName": "Имя для связи",
+  "addListingContactNameHint": "Если отличается от профиля",
+  "addListingContactPhone": "Телефон для связи",
+  "addListingKeyPlaces": "Ключевые места",
+  "addListingWhoAreYou": "Вы являетесь?",
+  "addListingSellerOwner": "Собственником",
+  "addListingSellerRealtor": "Риелтором",
+  "addListingDirectBuy": "Прямая покупка",
+  "addListingNext": "Далее",
+  "addListingCancel": "Отмена",
+  "addListingSave": "Сохранить",
+  "addListingEdit": "Изменить",
+  "addListingPhotosTitleMain": "Фотографии объекта",
+  "addListingPhotosEdit": "Добавить/изменить фотографии",
+  "addListingVideoTitleMain": "Видеоролик объекта",
+  "addListingVideoWatch": "Смотреть видеообзор REELS",
+  "addListingVideoAdd": "Добавить видеоролик",
+  "addListingBasicInfo": "Основная информация",
+  "addListingEditTitle": "Изменить объявление",
+  "addListingEditingTitle": "Редактирование объявления",
+  "addListingSaveChanges": "Сохранить изменения",
+  "addListingArchive": "Снять с публикации (в архив)",
+  "addListingArchiveConfirm": "Снять с публикации?",
+  "addListingArchiveDesc": "Объявление переместится в архив и не будет видно в каталоге.",
+  "addListingUpdatedSuccess": "Объявление успешно обновлено!",
+  "addListingPendingSuccess": "Объявление отправлено на модерацию!",
+  "addListingPublishedNoPromo": "Объявление опубликовано, но продвижение не оплачено",
+  "addListingArchivedSuccess": "Объявление перемещено в архив",
+  "addListingErrorSave": "Ошибка сохранения: $e",
+  "addListingErrorArchive": "Ошибка архивации: $e",
+  "addListingUnarchivedSuccess": "Объявление возвращено из архива и опубликовано!",
+  "addListingRepublish": "Опубликовать снова",
+  "addListingToPreview": "К предпросмотру",
+  "addListingPreview": "Предпросмотр",
+  "addListingYourAd": "Ваше объявление",
+  "addListingPublishingTitle": "Публикация объявления",
+  "addListingPublish": "Опубликовать",
+  "addListingPublishing": "Публикуем...",
+  "addListingErrorPublish": "Ошибка публикации: $e",
+  "addListingRetry": "Повторить",
+  "addListingPromotion": "Продвижение",
+  "addListingContinueNoPromo": "Продолжить без продвижения",
+  "addListingPromoTopup": "Пополнение на продвижение объявления",
+  "addListingEnterAmount": "Введите сумму",
+  "addListingSpendBricks": "Списать кирпичи",
+  "addListingPromoDays": "Количество дней",
+  "addListingEnterValue": "Введите значение",
+  "addListingPromoExact": "Использовать точное продвижение",
+  "addListingPromoClientBase": "Использовать клиентскую базу",
+  "addListingPromoWhatsapp": "Использовать Whatsapp базу",
+  "addListingPublishedPromoSuccess": "Объявление успешно опубликовано и продвинуто!",
+  "addListingPublishedSuccess2": "Объявление успешно опубликовано!",
+  "addListingPromoNotPaid": "Продвижение не оплачено: $message",
+  "addListingPromoCostError": "Не удалось получить стоимость продвижения: $e",
+  "addListingLoadError": "Не удалось загрузить данные объявления",
+  "addListingLoadErrorDetails": "Не удалось загрузить данные объявления: $e",
+  "addListingNotFound": "Объявление не найдено на сервере",
+  "addListingAddPhoto": "Добавить фото",
+  "addListingCover": "Обложка",
+  "addListingMakeCover": "Сделать обложкой",
+  "addListingCoverUpdated": "Обложка обновлена",
+  "addListingAllowDownload": "Разрешить скачивать фотографии",
+  "addListingNoPhotos": "Пока ни одной фотографии",
+  "addListingUploaded": "Загружен на сервер",
+  "addListingWillUpload": "Будет загружено при сохранении",
+  "addListingPhotoUploadError": "Фото не загрузились: {error}",
+  "@addListingPhotoUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingPhotoSaveError": "Ошибка сохранения фото: $e",
+  "addListingPhotoDeleteError": "Не удалось удалить фото: {error}",
+  "@addListingPhotoDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingCoverChangeError": "Не удалось сменить обложку: {error}",
+  "@addListingCoverChangeError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingAddVideoItem": "Добавить видео",
+  "addListingAddMoreVideo": "Добавить еще видео (+)",
+  "addListingNoVideos": "Пока ни одного ролика",
+  "addListingNewVideo": "Новое видео {number}",
+  "@addListingNewVideo": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingVideoItem": "Видеоролик {number}",
+  "@addListingVideoItem": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingVideoInfo": "Информация о видео",
+  "addListingVideoInfoDesc": "Укажите заголовок и краткое описание для REELS",
+  "addListingVideoTitle": "Заголовок видео",
+  "addListingVideoTitleHint": "Например, обзор дома",
+  "addListingVideoDesc": "Описание видео",
+  "addListingVideoDescHint": "Расскажите подробнее о видео...",
+  "addListingAddVideoReels": "Добавьте видео обзор REELS",
+  "addListingVideoDummyDesc": "Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.",
+  "addListingUseAdInfo": "Использовать информацию из объявления",
+  "addListingWasAdded": "Было добавлено",
+  "addListingVideoUploadError": "Ролик не загрузился: {error}",
+  "@addListingVideoUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingSaving": "Сохранение…",
+  "addListingUploadingVideo": "Загрузка видео$percent",
+  "addListingUploading": "Загрузка ",
+  "addListingVideoProgress": "Видео $_videoIndex из $_videoTotal$percent",
+  "addListingMaxVideos": "Можно до {limit} роликов",
+  "@addListingMaxVideos": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingNoMoreVideos": "Больше {limit} роликов не добавить",
+  "@addListingNoMoreVideos": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingMaxPhotos": "Можно до {limit} фото",
+  "@addListingMaxPhotos": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingNoMorePhotos": "Больше {limit} фото не добавить",
+  "@addListingNoMorePhotos": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingSavedUploadFailed": "Изменения сохранены, но файлы не загрузились ",
+  "addListingGotIt": "Понятно",
+  "addListingViewStats": "Просмотр статистики",
+  "addListingStatsDesc": "Статистика показов и интереса покупателей к вашему объекту обновляется в реальном времени.",
+  "addListingViews": "Просмотров",
+  "addListingSentToClients": "Клиентам отправлено",
+  "addListingSold": "Продано",
+  "addListingToArchive": "В архив",
+  "addListingArchived": "В архиве",
+  "addListingPublished": "Опубликовано",
+  "addListingModerating": "На модерации",
+  "addListingRejected": "Отклонено",
+  "addListingDraft": "Черновик",
+  "addListingEnterCustomValue": "Введите свое значение",
+  "addListingCityBishkek": "Бишкек",
+  "addListingExample8": "Например, 8",
+  "addListingFurnitureFull": "Полностью меблирована",
+  "addListingFurniturePartial": "Частично с мебелью",
+  "addListingFurnitureNone": "Без мебели",
+  "addListingConditionEuro": "Евроремонт",
+  "addListingConditionGood": "Хорошее состояние",
+  "addListingConditionShell": "Под самоотделку",
+  "addListingConditionMedium": "Среднее состояние",
+  "addListingConditionNone": "Без ремонта",
+  "addListingHeatingCentral": "Центральное",
+  "addListingHeatingGas": "Газовое",
+  "addListingHeatingElectric": "Электрическое",
+  "addListingHeatingAutonomous": "Автономное",
+  "addListingRoomLiving": "Гостиная",
+  "addListingRoomKitchen": "Кухня",
+  "addListingRoomBedroom": "Спальная",
+  "addListingRoomBalcony": "Балкон",
+  "addListingRoomBathroom": "Сан.узел",
+  "addListingRoomHall": "Холл",
+  "addListingRoomWardrobe": "Гардеробная",
+  "addListingRoomTerrace": "Терраса",
+  "addListingHasGas": "Наличие газа"
 }

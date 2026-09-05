@@ -1,3 +1,4 @@
+import 'package:house_kgz/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/kind_fields.dart';
@@ -143,7 +144,7 @@ class _AdFormPageState extends State<AdFormPage> {
   }
 
   String _getDistrictLabel(AppState state) {
-    if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') return 'Выберите район';
+    if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') return context.l10n.addListingSelectDistrict;
     final list = _getDistrictsList(state);
     for (final item in list) {
       if (item['slug'] == state.draftDistrict || item['name'] == state.draftDistrict) {
@@ -170,25 +171,25 @@ class _AdFormPageState extends State<AdFormPage> {
 
     if (state.draftDistrict.isEmpty || state.draftDistrict == 'Район Бишкека') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, выберите район')),
+        SnackBar(content: Text(context.l10n.addListingErrDistrict)),
       );
       return;
     }
     if (!isPlot && area <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, укажите квадратуру объекта')),
+        SnackBar(content: Text(context.l10n.addListingErrArea)),
       );
       return;
     }
     if (isPlot && landArea <= 0 && area <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, укажите площадь участка')),
+        SnackBar(content: Text(context.l10n.addListingErrPlotArea)),
       );
       return;
     }
     if (price <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, укажите цену объекта')),
+        SnackBar(content: Text(context.l10n.addListingErrPrice)),
       );
       return;
     }
@@ -263,7 +264,7 @@ class _AdFormPageState extends State<AdFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.addListingErrorSave(e.toString()))));
       }
     } finally {
       if (mounted) {
@@ -308,7 +309,7 @@ class _AdFormPageState extends State<AdFormPage> {
   }
 
   String _getBuilderLabel(AppState state) {
-    if (state.draftBuilder.isEmpty) return 'Выберите застройщика';
+    if (state.draftBuilder.isEmpty) return context.l10n.addListingSelectBuilder;
     final list = _getBuildersList(state);
     for (final item in list) {
       if (item['slug'] == state.draftBuilder || item['name'] == state.draftBuilder) {
@@ -333,10 +334,10 @@ class _AdFormPageState extends State<AdFormPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 16.0),
                 child: Text(
-                  'Выберите застройщика',
+                  context.l10n.addListingSelectBuilder,
                   style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -388,10 +389,10 @@ class _AdFormPageState extends State<AdFormPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 16.0),
                 child: Text(
-                  'Выберите район Бишкека',
+                  context.l10n.addListingSelectDistrictHints,
                   style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -480,20 +481,20 @@ class _AdFormPageState extends State<AdFormPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20.0),
+              SizedBox(height: 20.0),
 
               // Заголовок и подзаголовок
-              const Text(
-                'Добавить недвижимость',
+              Text(
+                context.l10n.addListingTitle,
                 style: TextStyle(
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold,
                   color: Color(0xff000000),
                 ),
               ),
-              const SizedBox(height: 4.0),
-              const Text(
-                'Заполните основные параметры объекта',
+              SizedBox(height: 4.0),
+              Text(
+                context.l10n.addListingSubtitle,
                 style: TextStyle(
                   fontSize: 14.0,
                   color: Color(0xff7d7d7d),
@@ -502,7 +503,7 @@ class _AdFormPageState extends State<AdFormPage> {
               const SizedBox(height: 24.0),
 
               // 1. Тип недвижимости
-              _buildSectionTitle('Тип недвижимости'),
+              _buildSectionTitle(context.l10n.addListingPropertyKind),
               const SizedBox(height: 10.0),
               Wrap(
                 spacing: 8.0,
@@ -510,7 +511,7 @@ class _AdFormPageState extends State<AdFormPage> {
                 children: [
                   for (final kind in PropertyKind.values)
                     _buildChip(
-                      label: kind.label,
+                      label: kind.labelL10n(context),
                       selected: state.draftKinds.contains(kind),
                       onTap: () => state.setDraftKind(kind),
                     ),
@@ -519,7 +520,7 @@ class _AdFormPageState extends State<AdFormPage> {
               const SizedBox(height: 24.0),
 
               // 2. Район
-              _buildSectionTitle('Район'),
+              _buildSectionTitle(context.l10n.addListingDistrict),
               const SizedBox(height: 10.0),
               GestureDetector(
                 onTap: () => _showDistrictPicker(context, state),
@@ -534,7 +535,7 @@ class _AdFormPageState extends State<AdFormPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        state.draftDistrict.isEmpty ? 'Выберите район' : _getDistrictLabel(state),
+                        state.draftDistrict.isEmpty ? context.l10n.addListingSelectDistrict : _getDistrictLabel(state),
                         style: TextStyle(
                           fontSize: 15.0,
                           color: state.draftDistrict.isEmpty
@@ -551,7 +552,7 @@ class _AdFormPageState extends State<AdFormPage> {
 
               // 3. Количество комнат
               if (showsField(formKind, ListingField.rooms)) ...[
-                _buildSectionTitle('Количество комнат'),
+                _buildSectionTitle(context.l10n.addListingRoomsCount),
                 const SizedBox(height: 10.0),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -573,7 +574,7 @@ class _AdFormPageState extends State<AdFormPage> {
                         width: 190.0,
                         child: _buildInputField(
                           controller: roomsCtrl,
-                          hintText: 'Введите свое значение',
+                          hintText: context.l10n.addListingEnterCustomValue,
                           keyboardType: TextInputType.number,
                           onChanged: (val) {
                             final parsed = int.tryParse(val.replaceAll(' ', ''));
@@ -590,7 +591,7 @@ class _AdFormPageState extends State<AdFormPage> {
               ],
 
               // 4. Квадратура
-              _buildSectionTitle('Квадратура'),
+              _buildSectionTitle(context.l10n.addListingArea),
               const SizedBox(height: 10.0),
               Row(
                 children: [
@@ -608,7 +609,7 @@ class _AdFormPageState extends State<AdFormPage> {
 
               // 5. Этаж
               if (showsField(formKind, ListingField.floor)) ...[
-                _buildSectionTitle('Этаж'),
+                _buildSectionTitle(context.l10n.addListingFloor),
                 const SizedBox(height: 10.0),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -641,7 +642,7 @@ class _AdFormPageState extends State<AdFormPage> {
                         width: 190.0,
                         child: _buildInputField(
                           controller: floorCtrl,
-                          hintText: 'Введите свое значение',
+                          hintText: context.l10n.addListingEnterCustomValue,
                           keyboardType: TextInputType.number,
                           onChanged: (val) {
                             final parsed = int.tryParse(val.replaceAll(' ', ''));
@@ -667,7 +668,7 @@ class _AdFormPageState extends State<AdFormPage> {
 
               // 6. Кол-во этажей в здании
               if (showsField(formKind, ListingField.floors)) ...[
-                _buildSectionTitle('Кол-во этажей в здании'),
+                _buildSectionTitle(context.l10n.addListingTotalFloors),
                 const SizedBox(height: 10.0),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -700,7 +701,7 @@ class _AdFormPageState extends State<AdFormPage> {
                         width: 190.0,
                         child: _buildInputField(
                           controller: floorsCtrl,
-                          hintText: 'Введите свое значение',
+                          hintText: context.l10n.addListingEnterCustomValue,
                           keyboardType: TextInputType.number,
                           onChanged: (val) {
                             final parsed = int.tryParse(val.replaceAll(' ', ''));
@@ -726,7 +727,7 @@ class _AdFormPageState extends State<AdFormPage> {
 
               // 7. Строительная компания
               if (showsField(formKind, ListingField.builder)) ...[
-                _buildSectionTitle('Строительная компания'),
+                _buildSectionTitle(context.l10n.addListingBuilder),
                 const SizedBox(height: 10.0),
                 GestureDetector(
                   onTap: () => _showBuilderPicker(context, state),
@@ -741,7 +742,7 @@ class _AdFormPageState extends State<AdFormPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          state.draftBuilder.isEmpty ? 'Выберите застройщика' : _getBuilderLabel(state),
+                          state.draftBuilder.isEmpty ? context.l10n.addListingSelectBuilder : _getBuilderLabel(state),
                           style: TextStyle(
                             fontSize: 15.0,
                             color: state.draftBuilder.isEmpty
@@ -759,11 +760,11 @@ class _AdFormPageState extends State<AdFormPage> {
 
               // Параметры, применимые только к отдельным типам.
               if (showsField(formKind, ListingField.landArea)) ...[
-                _buildSectionTitle('Площадь участка, соток'),
+                _buildSectionTitle(context.l10n.addListingPlotArea),
                 const SizedBox(height: 10.0),
                 _buildInputField(
                   controller: landAreaCtrl,
-                  hintText: 'Например, 8',
+                  hintText: context.l10n.addListingExample8,
                   keyboardType: TextInputType.number,
                   onChanged: (val) => state.setDraft(() => state.draftLandArea = val),
                 ),
@@ -771,7 +772,7 @@ class _AdFormPageState extends State<AdFormPage> {
               ],
 
               if (showsField(formKind, ListingField.plotPurpose)) ...[
-                _buildSectionTitle('Назначение участка'),
+                _buildSectionTitle(context.l10n.addListingPlotPurpose),
                 const SizedBox(height: 10.0),
                 Wrap(
                   spacing: 8.0,
@@ -789,7 +790,7 @@ class _AdFormPageState extends State<AdFormPage> {
               ],
 
               if (showsField(formKind, ListingField.commercialPurpose)) ...[
-                _buildSectionTitle('Назначение помещения'),
+                _buildSectionTitle(context.l10n.addListingCommercialPurpose),
                 const SizedBox(height: 10.0),
                 Wrap(
                   spacing: 8.0,
@@ -808,7 +809,7 @@ class _AdFormPageState extends State<AdFormPage> {
               ],
 
               if (showsField(formKind, ListingField.buildingLine)) ...[
-                _buildSectionTitle('Линия'),
+                _buildSectionTitle(context.l10n.addListingBuildingLine),
                 const SizedBox(height: 10.0),
                 Wrap(
                   spacing: 8.0,
@@ -826,18 +827,18 @@ class _AdFormPageState extends State<AdFormPage> {
               ],
 
               if (showsField(formKind, ListingField.separateEntrance)) ...[
-                _buildSectionTitle('Отдельный вход'),
+                _buildSectionTitle(context.l10n.addListingSeparateEntrance),
                 const SizedBox(height: 10.0),
                 Wrap(
                   spacing: 8.0,
                   children: [
                     _buildChip(
-                      label: 'Есть',
+                      label: context.l10n.addListingHas,
                       selected: state.draftSeparateEntrance,
                       onTap: () => state.setDraft(() => state.draftSeparateEntrance = true),
                     ),
                     _buildChip(
-                      label: 'Нет',
+                      label: context.l10n.addListingHasNot,
                       selected: !state.draftSeparateEntrance,
                       onTap: () => state.setDraft(() => state.draftSeparateEntrance = false),
                     ),
@@ -847,11 +848,11 @@ class _AdFormPageState extends State<AdFormPage> {
               ],
 
               if (showsField(formKind, ListingField.ceilingHeight)) ...[
-                _buildSectionTitle('Высота потолков, м'),
+                _buildSectionTitle(context.l10n.addListingCeilingHeight),
                 const SizedBox(height: 10.0),
                 _buildInputField(
                   controller: ceilingCtrl,
-                  hintText: 'Необязательно, например 3.2',
+                  hintText: context.l10n.addListingOptionalArea,
                   keyboardType: TextInputType.number,
                   onChanged: (val) => state.setDraft(() => state.draftCeilingHeight = val),
                 ),
@@ -860,25 +861,25 @@ class _AdFormPageState extends State<AdFormPage> {
 
               // ——— Необязательное: свёрнуто, чтобы форма не разрасталась ———
               _buildBlock(
-                title: 'Подробнее об объекте',
+                title: context.l10n.addListingMoreInfo,
                 subtitle: 'Адрес, описание, ремонт, отопление',
                 children: [
                   _buildSectionTitle('Адрес'),
                   const SizedBox(height: 10.0),
                   _buildInputField(
                     controller: addressCtrl,
-                    hintText: 'Улица и номер дома',
+                    hintText: context.l10n.addListingStreet,
                     onChanged: (val) => state.setDraft(() => state.draftAddress = val),
                   ),
                   const SizedBox(height: 20.0),
-                  _buildSectionTitle('Описание'),
+                  _buildSectionTitle(context.l10n.addListingDescTitle),
                   const SizedBox(height: 10.0),
                   TextField(
                     controller: descriptionCtrl,
                     maxLines: 5,
                     onChanged: (val) => state.setDraft(() => state.draftDescription = val),
                     decoration: InputDecoration(
-                      hintText: 'Расскажите об объекте: ремонт, окружение, что рядом',
+                      hintText: context.l10n.addListingMoreInfoSubtitle,
                       hintStyle: const TextStyle(fontSize: 15.0, color: Color(0x993c3c43)),
                       filled: true,
                       fillColor: const Color(0xfff5f5f7),
@@ -891,20 +892,20 @@ class _AdFormPageState extends State<AdFormPage> {
                   const SizedBox(height: 20.0),
                   if (showsField(formKind, ListingField.interior)) ...[
                     _buildChoiceRow(
-                      title: 'Мебель',
-                      options: furnitureLabels,
+                      title: context.l10n.addListingFurniture,
+                      options: getFurnitureLabels(context),
                       selected: state.draftFurniture,
                       onSelect: (val) => state.setDraft(() => state.draftFurniture = val),
                     ),
                     _buildChoiceRow(
-                      title: 'Состояние и ремонт',
-                      options: conditionLabels,
+                      title: context.l10n.addListingConditionTitle,
+                      options: getConditionLabels(context),
                       selected: state.draftCondition,
                       onSelect: (val) => state.setDraft(() => state.draftCondition = val),
                     ),
                     _buildChoiceRow(
-                      title: 'Отопление',
-                      options: heatingLabels,
+                      title: context.l10n.addListingHeating,
+                      options: getHeatingLabels(context),
                       selected: state.draftHeating,
                       onSelect: (val) => state.setDraft(() => state.draftHeating = val),
                     ),
@@ -917,26 +918,26 @@ class _AdFormPageState extends State<AdFormPage> {
                   ],
                   if (showsField(formKind, ListingField.isSecondary)) ...[
                     _buildToggleRow(
-                      label: 'Вторичное жильё',
+                      label: context.l10n.addListingSecondary,
                       value: state.draftSecondary,
                       onChanged: (val) => state.setDraft(() => state.draftSecondary = val),
                     ),
                     const SizedBox(height: 12.0),
                   ],
                   _buildToggleRow(
-                    label: 'Возможен обмен',
+                    label: context.l10n.addListingExchangePossible,
                     value: state.draftExchange,
                     onChanged: (val) => state.setDraft(() => state.draftExchange = val),
                   ),
                   const SizedBox(height: 12.0),
                   _buildToggleRow(
-                    label: 'Прямая покупка',
+                    label: context.l10n.addListingDirectBuy,
                     value: state.draftDirectSale,
                     onChanged: (val) => state.setDraft(() => state.draftDirectSale = val),
                   ),
                   const SizedBox(height: 12.0),
                   _buildToggleRow(
-                    label: 'Возможна ипотека',
+                    label: context.l10n.addListingMortgagePossible,
                     value: state.draftMortgage,
                     onChanged: (val) => state.setDraft(() => state.draftMortgage = val),
                   ),
@@ -945,8 +946,8 @@ class _AdFormPageState extends State<AdFormPage> {
 
               if (showsField(formKind, ListingField.interior))
                 _buildBlock(
-                  title: 'Площади комнат',
-                  subtitle: 'Добавьте только те комнаты, которые есть',
+                  title: context.l10n.addListingRoomAreas,
+                  subtitle: context.l10n.addListingRoomsHint,
                   children: [
                     for (var i = 0; i < state.draftRoomList.length; i++)
                       Padding(
@@ -994,9 +995,9 @@ class _AdFormPageState extends State<AdFormPage> {
                           ],
                         ),
                       ),
-                    const SizedBox(height: 8.0),
-                    const Text(
-                      'Выберите комнату или впишите свою',
+                    SizedBox(height: 8.0),
+                    Text(
+                      context.l10n.addListingSelectRoom,
                       style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                     ),
                     const SizedBox(height: 10.0),
@@ -1004,7 +1005,7 @@ class _AdFormPageState extends State<AdFormPage> {
                       spacing: 8.0,
                       runSpacing: 8.0,
                       children: [
-                        for (final name in roomNameSuggestions)
+                        for (final name in getRoomNameSuggestions(context))
                           _buildChip(
                             label: name,
                             selected: roomNameCtrl.text.trim() == name,
@@ -1019,7 +1020,7 @@ class _AdFormPageState extends State<AdFormPage> {
                           flex: 3,
                           child: _buildInputField(
                             controller: roomNameCtrl,
-                            hintText: 'Название комнаты',
+                            hintText: context.l10n.addListingRoomName,
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
@@ -1028,7 +1029,7 @@ class _AdFormPageState extends State<AdFormPage> {
                           flex: 2,
                           child: _buildInputField(
                             controller: roomAreaCtrl,
-                            hintText: 'м²',
+                            hintText: context.l10n.addListingSqM,
                             keyboardType: TextInputType.number,
                             onChanged: (_) => setState(() {}),
                           ),
@@ -1037,7 +1038,7 @@ class _AdFormPageState extends State<AdFormPage> {
                     ),
                     const SizedBox(height: 10.0),
                     _buildChip(
-                      label: 'Добавить комнату',
+                      label: context.l10n.addListingAddRoom,
                       selected: roomNameCtrl.text.trim().isNotEmpty &&
                           roomAreaCtrl.text.trim().isNotEmpty,
                       onTap: () {
@@ -1056,18 +1057,18 @@ class _AdFormPageState extends State<AdFormPage> {
                 ),
 
               _buildBlock(
-                title: 'Контакты и ключевые места',
-                subtitle: 'Кому звонить и что рядом с объектом',
+                title: context.l10n.addListingContactsTitle,
+                subtitle: context.l10n.addListingContactsSubtitle,
                 children: [
-                  _buildSectionTitle('Имя для связи'),
+                  _buildSectionTitle(context.l10n.addListingContactName),
                   const SizedBox(height: 10.0),
                   _buildInputField(
                     controller: contactNameCtrl,
-                    hintText: 'Если отличается от профиля',
+                    hintText: context.l10n.addListingContactNameHint,
                     onChanged: (val) => state.setDraft(() => state.draftContactName = val),
                   ),
                   const SizedBox(height: 20.0),
-                  _buildSectionTitle('Телефон для связи'),
+                  _buildSectionTitle(context.l10n.addListingContactPhone),
                   const SizedBox(height: 10.0),
                   _buildInputField(
                     controller: contactPhoneCtrl,
@@ -1075,11 +1076,11 @@ class _AdFormPageState extends State<AdFormPage> {
                     keyboardType: TextInputType.phone,
                     onChanged: (val) => state.setDraft(() => state.draftContactPhone = val),
                   ),
-                  const SizedBox(height: 20.0),
-                  _buildSectionTitle('Ключевые места'),
-                  const SizedBox(height: 6.0),
-                  const Text(
-                    'Школа, парк, остановка — что рядом с объектом',
+                  SizedBox(height: 20.0),
+                  _buildSectionTitle(context.l10n.addListingKeyPlaces),
+                  SizedBox(height: 6.0),
+                  Text(
+                    context.l10n.addListingDescPlaceholder,
                     style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d)),
                   ),
                   const SizedBox(height: 10.0),
@@ -1156,14 +1157,14 @@ class _AdFormPageState extends State<AdFormPage> {
               ),
 
               // 8. Цена
-              _buildSectionTitle('Цена'),
+              _buildSectionTitle(context.l10n.addListingPrice),
               const SizedBox(height: 10.0),
               Row(
                 children: [
                   Expanded(
                     child: _buildInputField(
                       controller: priceCtrl,
-                      hintText: 'Цена',
+                      hintText: context.l10n.addListingPrice,
                       keyboardType: TextInputType.number,
                       onChanged: (val) => state.setDraft(() => state.draftPrice = val),
                     ),
@@ -1185,22 +1186,22 @@ class _AdFormPageState extends State<AdFormPage> {
               const SizedBox(height: 24.0),
 
               // 9. Вы являетесь?
-              _buildSectionTitle('Вы являетесь?'),
+              _buildSectionTitle(context.l10n.addListingWhoAreYou),
               const SizedBox(height: 12.0),
               _buildToggleRow(
-                label: 'Собственником',
+                label: context.l10n.addListingSellerOwner,
                 value: state.draftOwner,
                 onChanged: (val) => state.setDraft(() => state.draftOwner = val),
               ),
               const SizedBox(height: 12.0),
               _buildToggleRow(
-                label: 'Риелтором',
+                label: context.l10n.addListingSellerRealtor,
                 value: !state.draftOwner,
                 onChanged: (val) => state.setDraft(() => state.draftOwner = !val),
               ),
               const SizedBox(height: 12.0),
               _buildToggleRow(
-                label: 'Агентством недвижимости',
+                label: context.l10n.sellerAgency,
                 value: false,
                 onChanged: (_) {},
               ),
@@ -1220,9 +1221,9 @@ class _AdFormPageState extends State<AdFormPage> {
                     ),
                   ),
                   child: _isSaving
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text(
-                          'Далее',
+                      ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          context.l10n.addListingNext,
                           style: TextStyle(
                             fontSize: 17.0,
                             fontWeight: FontWeight.bold,

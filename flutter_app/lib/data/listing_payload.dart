@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+import '../l10n/l10n.dart';
 // Сборка тела запроса для черновика объявления — одна на все формы.
 //
 // Раньше форма создания и форма редактирования собирали payload независимо,
@@ -144,37 +146,37 @@ class DraftRoom {
 
 /// Подсказки для быстрого добавления. Это именно подсказки, а не список
 /// обязательных комнат: любую можно не добавлять, а своё название — ввести.
-const List<String> roomNameSuggestions = [
-  'Гостиная',
-  'Кухня',
-  'Спальная',
-  'Балкон',
-  'Сан.узел',
-  'Холл',
-  'Гардеробная',
-  'Терраса',
+List<String> getRoomNameSuggestions(BuildContext context) => [
+  context.l10n.addListingRoomLiving,
+  context.l10n.addListingRoomKitchen,
+  context.l10n.addListingRoomBedroom,
+  context.l10n.addListingRoomBalcony,
+  context.l10n.addListingRoomBathroom,
+  context.l10n.addListingRoomHall,
+  context.l10n.addListingRoomWardrobe,
+  context.l10n.addListingRoomTerrace,
 ];
 
 /// Подписи меблировки — значения совпадают с `FurnitureKind` на бэкенде.
-const Map<String, String> furnitureLabels = {
-  'full': 'Полностью меблирована',
-  'partial': 'Частично с мебелью',
-  'none': 'Без мебели',
+Map<String, String> getFurnitureLabels(BuildContext context) => {
+  'full': context.l10n.addListingFurnitureFull,
+  'partial': context.l10n.addListingFurniturePartial,
+  'none': context.l10n.addListingFurnitureNone,
 };
 
 /// Подписи состояния — значения совпадают с `ListingCondition`.
-const Map<String, String> conditionLabels = {
-  'euro': 'Евроремонт',
-  'good': 'Хорошее состояние',
-  'shell': 'Под самоотделку',
-  'medium': 'Среднее состояние',
-  'none': 'Без ремонта',
+Map<String, String> getConditionLabels(BuildContext context) => {
+  'euro': context.l10n.addListingConditionEuro,
+  'good': context.l10n.addListingConditionGood,
+  'shell': context.l10n.addListingConditionShell,
+  'medium': context.l10n.addListingConditionMedium,
+  'none': context.l10n.addListingConditionNone,
 };
 
 /// Подписи отопления — значения совпадают с `HeatingKind`.
-const Map<String, String> heatingLabels = {
-  'central': 'Центральное',
-  'gas': 'Газовое',
-  'electric': 'Электрическое',
-  'autonomous': 'Автономное',
+Map<String, String> getHeatingLabels(BuildContext context) => {
+  'central': context.l10n.addListingHeatingCentral,
+  'gas': context.l10n.addListingHeatingGas,
+  'electric': context.l10n.addListingHeatingElectric,
+  'autonomous': context.l10n.addListingHeatingAutonomous,
 };

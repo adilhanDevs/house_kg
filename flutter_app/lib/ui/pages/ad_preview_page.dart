@@ -1,3 +1,4 @@
+import 'package:house_kgz/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_state.dart';
@@ -108,7 +109,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = 'Не удалось загрузить данные объявления';
+          _error = context.l10n.addListingLoadError;
         });
       }
     }
@@ -122,8 +123,8 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
       await state.apiClient.restoreListing(_listing!.slug);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Объявление возвращено из архива и опубликовано!'),
+          SnackBar(
+            content: Text(context.l10n.addListingUnarchivedSuccess),
             backgroundColor: Color(0xff4dba17),
           ),
         );
@@ -132,7 +133,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка публикации: $e')),
+          SnackBar(content: Text(context.l10n.addListingErrorPublish(e.toString()))),
         );
       }
     } finally {
@@ -165,8 +166,8 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
               Expanded(
                 child: Text(
                   isPending
-                      ? 'Объявление отправлено на модерацию!'
-                      : 'Объявление успешно опубликовано!',
+                      ? context.l10n.addListingPendingSuccess
+                      : context.l10n.addListingPublishedSuccess2,
                 ),
               ),
             ],
@@ -187,7 +188,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Публикация объявления'),
+          title: Text(context.l10n.addListingPublishingTitle),
           content: Text(errorMsg),
           actions: [
             TextButton(
@@ -203,7 +204,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Понятно', style: TextStyle(color: Colors.white)),
+              child: Text(context.l10n.addListingGotIt, style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -219,16 +220,16 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Снять с публикации?'),
-        content: const Text('Объявление переместится в архив и не будет видно в каталоге.'),
+        title: Text(context.l10n.addListingArchiveConfirm),
+        content: Text(context.l10n.addListingArchiveDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена', style: TextStyle(color: Color(0xff7d7d7d))),
+            child: Text(context.l10n.addListingCancel, style: TextStyle(color: Color(0xff7d7d7d))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('В архив', style: TextStyle(color: Color(0xffd32f2f))),
+            child: Text(context.l10n.addListingToArchive, style: TextStyle(color: Color(0xffd32f2f))),
           ),
         ],
       ),
@@ -243,8 +244,8 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
         await state.apiClient.archiveListing(_listing!.slug);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Объявление перемещено в архив'),
+            SnackBar(
+              content: Text(context.l10n.addListingArchivedSuccess),
               backgroundColor: Color(0xffea812e),
             ),
           );
@@ -253,7 +254,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка архивации: $e')),
+            SnackBar(content: Text(context.l10n.addListingErrorArchive(e.toString()))),
           );
         }
       } finally {
@@ -279,8 +280,8 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
             Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (r) => false);
           },
         ),
-        title: const Text(
-          'Ваше объявление',
+        title: Text(
+          context.l10n.addListingYourAd,
           style: TextStyle(
             fontSize: 18.0,
             fontWeight: FontWeight.bold,
@@ -312,7 +313,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                           ElevatedButton(
                             onPressed: _loadData,
                             style: ElevatedButton.styleFrom(backgroundColor: orangeColor),
-                            child: const Text('Повторить', style: TextStyle(color: Colors.white)),
+                            child: Text(context.l10n.addListingRetry, style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),
@@ -356,9 +357,9 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                     arguments: item.slug,
                   );
                 },
-                icon: const Icon(Icons.play_circle_fill, color: Colors.white),
-                label: const Text(
-                  'Смотреть видеообзор REELS',
+                icon: Icon(Icons.play_circle_fill, color: Colors.white),
+                label: Text(
+                  context.l10n.addListingVideoWatch,
                   style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -377,11 +378,11 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
               height: 48.0,
               child: ElevatedButton.icon(
                 onPressed: _isRestoring ? null : _restoreListing,
-                icon: const Icon(Icons.unarchive_outlined, color: Colors.white),
+                icon: Icon(Icons.unarchive_outlined, color: Colors.white),
                 label: _isRestoring
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text(
-                        'Опубликовать снова',
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        context.l10n.addListingRepublish,
                         style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                 style: ElevatedButton.styleFrom(
@@ -402,7 +403,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : const Icon(Icons.send_rounded, color: Colors.white),
                 label: Text(
-                  _isPublishing ? 'Публикуем...' : 'Опубликовать',
+                  _isPublishing ? context.l10n.addListingPublishing : context.l10n.addListingPublish,
                   style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -424,9 +425,9 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                 ),
                 child: _isArchiving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text(
-                        'Снять с публикации (в архив)',
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(
+                        context.l10n.addListingArchive,
                         style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600, color: Color(0xffd32f2f)),
                       ),
               ),
@@ -448,32 +449,32 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
 
     switch (item.status) {
       case 'archived':
-        statusText = 'В архиве';
+        statusText = context.l10n.addListingArchived;
         statusColor = const Color(0xff8e8e93);
         statusIcon = Icons.archive_outlined;
         break;
       case 'pending':
-        statusText = 'На модерации';
+        statusText = context.l10n.addListingModerating;
         statusColor = const Color(0xff1976d2);
         statusIcon = Icons.hourglass_top_rounded;
         break;
       case 'draft':
-        statusText = 'Черновик';
+        statusText = context.l10n.addListingDraft;
         statusColor = const Color(0xffea812e);
         statusIcon = Icons.edit_note_rounded;
         break;
       case 'rejected':
-        statusText = 'Отклонено';
+        statusText = context.l10n.addListingRejected;
         statusColor = const Color(0xffd32f2f);
         statusIcon = Icons.cancel_outlined;
         break;
       case 'sold':
-        statusText = 'Продано';
+        statusText = context.l10n.addListingSold;
         statusColor = const Color(0xff5c6bc0);
         statusIcon = Icons.done_all_rounded;
         break;
       default:
-        statusText = 'Опубликовано';
+        statusText = context.l10n.addListingPublished;
         statusColor = const Color(0xff4dba17);
         statusIcon = Icons.check_circle;
     }
@@ -560,7 +561,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              item.district.isNotEmpty ? item.district : 'Бишкек',
+                              item.district.isNotEmpty ? item.district : context.l10n.addListingCityBishkek,
                               style: const TextStyle(
                                 fontSize: 14.0,
                                 fontWeight: FontWeight.w600,
@@ -646,7 +647,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                             )
                           : const Icon(Icons.send_rounded, size: 18, color: Colors.white),
                       label: Text(
-                        _isPublishing ? 'Публикуем...' : 'Опубликовать',
+                        _isPublishing ? context.l10n.addListingPublishing : context.l10n.addListingPublish,
                         style: const TextStyle(
                           fontSize: 15.0,
                           fontWeight: FontWeight.bold,
@@ -679,9 +680,9 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                               _loadData();
                             }
                           },
-                    icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xff7d7d7d)),
-                    label: const Text(
-                      'Изменить объявление',
+                    icon: Icon(Icons.edit_outlined, size: 16, color: Color(0xff7d7d7d)),
+                    label: Text(
+                      context.l10n.addListingEditTitle,
                       style: TextStyle(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w600,
@@ -729,8 +730,8 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Продвижение',
+              Text(
+                context.l10n.addListingPromotion,
                 style: TextStyle(
                   fontSize: 18.0,
                   fontWeight: FontWeight.bold,
@@ -741,11 +742,11 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                 onPressed: () => Navigator.of(context).pushNamed(Routes.adPromo),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
-                  minimumSize: const Size(60, 30),
+                  minimumSize: Size(60, 30),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text(
-                  'Изменить',
+                child: Text(
+                  context.l10n.addListingEdit,
                   style: TextStyle(fontSize: 13.0, color: Color(0xffea812e), fontWeight: FontWeight.w600),
                 ),
               ),
@@ -788,27 +789,27 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Просмотр статистики',
+        Text(
+          context.l10n.addListingViewStats,
           style: TextStyle(
             fontSize: 18.0,
             fontWeight: FontWeight.bold,
             color: Color(0xff000000),
           ),
         ),
-        const SizedBox(height: 6.0),
-        const Text(
-          'Статистика показов и интереса покупателей к вашему объекту обновляется в реальном времени.',
+        SizedBox(height: 6.0),
+        Text(
+          context.l10n.addListingStatsDesc,
           style: TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d), height: 1.35),
         ),
         const SizedBox(height: 16.0),
         Row(
           children: [
-            Expanded(child: _buildStatItem(views.toString(), 'Просмотров')),
+            Expanded(child: _buildStatItem(views.toString(), context.l10n.addListingViews)),
             const SizedBox(width: 10.0),
             Expanded(child: _buildStatItem(leads.toString(), 'Лида')),
             const SizedBox(width: 10.0),
-            Expanded(child: _buildStatItem(sent.toString(), 'Клиентам отправлено')),
+            Expanded(child: _buildStatItem(sent.toString(), context.l10n.addListingSentToClients)),
           ],
         ),
       ],
