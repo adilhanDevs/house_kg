@@ -193,7 +193,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 22.0, fontWeight: FontWeight.w800, color: Colors.black, letterSpacing: -0.3),
+      style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.w800, color: Colors.black, letterSpacing: -0.3),
     );
   }
 
@@ -224,14 +224,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
                       ),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(right: 24.0, left: 8.0),
+                          padding: const EdgeInsets.only(right: 20.0, left: 8.0),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4.0),
                             child: const LinearProgressIndicator(
                               value: 0.85,
                               backgroundColor: Color(0xfff0f0f0),
                               color: Color(0xffea812e),
-                              minHeight: 6.0,
+                              minHeight: 5.0,
                             ),
                           ),
                         ),
@@ -240,25 +240,25 @@ class _AdPromoPageState extends State<AdPromoPage> {
                   ),
                   
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 24.0),
-                        Text(
-                          l10n.addListingPromoTitle,
-                          style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.w800, color: Colors.black, height: 1.1, letterSpacing: -0.5),
-                        ),
                         const SizedBox(height: 12.0),
                         Text(
+                          l10n.addListingPromoTitle,
+                          style: const TextStyle(fontSize: 28.0, fontWeight: FontWeight.w800, color: Colors.black, height: 1.1, letterSpacing: -0.5),
+                        ),
+                        const SizedBox(height: 6.0),
+                        Text(
                           l10n.addListingPromoIntro,
-                          style: const TextStyle(fontSize: 17.0, color: Color(0xff6e6e73), height: 1.4),
+                          style: const TextStyle(fontSize: 15.0, color: Color(0xff6e6e73), height: 1.3),
                         ),
                         
-                        const SizedBox(height: 48.0),
+                        const SizedBox(height: 24.0),
                         
                         _buildSectionTitle(l10n.addListingPromoBudget),
-                        const SizedBox(height: 20.0),
+                        const SizedBox(height: 12.0),
                         
                         Row(
                           children: [
@@ -266,7 +266,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                               child: GestureDetector(
                                 onTap: () => setState(() => _useBricks = false),
                                 child: Container(
-                                  height: 60.0,
+                                  height: 48.0,
                                   decoration: BoxDecoration(
                                     color: !_useBricks ? orange : Colors.white,
                                     borderRadius: BorderRadius.circular(12.0),
@@ -277,14 +277,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       if (!_useBricks)
-                                         Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0, scale: 1.8)),
+                                         Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 20.0, scale: 1.5)),
                                       Flexible(
                                         child: Text(
                                           l10n.addListingPromoTopupWallet,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 15.0,
+                                            fontSize: 14.0,
                                             fontWeight: FontWeight.w700,
                                             color: !_useBricks ? Colors.white : const Color(0xff7d7d7d),
                                           ),
@@ -295,12 +295,12 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12.0),
+                            const SizedBox(width: 8.0),
                             Expanded(
                               child: GestureDetector(
                                 onTap: () => setState(() => _useBricks = true),
                                 child: Container(
-                                  height: 60.0,
+                                  height: 48.0,
                                   decoration: BoxDecoration(
                                     color: _useBricks ? orange : Colors.white,
                                     borderRadius: BorderRadius.circular(12.0),
@@ -310,14 +310,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0, scale: 1.8)),
+                                      Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 20.0, scale: 1.5)),
                                       Flexible(
                                         child: Text(
                                           l10n.addListingSpendBricks,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 15.0,
+                                            fontSize: 14.0,
                                             fontWeight: FontWeight.w700,
                                             color: _useBricks ? Colors.white : const Color(0xff7d7d7d),
                                           ),
@@ -332,22 +332,22 @@ class _AdPromoPageState extends State<AdPromoPage> {
                         ),
                         
                         if (_useBricks) ...[
-                          const SizedBox(height: 24.0),
+                          const SizedBox(height: 12.0),
                           const Divider(color: Color(0xffe5e5ea), thickness: 1, height: 1),
-                          const SizedBox(height: 24.0),
+                          const SizedBox(height: 12.0),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: FractionallySizedBox(
                               widthFactor: 0.85,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                                 decoration: BoxDecoration(
                                   color: const Color(0xffe8f6e4),
                                   borderRadius: BorderRadius.circular(12.0),
                                 ),
                                 child: Row(
                                   children: [
-                                    _buildBrickIcon(size: 24.0, scale: 2.0),
+                                    _buildBrickIcon(size: 20.0, scale: 1.5),
                                     const SizedBox(width: 8.0),
                                     Expanded(
                                       child: Text(
@@ -355,7 +355,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                             ? l10n.addListingPromoBalance(_walletBalance.toString())
                                             : l10n.addListingPromoBalanceAndCost(_walletBalance.toString(), _promotionCost.toString()),
                                         style: TextStyle(
-                                          fontSize: 16.0,
+                                          fontSize: 15.0,
                                           fontWeight: FontWeight.w600,
                                           color: _pricing != null && _walletBalance < _promotionCost ? const Color(0xffd93025) : const Color(0xff188038),
                                         ),
@@ -367,30 +367,30 @@ class _AdPromoPageState extends State<AdPromoPage> {
                             ),
                           ),
                         ] else ...[
-                          const SizedBox(height: 24.0),
+                          const SizedBox(height: 12.0),
                           const Divider(color: Color(0xffe5e5ea), thickness: 1, height: 1),
-                          const SizedBox(height: 24.0),
+                          const SizedBox(height: 12.0),
                           Row(
                             children: [
                               Expanded(
                                 flex: 4,
                                 child: Container(
-                                  height: 56.0,
+                                  height: 46.0,
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12.0),
                                     border: Border.all(color: const Color(0xffe5e5ea), width: 1.5),
                                   ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
                                   alignment: Alignment.centerLeft,
                                   child: TextField(
                                     controller: _sumController,
                                     keyboardType: TextInputType.number,
                                     onChanged: (_) => setState(() {}),
-                                    style: const TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold, color: Colors.black),
+                                    style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black),
                                     decoration: InputDecoration(
                                       hintText: l10n.addListingEnterAmount,
-                                      hintStyle: const TextStyle(fontSize: 15.0, color: Color(0xff7d7d7d)),
+                                      hintStyle: const TextStyle(fontSize: 14.0, color: Color(0xff7d7d7d)),
                                       border: InputBorder.none,
                                       isDense: true,
                                       contentPadding: EdgeInsets.zero,
@@ -398,11 +398,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12.0),
+                              const SizedBox(width: 8.0),
                               Expanded(
                                 flex: 5,
                                 child: Container(
-                                  height: 56.0,
+                                  height: 46.0,
                                   padding: const EdgeInsets.symmetric(horizontal: 12.0),
                                   decoration: BoxDecoration(
                                     color: const Color(0xffe8f6e4),
@@ -411,14 +411,14 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      _buildBrickIcon(size: 24.0, scale: 2.0),
+                                      _buildBrickIcon(size: 20.0, scale: 1.5),
                                       const SizedBox(width: 8.0),
                                       Flexible(
                                         child: Text(
                                           l10n.addListingPromoBricksResult(sumValue.toString()),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600, color: Color(0xff188038)),
+                                          style: const TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600, color: Color(0xff188038)),
                                         ),
                                       ),
                                     ],
@@ -429,10 +429,10 @@ class _AdPromoPageState extends State<AdPromoPage> {
                           ),
                         ],
                           
-                        const SizedBox(height: 48.0),
+                        const SizedBox(height: 24.0),
                         
                         _buildSectionTitle(l10n.addListingPromoDays),
-                        const SizedBox(height: 20.0),
+                        const SizedBox(height: 10.0),
                         Row(
                           children: [
                             ...List.generate(5, (i) {
@@ -447,9 +447,9 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   });
                                 },
                                 child: Container(
-                                  width: 48.0,
-                                  height: 48.0,
-                                  margin: const EdgeInsets.only(right: 10.0),
+                                  width: 44.0,
+                                  height: 44.0,
+                                  margin: const EdgeInsets.only(right: 8.0),
                                   decoration: BoxDecoration(
                                     color: isSel ? const Color(0xfffdf1e8) : Colors.white,
                                     borderRadius: BorderRadius.circular(12.0),
@@ -459,7 +459,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   child: Text(
                                     '$day',
                                     style: TextStyle(
-                                      fontSize: 17.0,
+                                      fontSize: 16.0,
                                       fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
                                       color: isSel ? orange : const Color(0xff7d7d7d),
                                     ),
@@ -469,13 +469,13 @@ class _AdPromoPageState extends State<AdPromoPage> {
                             }),
                             Expanded(
                               child: Container(
-                                height: 48.0,
+                                height: 44.0,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12.0),
                                   border: Border.all(color: const Color(0xffe5e5ea), width: 1.5),
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 12.0),
                                 alignment: Alignment.centerLeft,
                                 child: TextField(
                                   controller: _daysController,
@@ -483,10 +483,10 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   onChanged: (val) {
                                     if (val.isNotEmpty) setState(() => _selectedDay = 0);
                                   },
-                                  style: const TextStyle(fontSize: 16.0, color: Colors.black, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(fontSize: 15.0, color: Colors.black, fontWeight: FontWeight.w600),
                                   decoration: InputDecoration(
                                     hintText: l10n.addListingPromoDaysHint,
-                                    hintStyle: const TextStyle(fontSize: 15.0, color: Color(0xff7d7d7d), fontWeight: FontWeight.normal),
+                                    hintStyle: const TextStyle(fontSize: 14.0, color: Color(0xff7d7d7d), fontWeight: FontWeight.normal),
                                     border: InputBorder.none,
                                     isDense: true,
                                     contentPadding: EdgeInsets.zero,
@@ -497,31 +497,31 @@ class _AdPromoPageState extends State<AdPromoPage> {
                           ],
                         ),
                         
-                        const SizedBox(height: 48.0),
+                        const SizedBox(height: 20.0),
                         
                         _buildToggleRow(l10n.addListingPromoExact, _useTarget, (v) { setState(() => _useTarget = v); _loadPricing(); }),
-                        const SizedBox(height: 16.0),
+                        const SizedBox(height: 4.0),
                         _buildToggleRow(l10n.addListingPromoClientBase, _useClientBase, (v) { setState(() => _useClientBase = v); _loadPricing(); }),
-                        const SizedBox(height: 16.0),
+                        const SizedBox(height: 4.0),
                         _buildToggleRow(l10n.addListingPromoWhatsapp, _useWhatsappBase, (v) { setState(() => _useWhatsappBase = v); _loadPricing(); }),
                         
-                        const SizedBox(height: 56.0),
+                        const SizedBox(height: 20.0),
                         
                         Text(
                           l10n.addListingPromoEstimatedViews,
-                          style: const TextStyle(fontSize: 26.0, fontWeight: FontWeight.w800, color: Color(0xffea812e), letterSpacing: -0.5, height: 1.2),
+                          style: const TextStyle(fontSize: 24.0, fontWeight: FontWeight.w800, color: Color(0xffea812e), letterSpacing: -0.5, height: 1.2),
                         ),
-                        const SizedBox(height: 12.0),
+                        const SizedBox(height: 4.0),
                         Text(
                           l10n.addListingPromoEstimateDesc,
-                          style: const TextStyle(fontSize: 16.0, color: Color(0xff6e6e73), height: 1.5),
+                          style: const TextStyle(fontSize: 14.0, color: Color(0xff6e6e73), height: 1.4),
                         ),
                         
-                        const SizedBox(height: 48.0),
+                        const SizedBox(height: 20.0),
                         
                         Text(
                           l10n.addListingPromoCostSummary(_promotionCost.toString()),
-                          style: const TextStyle(fontSize: 28.0, fontWeight: FontWeight.w800, color: Color(0xffea812e), letterSpacing: -0.5),
+                          style: const TextStyle(fontSize: 24.0, fontWeight: FontWeight.w800, color: Color(0xffea812e), letterSpacing: -0.5),
                         ),
                       ],
                     ),
@@ -535,11 +535,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
               hasScrollBody: false,
               fillOverscroll: true,
               child: Padding(
-                padding: const EdgeInsets.only(top: 48.0),
+                padding: const EdgeInsets.only(top: 16.0),
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -550,24 +550,24 @@ class _AdPromoPageState extends State<AdPromoPage> {
                             backgroundColor: orange,
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            minimumSize: const Size.fromHeight(56),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
                           ),
                           child: _submitting == _PromoAction.next
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text(l10n.addListingNext, style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold)),
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text(l10n.addListingNext, style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
                         ),
-                        const SizedBox(height: 16.0),
+                        const SizedBox(height: 8.0),
                         TextButton(
                           onPressed: _isPublishing ? null : () => _publishListing(withPromo: false, action: _PromoAction.skip),
                           style: TextButton.styleFrom(
                             foregroundColor: const Color(0xffea812e),
-                            minimumSize: const Size.fromHeight(48),
+                            minimumSize: const Size.fromHeight(36),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                           ),
                           child: _submitting == _PromoAction.skip
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Color(0xffea812e), strokeWidth: 2))
-                              : Text(l10n.addListingContinueNoPromo, style: const TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600)),
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xffea812e), strokeWidth: 2))
+                              : Text(l10n.addListingContinueNoPromo, style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -586,14 +586,16 @@ class _AdPromoPageState extends State<AdPromoPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: Text(title, style: const TextStyle(fontSize: 17.0, color: Color(0xff555555), fontWeight: FontWeight.w500)),
+          child: Text(title, style: const TextStyle(fontSize: 15.0, color: Color(0xff555555), fontWeight: FontWeight.w500, height: 1.2)),
         ),
-        const SizedBox(width: 16),
-        Switch.adaptive(
-          value: value,
-          onChanged: onChanged,
-          activeColor: const Color(0xffea812e),
-          activeTrackColor: const Color(0xffea812e),
+        const SizedBox(width: 12),
+        Transform.scale(
+          scale: 0.85,
+          child: Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: const Color(0xffea812e),
+          ),
         ),
       ],
     );
