@@ -576,6 +576,8 @@ class _AdPromoPageState extends State<AdPromoPage> {
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
+          activeColor: const Color(0xffea812e),
+          activeTrackColor: const Color(0xffea812e),
         ),
       ],
     );
