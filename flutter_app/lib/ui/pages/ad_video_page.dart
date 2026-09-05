@@ -252,7 +252,7 @@ class _AdVideoPageState extends State<AdVideoPage> {
             final uploadResponse = await apiClient.uploadMedia(
               realSlug,
               filePath: video.path,
-              bytes: video.path == null ? video.bytes : null,
+              bytes: video.bytes,
               filename: fileName,
               kind: 'video',
               thumbnailBytes: video.posterBytes,
