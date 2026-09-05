@@ -34,10 +34,10 @@ class _TariffsPageState extends State<TariffsPage> {
         : context.l10n.tariffCostSom(plan.priceSom);
 
     final message = plan.isFree
-        ? context.l10n.tariffSwitchToFree(plan.name, plan.maxPosts)
+        ? context.l10n.tariffSwitchToFree(plan.code == 'owner' ? context.l10n.roleOwner : plan.name, plan.maxPosts)
         : withBricks
-            ? context.l10n.tariffSwitchWithBricks(costText, state.walletBalance, plan.maxPosts, plan.name)
-            : context.l10n.tariffSwitchPaid(costText, plan.maxPosts, plan.name);
+            ? context.l10n.tariffSwitchWithBricks(costText, state.walletBalance, plan.maxPosts, plan.code == 'owner' ? context.l10n.roleOwner : plan.name)
+            : context.l10n.tariffSwitchPaid(costText, plan.maxPosts, plan.code == 'owner' ? context.l10n.roleOwner : plan.name);
 
     if (!withBricks && !plan.isFree) {
       // Открываем интерфейс оплаты Finik Pay
@@ -255,7 +255,7 @@ class _TariffsPageState extends State<TariffsPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              plan.name,
+                              plan.code == 'owner' ? context.l10n.roleOwner : plan.name,
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -271,8 +271,8 @@ class _TariffsPageState extends State<TariffsPage> {
                                 color: const Color(0xfffee2e2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
-                                'Активен',
+                              child: Text(
+                                context.l10n.tariffActiveLabel,
                                 style: TextStyle(color: Color(0xffea812e), fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -349,8 +349,8 @@ class _TariffsPageState extends State<TariffsPage> {
           // Secondary option: "или 🧱 X Кирпичей"
           if (plan.canPayWithBricks && !isCurrent) ...[
             const SizedBox(height: 8),
-            const Text(
-              'или',
+            Text(
+              context.l10n.tariffOr,
               style: TextStyle(fontSize: 12, color: Color(0xff8e8e93)),
             ),
             const SizedBox(height: 6),
@@ -367,10 +367,10 @@ class _TariffsPageState extends State<TariffsPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('🧱', style: TextStyle(fontSize: 13)),
+                    Text('🧱', style: TextStyle(fontSize: 13)),
                     const SizedBox(width: 5),
                     Text(
-                      '${plan.priceBricks} Кирпичей',
+                      context.l10n.tariffBricksPrice(plan.priceBricks ?? 0),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
