@@ -231,6 +231,16 @@ class _HouseKgzAppScopeState extends State<HouseKgzAppScope> with WidgetsBinding
               backgroundColor: Color(0xffffffff),
               surfaceTintColor: Colors.transparent,
             ),
+            switchTheme: SwitchThemeData(
+              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+              thumbColor: WidgetStateProperty.all(Colors.white),
+              trackColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xffea812e);
+                }
+                return const Color(0xffe5e5ea);
+              }),
+            ),
             colorScheme: ColorScheme.fromSeed(
               seedColor: FigColors.accent,
               surface: const Color(0xffffffff),

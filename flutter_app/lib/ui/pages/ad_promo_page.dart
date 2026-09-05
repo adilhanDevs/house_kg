@@ -573,14 +573,9 @@ class _AdPromoPageState extends State<AdPromoPage> {
           child: Text(title, style: const TextStyle(fontSize: 17.0, color: Color(0xff555555), fontWeight: FontWeight.w500)),
         ),
         const SizedBox(width: 16),
-        Switch(
+        Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeThumbColor: Colors.white,
-          activeTrackColor: const Color(0xffea812e),
-          inactiveTrackColor: const Color(0xffe5e5ea),
-          inactiveThumbColor: Colors.white,
-          trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
         ),
       ],
     );
