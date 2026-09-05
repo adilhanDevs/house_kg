@@ -1003,6 +1003,13 @@
   },
   "brickSystemTitle": "Система кирпичей",
   "brickSystemDesc": "Можно потратить только внутри приложения на:\nРекламу, Покупку подписки\nМожно получить баллы при:\nПополнении кошелька, Реферальная система, Выполнение квестов",
+  "brickSpendTitle": "Можно потратить только \\nвнутри приложения на:",
+  "brickSpendAds": "Рекламу",
+  "brickSpendSubs": "Покупку подписки",
+  "brickEarnTitle": "Можно получить баллы при:",
+  "brickEarnTopup": "Пополнении кошелька",
+  "brickEarnRef": "Реферальная система",
+  "brickEarnQuests": "Выполнение квестов",
   "brickSystemNext": "Далее",
   "tariffPromoPosts": "Продвижение на\nмаксимуме {count} постов",
   "@tariffPromoPosts": {

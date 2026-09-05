@@ -171,7 +171,7 @@ class Screen42Topup2 extends StatelessWidget {
                               align: TextAlign.center,
                               width: 202.0,
                               span: 
-                                TextSpan(text: 'Можно потратить только \nвнутри приложения на:', style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
+                                TextSpan(text: context.l10n.brickSpendTitle, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
                               ,
                             ),
                             FigBox(
@@ -200,7 +200,7 @@ class Screen42Topup2 extends StatelessWidget {
                                               width: 52.0,
                                               height: 14.0,
                                               span: 
-                                                TextSpan(text: 'Рекламу', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
+                                                TextSpan(text: context.l10n.brickSpendAds, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
                                               ,
                                             )
                                           ),
@@ -225,7 +225,7 @@ class Screen42Topup2 extends StatelessWidget {
                                               width: 112.0,
                                               height: 14.0,
                                               span: 
-                                                TextSpan(text: 'Покупку подписки', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
+                                                TextSpan(text: context.l10n.brickSpendSubs, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
                                               ,
                                             )
                                           ),
@@ -259,7 +259,7 @@ class Screen42Topup2 extends StatelessWidget {
                               noWrap: true,
                               width: 225.0,
                               span: 
-                                TextSpan(text: 'Можно получить баллы при:', style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
+                                TextSpan(text: context.l10n.brickEarnTitle, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
                               ,
                             ),
                             FigBox(
@@ -290,7 +290,7 @@ class Screen42Topup2 extends StatelessWidget {
                                               noWrap: true,
                                               height: 14.0,
                                               span: 
-                                                TextSpan(text: 'Пополнении кошелька', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
+                                                TextSpan(text: context.l10n.brickEarnTopup, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
                                               ,
                                             ),
                                           ],
@@ -318,7 +318,7 @@ class Screen42Topup2 extends StatelessWidget {
                                               noWrap: true,
                                               height: 14.0,
                                               span: 
-                                                TextSpan(text: 'Реферальная система', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
+                                                TextSpan(text: context.l10n.brickEarnRef, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
                                               ,
                                             ),
                                           ],
@@ -345,7 +345,7 @@ class Screen42Topup2 extends StatelessWidget {
                                               noWrap: true,
                                               height: 14.0,
                                               span: 
-                                                TextSpan(text: 'Выполнение квестов', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
+                                                TextSpan(text: context.l10n.brickEarnQuests, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
                                               ,
                                             ),
                                           ],

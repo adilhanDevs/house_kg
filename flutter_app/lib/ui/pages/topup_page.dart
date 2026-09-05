@@ -17,11 +17,23 @@ class _TopUpPageState extends State<TopUpPage> {
   // Тестовый режим оплаты: пополнение по умолчанию — один сом.
   static const int defaultTopupAmount = 1;
 
-  final TextEditingController _amountController =
-      TextEditingController(text: '$defaultTopupAmount');
+  final TextEditingController _amountController = TextEditingController(
+    text: '$defaultTopupAmount',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController.addListener(_onAmountChanged);
+  }
+
+  void _onAmountChanged() {
+    setState(() {});
+  }
 
   @override
   void dispose() {
+    _amountController.removeListener(_onAmountChanged);
     _amountController.dispose();
     super.dispose();
   }
@@ -72,10 +84,9 @@ class _TopUpPageState extends State<TopUpPage> {
     );
 
     state.resetTopup();
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      Routes.home,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(Routes.home, (route) => false);
   }
 
   @override
@@ -96,7 +107,45 @@ class _TopUpPageState extends State<TopUpPage> {
       background: const Color(0xffffffff),
       overlays: [
         // На шаге 3 — инпут ввода суммы (Y=654)
-        if (_step == 3)
+        if (_step == 3) ...[
+          Positioned(
+            left: 24.0,
+            top: 159.0,
+            child: SizedBox(
+              width: 150,
+              child: Text(
+                '$_enteredAmount',
+                style: const TextStyle(
+                  fontSize: 48.0,
+                  fontFamily: 'SF Pro Display',
+                  fontWeight: FontWeight.w600,
+                  height: 1.0,
+                  letterSpacing: -0.48,
+                  color: Color(0xff000000),
+                ),
+                maxLines: 1,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 24.0,
+            top: 222.0,
+            child: SizedBox(
+              width: 100,
+              child: Text(
+                '${(_enteredAmount * 1.1).toInt()}',
+                style: const TextStyle(
+                  fontSize: 27.0,
+                  fontFamily: 'SF Pro Display',
+                  fontWeight: FontWeight.w600,
+                  height: 1.0,
+                  letterSpacing: -0.27,
+                  color: Color(0xff000000),
+                ),
+                maxLines: 1,
+              ),
+            ),
+          ),
           Positioned(
             left: 24.0,
             top: 654.0,
@@ -108,7 +157,10 @@ class _TopUpPageState extends State<TopUpPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xffffffff),
                   borderRadius: BorderRadius.circular(8.0),
-                  border: Border.all(color: const Color(0xff7d7d7d), width: 0.8),
+                  border: Border.all(
+                    color: const Color(0xff7d7d7d),
+                    width: 0.8,
+                  ),
                 ),
                 alignment: Alignment.centerLeft,
                 child: TextField(
@@ -123,25 +175,32 @@ class _TopUpPageState extends State<TopUpPage> {
                     border: InputBorder.none,
                     isDense: true,
                     hintText: '$defaultTopupAmount',
-                    hintStyle: TextStyle(fontSize: 13.0, color: Color(0xff999999)),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                    hintStyle: TextStyle(
+                      fontSize: 13.0,
+                      color: Color(0xff999999),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10.0,
+                      vertical: 6.0,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
+        ],
 
         // Кнопка [ Далее ] (Y=711)
-          Positioned(
-            left: 25.0,
-            top: 711.0,
-            width: 324.0,
-            height: 54.0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _onNext(context, state),
-            ),
+        Positioned(
+          left: 25.0,
+          top: 711.0,
+          width: 324.0,
+          height: 54.0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _onNext(context, state),
           ),
+        ),
 
         if (state.isTopupLoading)
           Positioned.fill(
