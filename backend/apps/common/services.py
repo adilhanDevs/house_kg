@@ -182,12 +182,21 @@ def notify_staff_about_ticket(ticket: SupportTicket) -> None:
             ticket.message,
         ]
     )
-    send_mail(
-        subject=f"[house_kgz] Обращение #{ticket.pk}: {ticket.subject}",
-        message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
-    )
+    from django.utils import timezone
+    try:
+        send_mail(
+            subject=f"[house_kgz] Обращение #{ticket.pk}: {ticket.subject}",
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+        )
+        ticket.email_delivery_status = SupportTicket.EmailStatus.SENT
+        ticket.email_sent_at = timezone.now()
+        ticket.save(update_fields=["email_delivery_status", "email_sent_at"])
+    except Exception as e:
+        logger.error("Ошибка при отправке письма для обращения #%s: %s", ticket.pk, e)
+        ticket.email_delivery_status = SupportTicket.EmailStatus.FAILED
+        ticket.save(update_fields=["email_delivery_status"])
 
 
 def enqueue_ticket_notification(ticket_id: int) -> None:

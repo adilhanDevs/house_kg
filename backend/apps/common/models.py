@@ -188,6 +188,11 @@ class SupportTicket(TimeStampedModel):
         IN_PROGRESS = "in_progress", "В работе"
         CLOSED = "closed", "Закрыто"
 
+    class EmailStatus(models.TextChoices):
+        PENDING = "pending", "Ожидает отправки"
+        SENT = "sent", "Отправлено"
+        FAILED = "failed", "Ошибка отправки"
+
     class Platform(models.TextChoices):
         ANDROID = "android", "Android"
         IOS = "ios", "iOS"
@@ -207,6 +212,10 @@ class SupportTicket(TimeStampedModel):
     app_version = models.CharField("Версия приложения", max_length=32, blank=True)
     platform = models.CharField("Платформа", max_length=16, choices=Platform.choices, blank=True)
     status = models.CharField("Статус", max_length=16, choices=Status.choices, default=Status.NEW)
+    email_delivery_status = models.CharField(
+        "Статус отправки email", max_length=16, choices=EmailStatus.choices, default=EmailStatus.PENDING
+    )
+    email_sent_at = models.DateTimeField("Время отправки email", blank=True, null=True)
 
     class Meta:
         verbose_name = "Обращение в поддержку"

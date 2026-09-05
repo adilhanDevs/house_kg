@@ -102,8 +102,24 @@ class StaticPageAdmin(admin.ModelAdmin):
 
 @admin.register(SupportTicket)
 class SupportTicketAdmin(admin.ModelAdmin):
-    list_display = ["id", "subject", "user", "contact_phone", "platform", "status", "created_at"]
-    list_filter = ["status", "platform"]
+    list_display = ["id", "subject", "user", "contact_phone", "platform", "status", "email_delivery_status", "created_at"]
+    list_filter = ["status", "email_delivery_status", "platform"]
+    actions = ["retry_email_delivery"]
+
+    @admin.action(description="Повторить отправку email-уведомлений")
+    def retry_email_delivery(self, request, queryset):
+        from apps.common.services import notify_staff_about_ticket
+        from apps.common.models import SupportTicket
+        success = 0
+        failed = 0
+        # Отправляем только те, что не были отправлены
+        for ticket in queryset.filter(email_delivery_status__in=[SupportTicket.EmailStatus.PENDING, SupportTicket.EmailStatus.FAILED]):
+            notify_staff_about_ticket(ticket)
+            if ticket.email_delivery_status == SupportTicket.EmailStatus.SENT:
+                success += 1
+            else:
+                failed += 1
+        self.message_user(request, f"Повторная отправка завершена. Успешно: {success}, ошибок: {failed}.")
     search_fields = ["subject", "message", "contact_phone"]
     readonly_fields = [
         "user",
@@ -112,6 +128,8 @@ class SupportTicketAdmin(admin.ModelAdmin):
         "contact_phone",
         "app_version",
         "platform",
+        "email_delivery_status",
+        "email_sent_at",
         "created_at",
     ]
     list_select_related = ["user"]
