@@ -14,6 +14,7 @@ import '../../app/stage.dart';
 import '../../data/kind_fields.dart';
 import '../../data/chat_controller.dart' show describeApiError;
 import '../../data/listings.dart';
+import '../../data/listing_l10n_helpers.dart';
 import '../../fig/fig.dart';
 import '../widgets/safe_image.dart';
 import 'agent_listings_page.dart';
@@ -361,7 +362,7 @@ class _ListingPageState extends State<ListingPage> {
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               CircularProgressIndicator(
                 color: Color(0xffea812e),
                 strokeWidth: 3,
