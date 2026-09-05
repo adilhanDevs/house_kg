@@ -4,6 +4,7 @@
 // Шаг сетки снят с «Каталога»: две колонки по 160 через 5 pt (x = 25 и 190),
 // ряды через 14 pt (201.3 + 14 = 215.3).
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../app/app_state.dart';
 import '../data/listings.dart';
@@ -52,40 +53,42 @@ class ListingGrid extends StatelessWidget {
       );
     }
 
-    final rows = <Widget>[];
-    for (var i = 0; i < listings.length; i += 2) {
-      final left = listings[i];
-      final right = i + 1 < listings.length ? listings[i + 1] : null;
-      if (rows.isNotEmpty) rows.add(const SizedBox(height: kGridRowGap));
-      rows.add(FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _card(state, left),
-            const SizedBox(width: kGridGap),
-            if (right != null) _card(state, right),
-          ],
-        ),
-      ));
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth - kGridLeft;
+        final gridWidth = availableWidth < 325.0 ? availableWidth : 325.0;
 
-    return ListView(
-      controller: controller,
-      physics: scrollable ? null : const NeverScrollableScrollPhysics(),
-      shrinkWrap: !scrollable,
-      padding: padding + const EdgeInsets.only(left: kGridLeft),
-      children: rows,
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: gridWidth + kGridLeft,
+            child: MasonryGridView.count(
+              controller: controller,
+              physics: scrollable ? null : const NeverScrollableScrollPhysics(),
+              shrinkWrap: !scrollable,
+              padding: padding + const EdgeInsets.only(left: kGridLeft),
+              crossAxisCount: 2,
+              mainAxisSpacing: kGridRowGap,
+              crossAxisSpacing: kGridGap,
+              itemCount: listings.length,
+              itemBuilder: (context, index) {
+                final listing = listings[index];
+                return ObjectCard(
+                  listing: listing,
+                  favourite: state.isFavourite(listing.id),
+                  onTap: () => onOpen(listing),
+                  onFavourite: () => state.toggleFavourite(listing.id),
+                  adaptive: true,
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _card(AppState state, Listing listing) => ObjectCard(
-        listing: listing,
-        favourite: state.isFavourite(listing.id),
-        onTap: () => onOpen(listing),
-        onFavourite: () => state.toggleFavourite(listing.id),
-      );
+
 }
 
 class _EmptyResults extends StatelessWidget {
