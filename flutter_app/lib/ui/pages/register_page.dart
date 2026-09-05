@@ -182,101 +182,108 @@ class _RegisterPageState extends State<RegisterPage> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xffffffff),
-        resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(25.0, 16.0, 25.0, 0.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _StepBar(progress: 0.18),
-                      const SizedBox(height: 20.0),
-                      Text(
-                        l10n.register,
-                        style: figStyle(
-                          fontSize: 21.0,
-                          family: FigFont.display,
-                          weight: 600,
-                          height: 1.0,
-                          color: const Color(0xff000000),
-                        ),
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AuthBottomIllustration(),
+            ),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        25.0, 
+                        16.0, 
+                        25.0, 
+                        // Даём возможность скроллить контент, когда клавиатура открыта,
+                        // плюс оставляем место, чтобы картинка не перекрывала самый нижний элемент.
+                        MediaQuery.viewInsetsOf(context).bottom + 120.0,
                       ),
-                      const SizedBox(height: 4.0),
-                      Text(
-                        l10n.welcomeSubtitle,
-                        style: figStyle(
-                          fontSize: 15.0,
-                          family: FigFont.display,
-                          weight: 500,
-                          height: 1.333,
-                          color: _muted,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _StepBar(progress: 0.18),
+                          const SizedBox(height: 20.0),
+                          Text(
+                            l10n.register,
+                            style: figStyle(
+                              fontSize: 21.0,
+                              family: FigFont.display,
+                              weight: 600,
+                              height: 1.0,
+                              color: const Color(0xff000000),
+                            ),
+                          ),
+                          const SizedBox(height: 4.0),
+                          Text(
+                            l10n.welcomeSubtitle,
+                            style: figStyle(
+                              fontSize: 15.0,
+                              family: FigFont.display,
+                              weight: 500,
+                              height: 1.333,
+                              color: _muted,
+                            ),
+                          ),
+                          const SizedBox(height: 16.0),
+                          _Field(
+                            fieldKey: kRegisterPhoneFieldKey,
+                            controller: _phoneController,
+                            hint: l10n.phone,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 10.0),
+                          _Field(
+                            fieldKey: kRegisterNameFieldKey,
+                            controller: _nameController,
+                            hint: l10n.name,
+                            keyboardType: TextInputType.name,
+                          ),
+                          const SizedBox(height: 10.0),
+                          _Field(
+                            fieldKey: kRegisterPasswordFieldKey,
+                            controller: _passwordController,
+                            hint: l10n.password,
+                            keyboardType: TextInputType.visiblePassword,
+                          ),
+                          const SizedBox(height: 10.0),
+                          ConsentRow(
+                            key: kRegisterConsentKey,
+                            value: _accepted,
+                            loading: _loadingTerms,
+                            error: _termsError,
+                            onChanged: (value) => setState(() => _accepted = value),
+                          ),
+                          const SizedBox(height: 10.0),
+                          _PrimaryButton(
+                            buttonKey: kRegisterSubmitKey,
+                            label: l10n.next,
+                            busy: _isSending,
+                            onTap: _onNext,
+                          ),
+                          const SizedBox(height: 10.0),
+                          Center(
+                            child: _Link(
+                              label: l10n.alreadyHaveAccount,
+                              onTap: _onBack,
+                            ),
+                          ),
+                          const SizedBox(height: 12.0),
+                        ],
                       ),
-                      const SizedBox(height: 16.0),
-                      _Field(
-                        fieldKey: kRegisterPhoneFieldKey,
-                        controller: _phoneController,
-                        hint: l10n.phone,
-                        keyboardType: TextInputType.phone,
-                      ),
-                      const SizedBox(height: 10.0),
-                      _Field(
-                        fieldKey: kRegisterNameFieldKey,
-                        controller: _nameController,
-                        hint: l10n.name,
-                        keyboardType: TextInputType.name,
-                      ),
-                      const SizedBox(height: 10.0),
-                      _Field(
-                        fieldKey: kRegisterPasswordFieldKey,
-                        controller: _passwordController,
-                        hint: l10n.password,
-                        keyboardType: TextInputType.visiblePassword,
-                      ),
-                      const SizedBox(height: 10.0),
-                      ConsentRow(
-                        key: kRegisterConsentKey,
-                        value: _accepted,
-                        loading: _loadingTerms,
-                        error: _termsError,
-                        onChanged: (value) => setState(() => _accepted = value),
-                      ),
-                      const SizedBox(height: 10.0),
-                      _PrimaryButton(
-                        buttonKey: kRegisterSubmitKey,
-                        label: l10n.next,
-                        busy: _isSending,
-                        onTap: _onNext,
-                      ),
-                      const SizedBox(height: 10.0),
-                      Center(
-                        child: _Link(
-                          label: l10n.alreadyHaveAccount,
-                          onTap: _onBack,
-                        ),
-                      ),
-                      const SizedBox(height: 12.0),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-              // Иллюстрация держит свою высоту, поэтому при нехватке места
-              // форма сжималась до полутора полей и картинка налезала на поля
-              // ввода. Показываем её только когда высоты хватает обоим.
-              //
-              // Смотрим именно оставшуюся высоту, а не один viewInsets: в вебе
-              // он приходит не всегда, а окно при этом всё равно сжимается.
-              if (MediaQuery.sizeOf(context).height -
-                      MediaQuery.viewInsetsOf(context).bottom >=
-                  600)
-                const AuthBottomIllustration(),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

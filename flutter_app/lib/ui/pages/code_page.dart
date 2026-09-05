@@ -239,15 +239,28 @@ class _CodePageState extends State<CodePage> {
     final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xffffffff),
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(25.0, 24.0, 25.0, 0.0),
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AuthBottomIllustration(),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      25.0, 
+                      24.0, 
+                      25.0, 
+                      MediaQuery.viewInsetsOf(context).bottom + 120.0,
+                    ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -326,13 +339,6 @@ class _CodePageState extends State<CodePage> {
                 ),
               ),
             ),
-            // Клавиатура открывается сразу, поэтому иллюстрацию показываем
-            // только когда высоты хватает и ей, и полю кода. Смотрим
-            // оставшуюся высоту: в вебе viewInsets приходит не всегда.
-            if (MediaQuery.sizeOf(context).height -
-                    MediaQuery.viewInsetsOf(context).bottom >=
-                600)
-              const AuthBottomIllustration(),
           ],
         ),
       ),
