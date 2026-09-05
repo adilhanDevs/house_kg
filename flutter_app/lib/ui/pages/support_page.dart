@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../fig/fig.dart';
-import '../../app/app_scope.dart';
+import '../../app/app_state.dart';
 import '../../l10n/l10n.dart';
 
 class SupportPage extends StatefulWidget {

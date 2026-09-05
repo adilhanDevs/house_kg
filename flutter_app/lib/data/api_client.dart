@@ -1549,10 +1549,11 @@ class ListingApiClient {
     final uri = Uri.parse('$baseUrl/api/v1/support/tickets/');
     final response = await _client.post(
       uri,
-      headers: _headers(),
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
       body: jsonEncode({
         'subject': subject,
         'message': message,
+        'platform': 'android',
       }),
     );
     _processResponse(response);
