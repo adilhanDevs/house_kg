@@ -17,10 +17,11 @@ class AdPromoPage extends StatefulWidget {
 }
 
 class _AdPromoPageState extends State<AdPromoPage> {
+  // START WITH REFERENCE STATE (use bricks = true)
   bool _useTarget = true;
   bool _useClientBase = false;
   bool _useWhatsappBase = false;
-  bool _useBricks = false;
+  bool _useBricks = true;
 
   int _selectedDay = 1;
   final TextEditingController _sumController = TextEditingController();
@@ -176,7 +177,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: Colors.black),
+      style: const TextStyle(fontSize: 22.0, fontWeight: FontWeight.w800, color: Colors.black, letterSpacing: -0.3),
     );
   }
 
@@ -189,126 +190,174 @@ class _AdPromoPageState extends State<AdPromoPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top Progress Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4.0),
-                child: const LinearProgressIndicator(
-                  value: 0.85, // Progress representation
-                  backgroundColor: Color(0xfff0f0f0),
-                  color: Color(0xffea812e),
-                  minHeight: 6.0,
-                ),
-              ),
-            ),
-            
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.addListingPromoTitle,
-                      style: const TextStyle(fontSize: 28.0, fontWeight: FontWeight.bold, color: Colors.black),
-                    ),
-                    const SizedBox(height: 12.0),
-                    Text(
-                      l10n.addListingPromoIntro,
-                      style: const TextStyle(fontSize: 15.0, color: Color(0xff7d7d7d), height: 1.4),
-                    ),
-                    const SizedBox(height: 32.0),
-                    
-                    _buildSectionTitle(l10n.addListingPromoBudget),
-                    const SizedBox(height: 16.0),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _useBricks = true),
-                            child: Container(
-                              height: 54.0,
-                              decoration: BoxDecoration(
-                                color: _useBricks ? orange : Colors.white,
-                                borderRadius: BorderRadius.circular(12.0),
-                                border: _useBricks ? null : Border.all(color: const Color(0xffe5e5ea)),
-                              ),
-                              alignment: Alignment.center,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (_useBricks)
-                                    const Padding(padding: EdgeInsets.only(right: 8.0), child: Icon(Icons.check, color: Colors.white, size: 20.0))
-                                  else
-                                    Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 20.0)),
-                                  Flexible(
-                                    child: Text(
-                                      l10n.addListingSpendBricks,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 14.0,
-                                        fontWeight: FontWeight.w600,
-                                        color: _useBricks ? Colors.white : const Color(0xff7d7d7d),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top area: Back button + Progress bar
+                  const SizedBox(height: 8.0),
+                  Row(
+                    children: [
+                      const SizedBox(width: 8.0),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 24.0, left: 8.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4.0),
+                            child: const LinearProgressIndicator(
+                              value: 0.85,
+                              backgroundColor: Color(0xfff0f0f0),
+                              color: Color(0xffea812e),
+                              minHeight: 6.0,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12.0),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _useBricks = false),
-                            child: Container(
-                              height: 54.0,
-                              decoration: BoxDecoration(
-                                color: !_useBricks ? orange : Colors.white,
-                                borderRadius: BorderRadius.circular(12.0),
-                                border: !_useBricks ? null : Border.all(color: const Color(0xffe5e5ea)),
+                      ),
+                    ],
+                  ),
+                  
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 24.0),
+                        Text(
+                          l10n.addListingPromoTitle,
+                          style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.w800, color: Colors.black, height: 1.1, letterSpacing: -0.5),
+                        ),
+                        const SizedBox(height: 12.0),
+                        Text(
+                          l10n.addListingPromoIntro,
+                          style: const TextStyle(fontSize: 17.0, color: Color(0xff6e6e73), height: 1.4),
+                        ),
+                        
+                        const SizedBox(height: 48.0),
+                        
+                        _buildSectionTitle(l10n.addListingPromoBudget),
+                        const SizedBox(height: 20.0),
+                        
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _useBricks = true),
+                                child: Container(
+                                  height: 60.0,
+                                  decoration: BoxDecoration(
+                                    color: _useBricks ? orange : Colors.white,
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    border: _useBricks ? null : Border.all(color: const Color(0xffe5e5ea), width: 1.5),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0)),
+                                      Flexible(
+                                        child: Text(
+                                          l10n.addListingSpendBricks,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 15.0,
+                                            fontWeight: FontWeight.w700,
+                                            color: _useBricks ? Colors.white : const Color(0xff7d7d7d),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                l10n.addListingPromoTopupWallet,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                  fontWeight: FontWeight.w600,
-                                  color: !_useBricks ? Colors.white : const Color(0xff7d7d7d),
+                            ),
+                            const SizedBox(width: 12.0),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _useBricks = false),
+                                child: Container(
+                                  height: 60.0,
+                                  decoration: BoxDecoration(
+                                    color: !_useBricks ? orange : Colors.white,
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    border: !_useBricks ? null : Border.all(color: const Color(0xffe5e5ea), width: 1.5),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (!_useBricks)
+                                         Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0)),
+                                      Flexible(
+                                        child: Text(
+                                          l10n.addListingPromoTopupWallet,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 15.0,
+                                            fontWeight: FontWeight.w700,
+                                            color: !_useBricks ? Colors.white : const Color(0xff7d7d7d),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        if (_useBricks) ...[
+                          const SizedBox(height: 24.0),
+                          const Divider(color: Color(0xffe5e5ea), thickness: 1, height: 1),
+                          const SizedBox(height: 24.0),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: FractionallySizedBox(
+                              widthFactor: 0.85,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xffe8f6e4),
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                child: Row(
+                                  children: [
+                                    _buildBrickIcon(size: 24.0),
+                                    const SizedBox(width: 12.0),
+                                    Expanded(
+                                      child: Text(
+                                        _pricing == null
+                                            ? l10n.addListingPromoBalance(_walletBalance.toString())
+                                            : l10n.addListingPromoBalanceAndCost(_walletBalance.toString(), _promotionCost.toString()),
+                                        style: TextStyle(
+                                          fontSize: 16.0,
+                                          fontWeight: FontWeight.w600,
+                                          color: _pricing != null && _walletBalance < _promotionCost ? const Color(0xffd93025) : const Color(0xff188038),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16.0),
-                    
-                    if (!_useBricks)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        ] else ...[
+                          const SizedBox(height: 24.0),
                           Container(
-                            height: 54.0,
+                            height: 60.0,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12.0),
-                              border: Border.all(color: const Color(0xffe5e5ea)),
+                              border: Border.all(color: const Color(0xffe5e5ea), width: 1.5),
                             ),
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),
                             alignment: Alignment.centerLeft,
@@ -316,19 +365,19 @@ class _AdPromoPageState extends State<AdPromoPage> {
                               controller: _sumController,
                               keyboardType: TextInputType.number,
                               onChanged: (_) => setState(() {}),
-                              style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black),
+                              style: const TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold, color: Colors.black),
                               decoration: InputDecoration(
                                 hintText: l10n.addListingEnterAmount,
-                                hintStyle: const TextStyle(fontSize: 15.0, color: Color(0xff7d7d7d)),
+                                hintStyle: const TextStyle(fontSize: 16.0, color: Color(0xff7d7d7d)),
                                 border: InputBorder.none,
                                 isDense: true,
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12.0),
+                          const SizedBox(height: 16.0),
                           Container(
-                            height: 54.0,
+                            height: 60.0,
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),
                             decoration: BoxDecoration(
                               color: const Color(0xffe8f6e4),
@@ -348,168 +397,151 @@ class _AdPromoPageState extends State<AdPromoPage> {
                             ),
                           ),
                         ],
-                      )
-                    else
-                      Container(
-                        height: 54.0,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        decoration: BoxDecoration(
-                          color: const Color(0xffe8f6e4),
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        child: Row(
+                          
+                        const SizedBox(height: 48.0),
+                        
+                        _buildSectionTitle(l10n.addListingPromoDays),
+                        const SizedBox(height: 20.0),
+                        Row(
                           children: [
-                            _buildBrickIcon(size: 24.0),
-                            const SizedBox(width: 12.0),
+                            ...List.generate(5, (i) {
+                              final day = i + 1;
+                              final isSel = _selectedDay == day;
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedDay = day;
+                                    _loadPricing();
+                                    _daysController.clear();
+                                  });
+                                },
+                                child: Container(
+                                  width: 48.0,
+                                  height: 48.0,
+                                  margin: const EdgeInsets.only(right: 10.0),
+                                  decoration: BoxDecoration(
+                                    color: isSel ? const Color(0xfffdf1e8) : Colors.white,
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    border: Border.all(color: isSel ? orange : const Color(0xffe5e5ea), width: 1.5),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '$day',
+                                    style: TextStyle(
+                                      fontSize: 17.0,
+                                      fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                      color: isSel ? orange : const Color(0xff7d7d7d),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
                             Expanded(
-                              child: Text(
-                                _pricing == null
-                                    ? l10n.addListingPromoBalance(_walletBalance.toString())
-                                    : l10n.addListingPromoBalanceAndCost(_walletBalance.toString(), _promotionCost.toString()),
-                                style: TextStyle(
-                                  fontSize: 15.0,
-                                  fontWeight: FontWeight.w600,
-                                  color: _pricing != null && _walletBalance < _promotionCost ? const Color(0xffd93025) : const Color(0xff188038),
+                              child: Container(
+                                height: 48.0,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12.0),
+                                  border: Border.all(color: const Color(0xffe5e5ea), width: 1.5),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                alignment: Alignment.centerLeft,
+                                child: TextField(
+                                  controller: _daysController,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (val) {
+                                    if (val.isNotEmpty) setState(() => _selectedDay = 0);
+                                  },
+                                  style: const TextStyle(fontSize: 16.0, color: Colors.black, fontWeight: FontWeight.w600),
+                                  decoration: InputDecoration(
+                                    hintText: l10n.addListingPromoDaysHint,
+                                    hintStyle: const TextStyle(fontSize: 15.0, color: Color(0xff7d7d7d), fontWeight: FontWeight.normal),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      
-                    const SizedBox(height: 32.0),
-                    _buildSectionTitle(l10n.addListingPromoDays),
-                    const SizedBox(height: 16.0),
-                    Row(
-                      children: [
-                        ...List.generate(5, (i) {
-                          final day = i + 1;
-                          final isSel = _selectedDay == day;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedDay = day;
-                                _loadPricing();
-                                _daysController.clear();
-                              });
-                            },
-                            child: Container(
-                              width: 44.0,
-                              height: 44.0,
-                              margin: const EdgeInsets.only(right: 8.0),
-                              decoration: BoxDecoration(
-                                color: isSel ? const Color(0xfffdf1e8) : Colors.white,
-                                borderRadius: BorderRadius.circular(12.0),
-                                border: Border.all(color: isSel ? orange : const Color(0xffe5e5ea)),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '$day',
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                                  color: isSel ? orange : const Color(0xff7d7d7d),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                        Expanded(
-                          child: Container(
-                            height: 44.0,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12.0),
-                              border: Border.all(color: const Color(0xffe5e5ea)),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                            alignment: Alignment.centerLeft,
-                            child: TextField(
-                              controller: _daysController,
-                              keyboardType: TextInputType.number,
-                              onChanged: (val) {
-                                if (val.isNotEmpty) setState(() => _selectedDay = 0);
-                              },
-                              style: const TextStyle(fontSize: 15.0, color: Colors.black),
-                              decoration: InputDecoration(
-                                hintText: l10n.addListingPromoDaysHint,
-                                hintStyle: const TextStyle(fontSize: 14.0, color: Color(0xff7d7d7d)),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ),
+                        
+                        const SizedBox(height: 48.0),
+                        
+                        _buildToggleRow(l10n.addListingPromoExact, _useTarget, (v) => setState(() => _useTarget = v)),
+                        const SizedBox(height: 16.0),
+                        _buildToggleRow(l10n.addListingPromoClientBase, _useClientBase, (v) => setState(() => _useClientBase = v)),
+                        const SizedBox(height: 16.0),
+                        _buildToggleRow(l10n.addListingPromoWhatsapp, _useWhatsappBase, (v) => setState(() => _useWhatsappBase = v)),
+                        
+                        const SizedBox(height: 56.0),
+                        
+                        Text(
+                          l10n.addListingPromoEstimatedViews,
+                          style: const TextStyle(fontSize: 26.0, fontWeight: FontWeight.w800, color: Color(0xffea812e), letterSpacing: -0.5, height: 1.2),
+                        ),
+                        const SizedBox(height: 12.0),
+                        Text(
+                          l10n.addListingPromoEstimateDesc,
+                          style: const TextStyle(fontSize: 16.0, color: Color(0xff6e6e73), height: 1.5),
+                        ),
+                        
+                        const SizedBox(height: 48.0),
+                        
+                        Text(
+                          l10n.addListingPromoCostSummary(_promotionCost.toString()),
+                          style: const TextStyle(fontSize: 28.0, fontWeight: FontWeight.w800, color: Color(0xffea812e), letterSpacing: -0.5),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32.0),
-                    
-                    _buildToggleRow(l10n.addListingPromoExact, _useTarget, (v) => setState(() => _useTarget = v)),
-                    const SizedBox(height: 24.0),
-                    _buildToggleRow(l10n.addListingPromoClientBase, _useClientBase, (v) => setState(() => _useClientBase = v)),
-                    const SizedBox(height: 24.0),
-                    _buildToggleRow(l10n.addListingPromoWhatsapp, _useWhatsappBase, (v) => setState(() => _useWhatsappBase = v)),
-                    
-                    const SizedBox(height: 40.0),
-                    
-                    Text(
-                      l10n.addListingPromoEstimatedViews,
-                      style: const TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold, color: Color(0xffea812e)),
-                    ),
-                    const SizedBox(height: 8.0),
-                    Text(
-                      l10n.addListingPromoEstimateDesc,
-                      style: const TextStyle(fontSize: 15.0, color: Color(0xff7d7d7d), height: 1.4),
-                    ),
-                    
-                    const SizedBox(height: 32.0),
-                    
-                    Text(
-                      l10n.addListingPromoCostSummary(_promotionCost.toString()),
-                      style: const TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold, color: Color(0xffea812e)),
-                    ),
-                    
-                    const SizedBox(height: 48.0), // Generous padding before CTA if scroll reaches here
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             
-            // BOTTOM CTA AREA
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-              color: Colors.white,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton(
-                    onPressed: _isPublishing ? null : _onNext,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: orange,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      minimumSize: const Size.fromHeight(54),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+            // BOTTOM CTA AREA (Fills remaining space, anchors to bottom)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 48.0),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _isPublishing ? null : _onNext,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: orange,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+                          ),
+                          child: _submitting == _PromoAction.next
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text(l10n.addListingNext, style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(height: 16.0),
+                        TextButton(
+                          onPressed: _isPublishing ? null : () => _publishListing(withPromo: false, action: _PromoAction.skip),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xffea812e),
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                          ),
+                          child: _submitting == _PromoAction.skip
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Color(0xffea812e), strokeWidth: 2))
+                              : Text(l10n.addListingContinueNoPromo, style: const TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
                     ),
-                    child: _submitting == _PromoAction.next
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text(l10n.addListingNext, style: const TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold)),
                   ),
-                  const SizedBox(height: 12.0),
-                  TextButton(
-                    onPressed: _isPublishing ? null : () => _publishListing(withPromo: false, action: _PromoAction.skip),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xffea812e),
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                    ),
-                    child: _submitting == _PromoAction.skip
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Color(0xffea812e), strokeWidth: 2))
-                        : Text(l10n.addListingContinueNoPromo, style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -523,7 +555,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: Text(title, style: const TextStyle(fontSize: 16.0, color: Colors.black)),
+          child: Text(title, style: const TextStyle(fontSize: 17.0, color: Color(0xff555555), fontWeight: FontWeight.w500)),
         ),
         const SizedBox(width: 16),
         Switch(

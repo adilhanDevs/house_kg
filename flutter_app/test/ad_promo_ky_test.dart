@@ -42,22 +42,28 @@ void main() {
     expect(find.text('Жарыяңызды көбүрөөк колдонуучу көрүшү үчүн илгерилетиңиз.'), findsWidgets);
     
     // E. amount placeholder KY
-    // By default, Topup is selected, so we should see the placeholder.
-    expect(find.text('Сумманы киргизиңиз'), findsWidgets);
-
-    // switch to Bricks
-    await tester.tap(find.text('Кирпичтерди колдонуу'));
-    await tester.pumpAndSettle();
+    // By default, Bricks is selected (reference state), so we should NOT see the placeholder.
     expect(find.text('Сумманы киргизиңиз'), findsNothing);
+
+    // switch to Topup
+    await tester.tap(find.text('Капчыкты толуктоо'));
+    await tester.pumpAndSettle();
+    expect(find.text('Сумманы киргизиңиз'), findsWidgets);
 
     // F. days placeholder KY
     expect(find.text('Күндөрдүн санын киргизиңиз'), findsWidgets);
 
     // G. primary CTA = Кийинки
-    expect(find.text('Кийинки'), findsWidgets);
+    final nextBtn = find.text('Кийинки');
+    await tester.dragUntilVisible(nextBtn, find.byType(CustomScrollView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(nextBtn, findsWidgets);
 
     // H. secondary CTA = Илгерилетпей улантуу
-    expect(find.text('Илгерилетпей улантуу'), findsWidgets);
+    final skipBtn = find.text('Илгерилетпей улантуу');
+    await tester.dragUntilVisible(skipBtn, find.byType(CustomScrollView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(skipBtn, findsWidgets);
 
     // Check cost summary
     expect(find.textContaining('Чегерилет:'), findsWidgets);
