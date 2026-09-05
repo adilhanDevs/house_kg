@@ -141,7 +141,7 @@ class _ListingPageState extends State<ListingPage> {
     }
     // Здесь логика звонка, например: launchUrl(Uri.parse('tel:${_listing!.sellerPhone}'));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.listingDetailsCalling(_listing!.sellerPhone))),
+      SnackBar(content: Text(context.l10n.listingDetailsCalling(_listing!.sellerPhone ?? ''))),
     );
   }
 
@@ -356,12 +356,12 @@ class _ListingPageState extends State<ListingPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: _page,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
+            children: const [
               CircularProgressIndicator(
                 color: Color(0xffea812e),
                 strokeWidth: 3,
@@ -400,8 +400,7 @@ class _ListingPageState extends State<ListingPage> {
               children: [
                 const Icon(Icons.info_outline, size: 48, color: Color(0xff8e8e93)),
                 const SizedBox(height: 16),
-                const Text(
-                  context.l10n.listingDetailsNotFound,
+                Text(context.l10n.listingDetailsNotFound,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -416,7 +415,7 @@ class _ListingPageState extends State<ListingPage> {
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text(context.l10n.listingDetailsBack),
+                  child: Text(context.l10n.listingDetailsBack),
                 ),
               ],
             ),
