@@ -45,7 +45,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
     final state = AppScope.read(context);
     final days = int.tryParse(_daysController.text.trim()) ?? _selectedDay;
     try {
-      final pricing = await state.apiClient.getPromotionPricing(days: days > 0 ? days : 1);
+      final options = <String>[];
+      if (_useTarget) options.add('use_exact_promotion');
+      if (_useClientBase) options.add('use_client_database');
+      if (_useWhatsappBase) options.add('use_whatsapp_database');
+      final pricing = await state.apiClient.getPromotionPricing(days: days > 0 ? days : 1, options: options);
       if (mounted) setState(() => _pricing = pricing);
     } catch (e) {
       debugPrint('Pricing err: $e');
@@ -64,7 +68,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
 
   Future<bool> _promote(AppState state, String slug, int days) async {
     try {
-      await state.apiClient.promoteListing(slug, days, _idempotencyKey);
+      final options = <String>[];
+      if (_useTarget) options.add('use_exact_promotion');
+      if (_useClientBase) options.add('use_client_database');
+      if (_useWhatsappBase) options.add('use_whatsapp_database');
+      await state.apiClient.promoteListing(slug, days, options, _idempotencyKey);
       return true;
     } on ApiException catch (e) {
       if (!e.isInsufficientFunds || !mounted) {
@@ -85,7 +93,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
       if (paid != true || !mounted) return false;
       await state.fetchWalletBalance();
       try {
-        await state.apiClient.promoteListing(slug, days, _idempotencyKey);
+        final options = <String>[];
+      if (_useTarget) options.add('use_exact_promotion');
+      if (_useClientBase) options.add('use_client_database');
+      if (_useWhatsappBase) options.add('use_whatsapp_database');
+      await state.apiClient.promoteListing(slug, days, options, _idempotencyKey);
         return true;
       } catch (re) {
         if (mounted) _showPromotionError(re is ApiException ? re.message : re.toString());
@@ -487,11 +499,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
                         
                         const SizedBox(height: 48.0),
                         
-                        _buildToggleRow(l10n.addListingPromoExact, _useTarget, (v) => setState(() => _useTarget = v)),
+                        _buildToggleRow(l10n.addListingPromoExact, _useTarget, (v) { setState(() => _useTarget = v); _loadPricing(); }),
                         const SizedBox(height: 16.0),
-                        _buildToggleRow(l10n.addListingPromoClientBase, _useClientBase, (v) => setState(() => _useClientBase = v)),
+                        _buildToggleRow(l10n.addListingPromoClientBase, _useClientBase, (v) { setState(() => _useClientBase = v); _loadPricing(); }),
                         const SizedBox(height: 16.0),
-                        _buildToggleRow(l10n.addListingPromoWhatsapp, _useWhatsappBase, (v) => setState(() => _useWhatsappBase = v)),
+                        _buildToggleRow(l10n.addListingPromoWhatsapp, _useWhatsappBase, (v) { setState(() => _useWhatsappBase = v); _loadPricing(); }),
                         
                         const SizedBox(height: 56.0),
                         

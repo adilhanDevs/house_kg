@@ -381,7 +381,7 @@ class ListingApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> promoteListing(String slug, int days, String idempotencyKey) async {
+  Future<Map<String, dynamic>> promoteListing(String slug, int days, List<String> options, String idempotencyKey) async {
     final uri = Uri.parse('$baseUrl/api/v1/listings/$slug/promote/');
     try {
       final response = await _client.post(
@@ -391,7 +391,7 @@ class ListingApiClient {
           'Content-Type': 'application/json',
           'Idempotency-Key': idempotencyKey,
         },
-        body: jsonEncode({'days': days}),
+        body: jsonEncode({'days': days, 'options': options}),
       );
       return _processResponse(response);
     } catch (e) {

@@ -416,12 +416,12 @@ void main() {
         expect(request.method, 'POST');
         expect(request.url.path, '/api/v1/listings/slug123/promote/');
         expect(request.headers['Idempotency-Key'], 'uuid-v4-key');
-        expect(request.body, jsonEncode({'days': 3}));
+        expect(request.body, jsonEncode({'days': 3, 'options': ['use_exact_promotion']}));
         return http.Response(jsonEncode({'success': true}), 200);
       });
 
       final apiClient = ListingApiClient(baseUrl: baseUrl, client: client);
-      final response = await apiClient.promoteListing('slug123', 3, 'uuid-v4-key');
+      final response = await apiClient.promoteListing('slug123', 3, ['use_exact_promotion'], 'uuid-v4-key');
       expect(response['success'], true);
     });
 
