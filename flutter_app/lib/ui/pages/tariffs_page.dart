@@ -44,12 +44,12 @@ class _TariffsPageState extends State<TariffsPage> {
       final paid = await startFinikPayment(
         context: context,
         amountSom: plan.priceSom,
-        purposeTitle: 'Подписка на тариф «${plan.name}» (1 месяц)',
+        purposeTitle: context.l10n.tariffPurchaseTitle(plan.code == 'owner' ? context.l10n.roleOwner : plan.name),
         tariff: plan,
         onSuccess: () {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Тариф «${plan.name}» успешно оплачен и активирован!'),
+              content: Text(context.l10n.tariffPurchaseSuccess(plan.code == 'owner' ? context.l10n.roleOwner : plan.name)),
               backgroundColor: const Color(0xff2e7d32),
               duration: const Duration(seconds: 2),
             ),
@@ -64,7 +64,7 @@ class _TariffsPageState extends State<TariffsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(plan.isFree ? 'Смена тарифа' : 'Подписка «${plan.name}»'),
+        title: Text(plan.isFree ? context.l10n.tariffChangeTitle : context.l10n.tariffSubscribeTitle(plan.code == 'owner' ? context.l10n.roleOwner : plan.name)),
         content: Text(message),
         actions: [
           TextButton(
@@ -77,7 +77,7 @@ class _TariffsPageState extends State<TariffsPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(plan.isFree ? 'Перейти' : context.l10n.tariffConfirmBtn, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(plan.isFree ? context.l10n.tariffGoBtn : context.l10n.tariffConfirmBtn, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -91,7 +91,7 @@ class _TariffsPageState extends State<TariffsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Тариф «${plan.name}» успешно активирован!'),
+            content: Text(context.l10n.tariffTopupSuccess(plan.code == 'owner' ? context.l10n.roleOwner : plan.name)),
             backgroundColor: const Color(0xff2e7d32),
             duration: const Duration(seconds: 2),
           ),
@@ -111,7 +111,7 @@ class _TariffsPageState extends State<TariffsPage> {
             title: Text(context.l10n.tariffInsufficientTitle),
             content: Text(
               missing != null
-                  ? 'Не хватает $missing кирпичей. Пополнить кошелёк и подключить тариф?'
+                  ? context.l10n.tariffMissingBricks(missing)
                   : e.message,
             ),
             actions: [
@@ -122,7 +122,7 @@ class _TariffsPageState extends State<TariffsPage> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Пополнить', style: TextStyle(color: Colors.white)),
+                child: Text(context.l10n.tariffTopupBtn, style: const TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -132,14 +132,14 @@ class _TariffsPageState extends State<TariffsPage> {
           final paid = await startFinikPayment(
             context: context,
             amountSom: missing,
-            purposeTitle: 'Пополнение на тариф «${plan.name}»',
+            purposeTitle: context.l10n.tariffTopupPurpose(plan.code == 'owner' ? context.l10n.roleOwner : plan.name),
             state: state,
             tariff: plan,
           );
           if (paid == true && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Тариф «${plan.name}» успешно активирован!'),
+                content: Text(context.l10n.tariffTopupSuccess(plan.code == 'owner' ? context.l10n.roleOwner : plan.name)),
                 backgroundColor: const Color(0xff2e7d32),
                 duration: const Duration(seconds: 2),
               ),
@@ -152,13 +152,13 @@ class _TariffsPageState extends State<TariffsPage> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Не удалось подключить тариф'),
+            title: Text(context.l10n.tariffErrorTitle),
             content: Text(e.message),
             actions: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Понятно', style: TextStyle(color: Colors.white)),
+                child: Text(context.l10n.tariffUnderstoodBtn, style: const TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -168,7 +168,7 @@ class _TariffsPageState extends State<TariffsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Не удалось подключить тариф: $e'),
+            content: Text(context.l10n.tariffErrorReason(e.toString())),
             backgroundColor: const Color(0xffd93025),
           ),
         );
@@ -329,8 +329,8 @@ class _TariffsPageState extends State<TariffsPage> {
                               : () => _handleBuy(context, state, plan, withBricks: false),
                           child: Text(
                             isCurrent
-                                ? 'Ваш тариф'
-                                : (plan.isFree ? context.l10n.tariffChooseBtn : 'Купить за ${plan.priceSom} сом'),
+                                ? context.l10n.tariffYourTariff
+                                : (plan.isFree ? context.l10n.tariffChooseBtn : context.l10n.tariffBuyForSom(plan.priceSom)),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14.5,
@@ -422,7 +422,7 @@ class _TariffsPageState extends State<TariffsPage> {
           onPressed: () => _handleBack(context),
         ),
         title: Text(
-          l10n.tariffsTitle,
+          context.l10n.tariffsTitle,
           style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
@@ -437,7 +437,7 @@ class _TariffsPageState extends State<TariffsPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      l10n.tariffsSubtitle,
+                      context.l10n.tariffsSubtitle,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 15,

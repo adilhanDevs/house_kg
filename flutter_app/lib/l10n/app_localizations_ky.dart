@@ -2144,7 +2144,7 @@ class AppLocalizationsKy extends AppLocalizations {
   String get tariffInsufficientTitle => 'Кирпич жетишсиз';
 
   @override
-  String get tariffTopupBtn => 'Балансты толуктоо';
+  String get tariffTopupBtn => 'Толуктоо';
 
   @override
   String get tariffConfirmBtn => 'Ырастоо';
@@ -2338,4 +2338,106 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get listingDetailsDownloadAllPhotos => 'Бардык сүрөттөрдү жүктөп алуу';
+
+  @override
+  String get adPromoChangeTariff => 'Тарифти өзгөртүү';
+
+  @override
+  String adPromoRooms(Object count) {
+    return '$count-бөлмөлүү';
+  }
+
+  @override
+  String adPromoFloor(Object floor, Object floors) {
+    return '$floor/$floors каб.';
+  }
+
+  @override
+  String adPromoActiveDays(Object active, Object total) {
+    return '$total күндүн $active күнү активдүү';
+  }
+
+  @override
+  String adPromoBudget(Object cost) {
+    return 'Бюджет: $cost кирпич';
+  }
+
+  @override
+  String get adPromoLeads => 'Лид';
+
+  @override
+  String tariffPurchaseTitle(Object name) {
+    return '«$name» тарифине жазылуу (1 ай)';
+  }
+
+  @override
+  String tariffPurchaseSuccess(Object name) {
+    return '«$name» тарифи ийгиликтүү төлөндү жана активдештирилди!';
+  }
+
+  @override
+  String get tariffChangeTitle => 'Тарифти өзгөртүү';
+
+  @override
+  String tariffSubscribeTitle(Object name) {
+    return '«$name» жазылуу';
+  }
+
+  @override
+  String get tariffGoBtn => 'Өтүү';
+
+  @override
+  String tariffMissingBricks(Object missing) {
+    return '$missing кирпич жетпейт. Капчыкты толуктап, тарифти кошосузбу?';
+  }
+
+  @override
+  String tariffTopupPurpose(Object name) {
+    return '«$name» тарифин толуктоо';
+  }
+
+  @override
+  String tariffTopupSuccess(Object name) {
+    return '«$name» тарифи ийгиликтүү активдештирилди!';
+  }
+
+  @override
+  String get tariffErrorTitle => 'Тарифти кошуу мүмкүн болгон жок';
+
+  @override
+  String get tariffUnderstoodBtn => 'Түшүнүктүү';
+
+  @override
+  String tariffErrorReason(Object reason) {
+    return 'Тарифти кошуу мүмкүн болгон жок: $reason';
+  }
+
+  @override
+  String get tariffActiveLabel => 'Активдүү';
+
+  @override
+  String get tariffYourTariff => 'Сиздин тарифиңиз';
+
+  @override
+  String tariffBuyForSom(Object price) {
+    return '$price сомго сатып алуу';
+  }
+
+  @override
+  String get tariffOr => 'же';
+
+  @override
+  String tariffBricksPrice(Object price) {
+    return '$price Кирпич';
+  }
+
+  @override
+  String tariffAreaSqM(Object area) {
+    return '$area м²';
+  }
+
+  @override
+  String tariffAreaSot(Object area) {
+    return '$area сот.';
+  }
 }

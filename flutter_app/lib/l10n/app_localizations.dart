@@ -3994,7 +3994,7 @@ abstract class AppLocalizations {
   /// No description provided for @tariffTopupBtn.
   ///
   /// In ru, this message translates to:
-  /// **'Пополнить баланс'**
+  /// **'Пополнить'**
   String get tariffTopupBtn;
 
   /// No description provided for @tariffConfirmBtn.
@@ -4338,6 +4338,150 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Скачать все фото'**
   String get listingDetailsDownloadAllPhotos;
+
+  /// No description provided for @adPromoChangeTariff.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить тариф'**
+  String get adPromoChangeTariff;
+
+  /// No description provided for @adPromoRooms.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count}-комн.'**
+  String adPromoRooms(Object count);
+
+  /// No description provided for @adPromoFloor.
+  ///
+  /// In ru, this message translates to:
+  /// **'{floor}/{floors} эт.'**
+  String adPromoFloor(Object floor, Object floors);
+
+  /// No description provided for @adPromoActiveDays.
+  ///
+  /// In ru, this message translates to:
+  /// **'{active} из {total} дней активно'**
+  String adPromoActiveDays(Object active, Object total);
+
+  /// No description provided for @adPromoBudget.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бюджет: {cost} кирпичей'**
+  String adPromoBudget(Object cost);
+
+  /// No description provided for @adPromoLeads.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лид'**
+  String get adPromoLeads;
+
+  /// No description provided for @tariffPurchaseTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подписка на тариф «{name}» (1 месяц)'**
+  String tariffPurchaseTitle(Object name);
+
+  /// No description provided for @tariffPurchaseSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тариф «{name}» успешно оплачен и активирован!'**
+  String tariffPurchaseSuccess(Object name);
+
+  /// No description provided for @tariffChangeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Смена тарифа'**
+  String get tariffChangeTitle;
+
+  /// No description provided for @tariffSubscribeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подписка «{name}»'**
+  String tariffSubscribeTitle(Object name);
+
+  /// No description provided for @tariffGoBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перейти'**
+  String get tariffGoBtn;
+
+  /// No description provided for @tariffMissingBricks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не хватает {missing} кирпичей. Пополнить кошелёк и подключить тариф?'**
+  String tariffMissingBricks(Object missing);
+
+  /// No description provided for @tariffTopupPurpose.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пополнение на тариф «{name}»'**
+  String tariffTopupPurpose(Object name);
+
+  /// No description provided for @tariffTopupSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тариф «{name}» успешно активирован!'**
+  String tariffTopupSuccess(Object name);
+
+  /// No description provided for @tariffErrorTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось подключить тариф'**
+  String get tariffErrorTitle;
+
+  /// No description provided for @tariffUnderstoodBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Понятно'**
+  String get tariffUnderstoodBtn;
+
+  /// No description provided for @tariffErrorReason.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось подключить тариф: {reason}'**
+  String tariffErrorReason(Object reason);
+
+  /// No description provided for @tariffActiveLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Активен'**
+  String get tariffActiveLabel;
+
+  /// No description provided for @tariffYourTariff.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш тариф'**
+  String get tariffYourTariff;
+
+  /// No description provided for @tariffBuyForSom.
+  ///
+  /// In ru, this message translates to:
+  /// **'Купить за {price} сом'**
+  String tariffBuyForSom(Object price);
+
+  /// No description provided for @tariffOr.
+  ///
+  /// In ru, this message translates to:
+  /// **'или'**
+  String get tariffOr;
+
+  /// No description provided for @tariffBricksPrice.
+  ///
+  /// In ru, this message translates to:
+  /// **'{price} Кирпичей'**
+  String tariffBricksPrice(Object price);
+
+  /// No description provided for @tariffAreaSqM.
+  ///
+  /// In ru, this message translates to:
+  /// **'{area} м²'**
+  String tariffAreaSqM(Object area);
+
+  /// No description provided for @tariffAreaSot.
+  ///
+  /// In ru, this message translates to:
+  /// **'{area} сот.'**
+  String tariffAreaSot(Object area);
 }
 
 class _AppLocalizationsDelegate

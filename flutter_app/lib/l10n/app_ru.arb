@@ -1093,7 +1093,7 @@
     }
   },
   "tariffInsufficientTitle": "Недостаточно кирпичей",
-  "tariffTopupBtn": "Пополнить баланс",
+  "tariffTopupBtn": "Пополнить",
   "tariffConfirmBtn": "Подтвердить",
   "tariffCancelBtn": "Отмена",
   "tariffSuccess": "Тариф успешно изменён!",
@@ -1220,5 +1220,29 @@
       }
     }
   },
-  "listingDetailsDownloadAllPhotos": "Скачать все фото"
+  "listingDetailsDownloadAllPhotos": "Скачать все фото",
+  "adPromoChangeTariff": "Сменить тариф",
+  "adPromoRooms": "{count}-комн.",
+  "adPromoFloor": "{floor}/{floors} эт.",
+  "adPromoActiveDays": "{active} из {total} дней активно",
+  "adPromoBudget": "Бюджет: {cost} кирпичей",
+  "adPromoLeads": "Лид",
+  "tariffPurchaseTitle": "Подписка на тариф «{name}» (1 месяц)",
+  "tariffPurchaseSuccess": "Тариф «{name}» успешно оплачен и активирован!",
+  "tariffChangeTitle": "Смена тарифа",
+  "tariffSubscribeTitle": "Подписка «{name}»",
+  "tariffGoBtn": "Перейти",
+  "tariffMissingBricks": "Не хватает {missing} кирпичей. Пополнить кошелёк и подключить тариф?",
+  "tariffTopupPurpose": "Пополнение на тариф «{name}»",
+  "tariffTopupSuccess": "Тариф «{name}» успешно активирован!",
+  "tariffErrorTitle": "Не удалось подключить тариф",
+  "tariffUnderstoodBtn": "Понятно",
+  "tariffErrorReason": "Не удалось подключить тариф: {reason}",
+  "tariffActiveLabel": "Активен",
+  "tariffYourTariff": "Ваш тариф",
+  "tariffBuyForSom": "Купить за {price} сом",
+  "tariffOr": "или",
+  "tariffBricksPrice": "{price} Кирпичей",
+  "tariffAreaSqM": "{area} м²",
+  "tariffAreaSot": "{area} сот."
 }

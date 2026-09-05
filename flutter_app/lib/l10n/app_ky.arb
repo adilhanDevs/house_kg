@@ -831,7 +831,7 @@
     }
   },
   "tariffInsufficientTitle": "Кирпич жетишсиз",
-  "tariffTopupBtn": "Балансты толуктоо",
+  "tariffTopupBtn": "Толуктоо",
   "tariffConfirmBtn": "Ырастоо",
   "tariffCancelBtn": "Жокко чыгаруу",
   "tariffSuccess": "Тариф ийгиликтүү өзгөртүлдү!",
@@ -958,5 +958,29 @@
       }
     }
   },
-  "listingDetailsDownloadAllPhotos": "Бардык сүрөттөрдү жүктөп алуу"
+  "listingDetailsDownloadAllPhotos": "Бардык сүрөттөрдү жүктөп алуу",
+  "adPromoChangeTariff": "Тарифти өзгөртүү",
+  "adPromoRooms": "{count}-бөлмөлүү",
+  "adPromoFloor": "{floor}/{floors} каб.",
+  "adPromoActiveDays": "{total} күндүн {active} күнү активдүү",
+  "adPromoBudget": "Бюджет: {cost} кирпич",
+  "adPromoLeads": "Лид",
+  "tariffPurchaseTitle": "«{name}» тарифине жазылуу (1 ай)",
+  "tariffPurchaseSuccess": "«{name}» тарифи ийгиликтүү төлөндү жана активдештирилди!",
+  "tariffChangeTitle": "Тарифти өзгөртүү",
+  "tariffSubscribeTitle": "«{name}» жазылуу",
+  "tariffGoBtn": "Өтүү",
+  "tariffMissingBricks": "{missing} кирпич жетпейт. Капчыкты толуктап, тарифти кошосузбу?",
+  "tariffTopupPurpose": "«{name}» тарифин толуктоо",
+  "tariffTopupSuccess": "«{name}» тарифи ийгиликтүү активдештирилди!",
+  "tariffErrorTitle": "Тарифти кошуу мүмкүн болгон жок",
+  "tariffUnderstoodBtn": "Түшүнүктүү",
+  "tariffErrorReason": "Тарифти кошуу мүмкүн болгон жок: {reason}",
+  "tariffActiveLabel": "Активдүү",
+  "tariffYourTariff": "Сиздин тарифиңиз",
+  "tariffBuyForSom": "{price} сомго сатып алуу",
+  "tariffOr": "же",
+  "tariffBricksPrice": "{price} Кирпич",
+  "tariffAreaSqM": "{area} м²",
+  "tariffAreaSot": "{area} сот."
 }

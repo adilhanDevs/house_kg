@@ -2137,7 +2137,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tariffInsufficientTitle => 'Недостаточно кирпичей';
 
   @override
-  String get tariffTopupBtn => 'Пополнить баланс';
+  String get tariffTopupBtn => 'Пополнить';
 
   @override
   String get tariffConfirmBtn => 'Подтвердить';
@@ -2331,4 +2331,106 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get listingDetailsDownloadAllPhotos => 'Скачать все фото';
+
+  @override
+  String get adPromoChangeTariff => 'Сменить тариф';
+
+  @override
+  String adPromoRooms(Object count) {
+    return '$count-комн.';
+  }
+
+  @override
+  String adPromoFloor(Object floor, Object floors) {
+    return '$floor/$floors эт.';
+  }
+
+  @override
+  String adPromoActiveDays(Object active, Object total) {
+    return '$active из $total дней активно';
+  }
+
+  @override
+  String adPromoBudget(Object cost) {
+    return 'Бюджет: $cost кирпичей';
+  }
+
+  @override
+  String get adPromoLeads => 'Лид';
+
+  @override
+  String tariffPurchaseTitle(Object name) {
+    return 'Подписка на тариф «$name» (1 месяц)';
+  }
+
+  @override
+  String tariffPurchaseSuccess(Object name) {
+    return 'Тариф «$name» успешно оплачен и активирован!';
+  }
+
+  @override
+  String get tariffChangeTitle => 'Смена тарифа';
+
+  @override
+  String tariffSubscribeTitle(Object name) {
+    return 'Подписка «$name»';
+  }
+
+  @override
+  String get tariffGoBtn => 'Перейти';
+
+  @override
+  String tariffMissingBricks(Object missing) {
+    return 'Не хватает $missing кирпичей. Пополнить кошелёк и подключить тариф?';
+  }
+
+  @override
+  String tariffTopupPurpose(Object name) {
+    return 'Пополнение на тариф «$name»';
+  }
+
+  @override
+  String tariffTopupSuccess(Object name) {
+    return 'Тариф «$name» успешно активирован!';
+  }
+
+  @override
+  String get tariffErrorTitle => 'Не удалось подключить тариф';
+
+  @override
+  String get tariffUnderstoodBtn => 'Понятно';
+
+  @override
+  String tariffErrorReason(Object reason) {
+    return 'Не удалось подключить тариф: $reason';
+  }
+
+  @override
+  String get tariffActiveLabel => 'Активен';
+
+  @override
+  String get tariffYourTariff => 'Ваш тариф';
+
+  @override
+  String tariffBuyForSom(Object price) {
+    return 'Купить за $price сом';
+  }
+
+  @override
+  String get tariffOr => 'или';
+
+  @override
+  String tariffBricksPrice(Object price) {
+    return '$price Кирпичей';
+  }
+
+  @override
+  String tariffAreaSqM(Object area) {
+    return '$area м²';
+  }
+
+  @override
+  String tariffAreaSot(Object area) {
+    return '$area сот.';
+  }
 }

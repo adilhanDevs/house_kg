@@ -197,7 +197,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                 Navigator.of(context).pushNamed(Routes.tariffs);
               },
               child: const Text(
-                'Сменить тариф',
+                context.l10n.adPromoChangeTariff,
                 style: TextStyle(color: Color(0xffea812e), fontWeight: FontWeight.bold),
               ),
             ),
@@ -592,7 +592,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                     // вовсе (см. lib/data/kind_fields.dart).
                     if (showsField(item.kind, ListingField.rooms)) ...[
                       Text(
-                        '${item.rooms}-комн.',
+                        context.l10n.adPromoRooms(item.rooms ?? 0),
                         style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
                       ),
                       const Padding(
@@ -601,7 +601,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                       ),
                     ],
                     Text(
-                      '${item.area.toStringAsFixed(0)} м²',
+                      context.l10n.tariffAreaSqM(item.area.toStringAsFixed(0)),
                       style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
                     ),
                     if (showsField(item.kind, ListingField.landArea) &&
@@ -611,7 +611,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                         child: Text('•', style: TextStyle(color: Color(0xffd9d9d9))),
                       ),
                       Text(
-                        '${item.landArea!.toStringAsFixed(0)} сот.',
+                        context.l10n.tariffAreaSot(item.landArea!.toStringAsFixed(0)),
                         style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
                       ),
                     ],
@@ -621,7 +621,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
                         child: Text('•', style: TextStyle(color: Color(0xffd9d9d9))),
                       ),
                       Text(
-                        '${item.floor}/${item.floors} эт.',
+                        context.l10n.adPromoFloor(item.floor ?? 0, item.floors ?? 0),
                         style: const TextStyle(fontSize: 13.0, color: Color(0xff555555)),
                       ),
                     ],
@@ -754,7 +754,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
           ),
           const SizedBox(height: 10.0),
           Text(
-            '$promoDays из 5 дней активно',
+            context.l10n.adPromoActiveDays(promoDays, 5),
             style: const TextStyle(
               fontSize: 15.0,
               fontWeight: FontWeight.w600,
@@ -763,7 +763,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
           ),
           const SizedBox(height: 4.0),
           Text(
-            'Бюджет: $promoCost кирпичей',
+            context.l10n.adPromoBudget(promoCost),
             style: const TextStyle(fontSize: 13.0, color: Color(0xffbababa)),
           ),
           const SizedBox(height: 12.0),
@@ -807,7 +807,7 @@ class _AdPreviewPageState extends State<AdPreviewPage> {
           children: [
             Expanded(child: _buildStatItem(views.toString(), context.l10n.addListingViews)),
             const SizedBox(width: 10.0),
-            Expanded(child: _buildStatItem(leads.toString(), 'Лида')),
+            Expanded(child: _buildStatItem(leads.toString(), context.l10n.adPromoLeads)),
             const SizedBox(width: 10.0),
             Expanded(child: _buildStatItem(sent.toString(), context.l10n.addListingSentToClients)),
           ],
