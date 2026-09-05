@@ -6,6 +6,35 @@ import '../../l10n/l10n.dart';
 import '../fig/fig.dart';
 
 /// Пополнение · 2 — 375.0×812.0
+class _Pill extends StatelessWidget {
+  final String text;
+  final Color bgColor;
+  final Color textColor;
+  
+  const _Pill({required this.text, required this.bgColor, required this.textColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13.0,
+          fontFamily: 'SF Pro Display',
+          fontWeight: FontWeight.w600,
+          color: textColor,
+          height: 1.1,
+        ),
+      ),
+    );
+  }
+}
+
 class Screen42Topup2 extends StatelessWidget {
   const Screen42Topup2({super.key});
 
@@ -148,234 +177,39 @@ class Screen42Topup2 extends StatelessWidget {
             )
           ),
           Positioned(
-            left: 75.0, top: 421.0,
-            child: FigBox(
-              width: 225.0,
-              child: FigOverflow(
-                alignment: const Alignment(0.0, -1.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  spacing: 16.0,
-                  children: [
-                    FigBox(
-                      width: 202.0,
-                      child: FigOverflow(
-                        alignment: const Alignment(0.0, -1.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          spacing: 8.0,
-                          children: [
-                            FigText(
-                              align: TextAlign.center,
-                              width: 202.0,
-                              span: 
-                                TextSpan(text: context.l10n.brickSpendTitle, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
-                              ,
-                            ),
-                            FigBox(
-                              width: 142.0,
-                              child: FigOverflow(
-                                alignment: const Alignment(0.0, -1.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  spacing: 8.0,
-                                  children: [
-                                    FigBox(
-                                      width: 82.0,
-                                      height: 30.0,
-                                      color: const Color(0x33ea812e),
-                                      radius: 8.0,
-                                      blur: 2.0,
-                                      padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
-                                      child: Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Positioned(
-                                            left: 0.0, top: 0.0,
-                                            child: FigText(
-                                              noWrap: true,
-                                              width: 52.0,
-                                              height: 14.0,
-                                              span: 
-                                                TextSpan(text: context.l10n.brickSpendAds, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
-                                              ,
-                                            )
-                                          ),
-                                        ],
-                                      )
-                                      ,
-                                    ),
-                                    FigBox(
-                                      width: 142.0,
-                                      height: 30.0,
-                                      color: const Color(0x33ea812e),
-                                      radius: 8.0,
-                                      blur: 2.0,
-                                      padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
-                                      child: Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Positioned(
-                                            left: 0.0, top: 0.0,
-                                            child: FigText(
-                                              noWrap: true,
-                                              width: 112.0,
-                                              height: 14.0,
-                                              span: 
-                                                TextSpan(text: context.l10n.brickSpendSubs, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe0ea812e)))
-                                              ,
-                                            )
-                                          ),
-                                        ],
-                                      )
-                                      ,
-                                    ),
-                                  ],
-                                )
-                                ,
-                              )
-                              ,
-                            ),
-                          ],
-                        )
-                        ,
-                      )
-                      ,
-                    ),
-                    FigBox(
-                      width: 225.0,
-                      child: FigOverflow(
-                        alignment: const Alignment(0.0, -1.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          spacing: 8.0,
-                          children: [
-                            FigText(
-                              align: TextAlign.center,
-                              noWrap: true,
-                              width: 225.0,
-                              span: 
-                                TextSpan(text: context.l10n.brickEarnTitle, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
-                              ,
-                            ),
-                            FigBox(
-                              width: 166.0,
-                              child: FigOverflow(
-                                alignment: const Alignment(0.0, -1.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  spacing: 8.0,
-                                  children: [
-                                    FigBox(
-                                      width: 166.0,
-                                      height: 30.0,
-                                      color: const Color(0x334dba17),
-                                      radius: 8.0,
-                                      padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
-                                      child: FigOverflow(
-                                        freeWidth: true,
-                                        alignment: const Alignment(0.0, 0.0),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          spacing: 4.0,
-                                          children: [
-                                            FigText(
-                                              noWrap: true,
-                                              height: 14.0,
-                                              span: 
-                                                TextSpan(text: context.l10n.brickEarnTopup, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
-                                              ,
-                                            ),
-                                          ],
-                                        )
-                                        ,
-                                      )
-                                      ,
-                                    ),
-                                    FigBox(
-                                      width: 166.0,
-                                      height: 30.0,
-                                      color: const Color(0x334dba17),
-                                      radius: 8.0,
-                                      padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
-                                      child: FigOverflow(
-                                        freeWidth: true,
-                                        alignment: const Alignment(0.0, 0.0),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          spacing: 4.0,
-                                          children: [
-                                            FigText(
-                                              noWrap: true,
-                                              height: 14.0,
-                                              span: 
-                                                TextSpan(text: context.l10n.brickEarnRef, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
-                                              ,
-                                            ),
-                                          ],
-                                        )
-                                        ,
-                                      )
-                                      ,
-                                    ),
-                                    FigBox(
-                                      height: 30.0,
-                                      color: const Color(0x334dba17),
-                                      radius: 8.0,
-                                      padding: const EdgeInsets.fromLTRB(15.0, 8.0, 15.0, 8.0),
-                                      child: FigOverflow(
-                                        freeWidth: true,
-                                        alignment: const Alignment(0.0, 0.0),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          spacing: 4.0,
-                                          children: [
-                                            FigText(
-                                              noWrap: true,
-                                              height: 14.0,
-                                              span: 
-                                                TextSpan(text: context.l10n.brickEarnQuests, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.13, color: const Color(0xff4dba17)))
-                                              ,
-                                            ),
-                                          ],
-                                        )
-                                        ,
-                                      )
-                                      ,
-                                    ),
-                                  ],
-                                )
-                                ,
-                              )
-                              ,
-                            ),
-                          ],
-                        )
-                        ,
-                      )
-                      ,
-                    ),
-                  ],
-                )
-                ,
-              )
-              ,
-            )
+            left: 24.0,
+            right: 24.0,
+            top: 421.0,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  context.l10n.brickSpendTitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 17.0, fontFamily: 'SF Pro Display', fontWeight: FontWeight.w600, height: 1.2, color: Color(0xff000000)),
+                ),
+                const SizedBox(height: 12),
+                _Pill(text: context.l10n.brickSpendAds, bgColor: const Color(0x33ea812e), textColor: const Color(0xe0ea812e)),
+                const SizedBox(height: 8),
+                _Pill(text: context.l10n.brickSpendSubs, bgColor: const Color(0x33ea812e), textColor: const Color(0xe0ea812e)),
+                const SizedBox(height: 24),
+                Text(
+                  context.l10n.brickEarnTitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 17.0, fontFamily: 'SF Pro Display', fontWeight: FontWeight.w600, height: 1.2, color: Color(0xff000000)),
+                ),
+                const SizedBox(height: 12),
+                _Pill(text: context.l10n.brickEarnTopup, bgColor: const Color(0x334dba17), textColor: const Color(0xff4dba17)),
+                const SizedBox(height: 8),
+                _Pill(text: context.l10n.brickEarnRef, bgColor: const Color(0x334dba17), textColor: const Color(0xff4dba17)),
+                const SizedBox(height: 8),
+                _Pill(text: context.l10n.brickEarnQuests, bgColor: const Color(0x334dba17), textColor: const Color(0xff4dba17)),
+              ],
+            ),
           ),
         ],
-      )
-      ,
+      ),
     );
   }
 }
