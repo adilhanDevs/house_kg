@@ -2789,13 +2789,13 @@ abstract class AppLocalizations {
   /// No description provided for @addListingErrorSave.
   ///
   /// In ru, this message translates to:
-  /// **'Ошибка сохранения: \$e'**
+  /// **'Ошибка сохранения: {error}'**
   String addListingErrorSave(Object error);
 
   /// No description provided for @addListingErrorArchive.
   ///
   /// In ru, this message translates to:
-  /// **'Ошибка архивации: \$e'**
+  /// **'Ошибка архивации: {error}'**
   String addListingErrorArchive(Object error);
 
   /// No description provided for @addListingUnarchivedSuccess.
@@ -2849,7 +2849,7 @@ abstract class AppLocalizations {
   /// No description provided for @addListingErrorPublish.
   ///
   /// In ru, this message translates to:
-  /// **'Ошибка публикации: \$e'**
+  /// **'Ошибка публикации: {error}'**
   String addListingErrorPublish(Object error);
 
   /// No description provided for @addListingRetry.
@@ -2939,7 +2939,7 @@ abstract class AppLocalizations {
   /// No description provided for @addListingPromoCostError.
   ///
   /// In ru, this message translates to:
-  /// **'Не удалось получить стоимость продвижения: \$e'**
+  /// **'Не удалось получить стоимость продвижения: {error}'**
   String addListingPromoCostError(Object error);
 
   /// No description provided for @addListingLoadError.
@@ -2951,7 +2951,7 @@ abstract class AppLocalizations {
   /// No description provided for @addListingLoadErrorDetails.
   ///
   /// In ru, this message translates to:
-  /// **'Не удалось загрузить данные объявления: \$e'**
+  /// **'Не удалось загрузить данные объявления: {error}'**
   String addListingLoadErrorDetails(Object error);
 
   /// No description provided for @addListingNotFound.
@@ -3017,7 +3017,7 @@ abstract class AppLocalizations {
   /// No description provided for @addListingPhotoSaveError.
   ///
   /// In ru, this message translates to:
-  /// **'Ошибка сохранения фото: \$e'**
+  /// **'Ошибка сохранения фото: {error}'**
   String addListingPhotoSaveError(Object error);
 
   /// No description provided for @addListingPhotoDeleteError.
@@ -3529,6 +3529,569 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Будет списано: {cost} кирпичей'**
   String addListingPromoCostSummary(String cost);
+
+  /// No description provided for @topupWalletTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пополнение кошелька'**
+  String get topupWalletTitle;
+
+  /// No description provided for @topupWalletDescription.
+  ///
+  /// In ru, this message translates to:
+  /// **'Управляйте своим бюджетом для пополнения и продвижения объявлений.'**
+  String get topupWalletDescription;
+
+  /// No description provided for @topupYourBudget.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш бюджет для пополнения'**
+  String get topupYourBudget;
+
+  /// No description provided for @topupEnterAmount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите значение'**
+  String get topupEnterAmount;
+
+  /// No description provided for @bricksGenitive.
+  ///
+  /// In ru, this message translates to:
+  /// **'кирпичей'**
+  String get bricksGenitive;
+
+  /// No description provided for @som.
+  ///
+  /// In ru, this message translates to:
+  /// **'сом'**
+  String get som;
+
+  /// No description provided for @accountPushMessages.
+  ///
+  /// In ru, this message translates to:
+  /// **'Push о новых сообщениях'**
+  String get accountPushMessages;
+
+  /// No description provided for @accountDeletedSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аккаунт успешно удалён'**
+  String get accountDeletedSuccess;
+
+  /// No description provided for @accountSecurityLogin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Безопасность и вход'**
+  String get accountSecurityLogin;
+
+  /// No description provided for @accountAvatarDeleteWarn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш аватар будет удалён и заменён на инициалы.'**
+  String get accountAvatarDeleteWarn;
+
+  /// No description provided for @accountEnterNewPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите новый пароль'**
+  String get accountEnterNewPassword;
+
+  /// No description provided for @accountDeleteWarning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все ваши объявления, баланс кирпичей и история будут безвозвратно удалены. Это действие нельзя отменить.'**
+  String get accountDeleteWarning;
+
+  /// No description provided for @accountChooseFromGallery.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать из галереи'**
+  String get accountChooseFromGallery;
+
+  /// No description provided for @accountDataUpdated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Данные успешно обновлены!'**
+  String get accountDataUpdated;
+
+  /// No description provided for @accountTwoFactor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Двухфакторная защита (2FA)'**
+  String get accountTwoFactor;
+
+  /// No description provided for @accountIfSetBefore.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если задан ранее'**
+  String get accountIfSetBefore;
+
+  /// No description provided for @accountPasswordHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задайте надёжный пароль не менее 8 символов для безопасности вашего аккаунта.'**
+  String get accountPasswordHint;
+
+  /// No description provided for @accountSmsProtection.
+  ///
+  /// In ru, this message translates to:
+  /// **'Защита входа через СМС'**
+  String get accountSmsProtection;
+
+  /// No description provided for @accountFullName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя и Фамилия'**
+  String get accountFullName;
+
+  /// No description provided for @accountPersonalData.
+  ///
+  /// In ru, this message translates to:
+  /// **'Личные данные'**
+  String get accountPersonalData;
+
+  /// No description provided for @accountCoverUploadFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить фон: {error}'**
+  String accountCoverUploadFailed(String error);
+
+  /// No description provided for @accountAvatarUploadFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить фото: {error}'**
+  String accountAvatarUploadFailed(String error);
+
+  /// No description provided for @accountChangePasswordFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось изменить пароль'**
+  String get accountChangePasswordFailed;
+
+  /// No description provided for @accountSaveFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось сохранить: {error}'**
+  String accountSaveFailed(String error);
+
+  /// No description provided for @accountDeleteFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить аккаунт: {error}'**
+  String accountDeleteFailed(String error);
+
+  /// No description provided for @accountCoverDeleteFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить фон: {error}'**
+  String accountCoverDeleteFailed(String error);
+
+  /// No description provided for @accountAvatarDeleteFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить фото: {error}'**
+  String accountAvatarDeleteFailed(String error);
+
+  /// No description provided for @accountNotSpecified.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не указан'**
+  String get accountNotSpecified;
+
+  /// No description provided for @accountPhoneNumber.
+  ///
+  /// In ru, this message translates to:
+  /// **'Номер телефона'**
+  String get accountPhoneNumber;
+
+  /// No description provided for @accountCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get accountCancel;
+
+  /// No description provided for @accountPasswordsNotMatch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароли не совпадают'**
+  String get accountPasswordsNotMatch;
+
+  /// No description provided for @accountPasswordMinLen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль должен содержать минимум 8 символов'**
+  String get accountPasswordMinLen;
+
+  /// No description provided for @accountRepeatNewPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторите новый пароль'**
+  String get accountRepeatNewPassword;
+
+  /// No description provided for @accountWhatsappHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Покупатели смогут писать вам в WhatsApp по объявлениям'**
+  String get accountWhatsappHint;
+
+  /// No description provided for @accountLinkedToAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Привязан к аккаунту и защищён по SMS'**
+  String get accountLinkedToAccount;
+
+  /// No description provided for @accountEditField.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактировать: {label}'**
+  String accountEditField(String label);
+
+  /// No description provided for @accountTakePhoto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сделать снимок'**
+  String get accountTakePhoto;
+
+  /// No description provided for @accountPasswordChangeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Смена пароля'**
+  String get accountPasswordChangeTitle;
+
+  /// No description provided for @accountMessages.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения'**
+  String get accountMessages;
+
+  /// No description provided for @accountSave.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get accountSave;
+
+  /// No description provided for @accountSavePassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить пароль'**
+  String get accountSavePassword;
+
+  /// No description provided for @accountCurrentPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текущий пароль'**
+  String get accountCurrentPassword;
+
+  /// No description provided for @accountType.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тип аккаунта'**
+  String get accountType;
+
+  /// No description provided for @accountDeleting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удаление...'**
+  String get accountDeleting;
+
+  /// No description provided for @accountDelete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get accountDelete;
+
+  /// No description provided for @accountDeleteAccountPrompt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить аккаунт?'**
+  String get accountDeleteAccountPrompt;
+
+  /// No description provided for @accountDeleteCover.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить фон'**
+  String get accountDeleteCover;
+
+  /// No description provided for @accountDeleteCoverPrompt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить фон профиля?'**
+  String get accountDeleteCoverPrompt;
+
+  /// No description provided for @accountDeleteAvatar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить фото'**
+  String get accountDeleteAvatar;
+
+  /// No description provided for @accountDeleteAvatarPrompt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить фото профиля?'**
+  String get accountDeleteAvatarPrompt;
+
+  /// No description provided for @accountCoverTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фон / обложка профиля'**
+  String get accountCoverTitle;
+
+  /// No description provided for @accountProfileCover.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фон профиля'**
+  String get accountProfileCover;
+
+  /// No description provided for @accountProfileCoverDeleted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фон профиля удалён'**
+  String get accountProfileCoverDeleted;
+
+  /// No description provided for @accountProfileCoverUpdated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фон профиля успешно обновлён!'**
+  String get accountProfileCoverUpdated;
+
+  /// No description provided for @accountCoverDeleteWarn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фоновое изображение будет удалено.'**
+  String get accountCoverDeleteWarn;
+
+  /// No description provided for @accountProfileAvatar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото профиля'**
+  String get accountProfileAvatar;
+
+  /// No description provided for @accountProfileAvatarDeleted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото профиля удалено'**
+  String get accountProfileAvatarDeleted;
+
+  /// No description provided for @accountProfileAvatarUpdated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото профиля успешно обновлено!'**
+  String get accountProfileAvatarUpdated;
+
+  /// No description provided for @accountSettingsLoadFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки уведомлений не загрузились: {error}'**
+  String accountSettingsLoadFailed(String error);
+
+  /// No description provided for @brickSystemTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Система кирпичей'**
+  String get brickSystemTitle;
+
+  /// No description provided for @brickSystemDesc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно потратить только внутри приложения на:\nРекламу, Покупку подписки\nМожно получить баллы при:\nПополнении кошелька, Реферальная система, Выполнение квестов'**
+  String get brickSystemDesc;
+
+  /// No description provided for @brickSystemNext.
+  ///
+  /// In ru, this message translates to:
+  /// **'Далее'**
+  String get brickSystemNext;
+
+  /// No description provided for @tariffPromoPosts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продвижение на\nмаксимуме {count} постов'**
+  String tariffPromoPosts(int count);
+
+  /// No description provided for @tariffMaxPosts.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выкладка до {count} постов'**
+  String tariffMaxPosts(int count);
+
+  /// No description provided for @tariffReels.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступ\n{count} видео REELS'**
+  String tariffReels(int count);
+
+  /// No description provided for @tariffBricks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Накопление\nкирпичей'**
+  String get tariffBricks;
+
+  /// No description provided for @tariffCatalog.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создание каталога'**
+  String get tariffCatalog;
+
+  /// No description provided for @tariffWhatsapp.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступ к\nWhatsapp'**
+  String get tariffWhatsapp;
+
+  /// No description provided for @tariffCostBricks.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} кирпичей'**
+  String tariffCostBricks(int count);
+
+  /// No description provided for @tariffCostSom.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} сом'**
+  String tariffCostSom(int count);
+
+  /// No description provided for @tariffSwitchToFree.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перейти на базовый тариф «{name}»?\nЛимит составит до {maxPosts} активных постов.'**
+  String tariffSwitchToFree(String name, int maxPosts);
+
+  /// No description provided for @tariffSwitchWithBricks.
+  ///
+  /// In ru, this message translates to:
+  /// **'С вашего баланса кошелька будет списано {costText}.\nВаш текущий баланс: {balance} кирпичей.\nЛимит активных постов: до {maxPosts}.\n\nАктивировать тариф «{name}»?'**
+  String tariffSwitchWithBricks(
+    String name,
+    int maxPosts,
+    Object balance,
+    Object costText,
+  );
+
+  /// No description provided for @tariffSwitchPaid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стоимость тарифа: {costText} на 1 месяц.\nЛимит активных постов: до {maxPosts}.\n\nПодтвердить оформление тарифа «{name}»?'**
+  String tariffSwitchPaid(String name, int maxPosts, Object costText);
+
+  /// No description provided for @tariffSwitchTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переход на тариф'**
+  String get tariffSwitchTitle;
+
+  /// No description provided for @tariffInsufficientFunds.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы не можете оплатить тариф, так как ваш баланс составляет {balance} кирпичей.\n\nНеобходимо {costText}.'**
+  String tariffInsufficientFunds(int balance, String costText);
+
+  /// No description provided for @tariffInsufficientTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Недостаточно кирпичей'**
+  String get tariffInsufficientTitle;
+
+  /// No description provided for @tariffTopupBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пополнить баланс'**
+  String get tariffTopupBtn;
+
+  /// No description provided for @tariffConfirmBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердить'**
+  String get tariffConfirmBtn;
+
+  /// No description provided for @tariffCancelBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get tariffCancelBtn;
+
+  /// No description provided for @tariffSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тариф успешно изменён!'**
+  String get tariffSuccess;
+
+  /// No description provided for @tariffError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось оформить тариф: {error}'**
+  String tariffError(String error);
+
+  /// No description provided for @tariffChooseBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать тариф'**
+  String get tariffChooseBtn;
+
+  /// No description provided for @tariffCurrentBtn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш текущий тариф'**
+  String get tariffCurrentBtn;
+
+  /// No description provided for @listingRoomsShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'{rooms}-комн.'**
+  String listingRoomsShort(int rooms);
+
+  /// No description provided for @listingAreaShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'{area}м²'**
+  String listingAreaShort(String area);
+
+  /// No description provided for @listingFloorShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'{floor} эт.'**
+  String listingFloorShort(int floor);
+
+  /// No description provided for @listingFloorLong.
+  ///
+  /// In ru, this message translates to:
+  /// **'{floor} этаж'**
+  String listingFloorLong(int floor);
+
+  /// No description provided for @contactWrite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Написать'**
+  String get contactWrite;
+
+  /// No description provided for @contactCall.
+  ///
+  /// In ru, this message translates to:
+  /// **'Позвонить'**
+  String get contactCall;
+
+  /// No description provided for @rolePerformer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Исполнитель'**
+  String get rolePerformer;
+
+  /// No description provided for @timeAgoMinutes.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} мин'**
+  String timeAgoMinutes(int count);
+
+  /// No description provided for @timeAgoHours.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} ч'**
+  String timeAgoHours(int count);
+
+  /// No description provided for @timeAgoDays.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} дн'**
+  String timeAgoDays(int count);
 }
 
 class _AppLocalizationsDelegate

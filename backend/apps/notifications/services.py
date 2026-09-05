@@ -270,9 +270,16 @@ def notify_listing_price_drop(
         cover_url = "/api/v1" + cover_url
 
     district_name = listing.district.name if listing.district else ""
-    rooms_text = f"{listing.rooms}-комн." if listing.rooms and not listing.is_plot else ""
-    specs = [s for s in [district_name, rooms_text] if s]
-    body_text = f"Цена снизилась: {', '.join(specs)} — {listing.price_display}"
+    rooms_ru = f"{listing.rooms}-комн." if listing.rooms and not listing.is_plot else ""
+    rooms_ky = f"{listing.rooms} бөлмө" if listing.rooms and not listing.is_plot else ""
+    
+    specs_ru = [s for s in [district_name, rooms_ru] if s]
+    specs_ky = [s for s in [district_name, rooms_ky] if s]
+    
+    body_ru = f"Цена снизилась: {', '.join(specs_ru)} — {listing.price_display}"
+    body_ky = f"Баасы төмөндөдү: {', '.join(specs_ky)} — {listing.price_display}"
+    
+    body_text = body_ru
 
     drop_amount = old_amount - new_amount
     drop_percent = (drop_amount / old_amount * 100).quantize(Decimal("0.01"))
@@ -319,12 +326,23 @@ def notify_listing_price_drop(
             reason = "viewed"
 
         existed = Notification.objects.filter(user=user, event_key=key).exists()
+        
+        final_payload = {**base_payload, "reason": reason}
+        final_payload["title_i18n"] = {
+            "ru": "Цена снизилась",
+            "ky": "Баасы төмөндөдү",
+        }
+        final_payload["body_i18n"] = {
+            "ru": body_ru,
+            "ky": body_ky,
+        }
+        
         notification = notify(
             user=user,
             notification_type=NotificationType.PRICE_DROP,
             title="Цена снизилась",
             body=body_text,
-            payload={**base_payload, "reason": reason},
+            payload=final_payload,
             listing=listing,
             event_key=key,
         )

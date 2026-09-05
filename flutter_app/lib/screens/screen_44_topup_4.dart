@@ -1,6 +1,7 @@
 // GENERATED from screens/Components.bundle.js — figma node Frame48096303.
 // Do not edit by hand; regenerate with tool/generate_screens.js.
 import 'package:flutter/material.dart';
+import '../../l10n/l10n.dart';
 
 import '../fig/fig.dart';
 
@@ -30,7 +31,7 @@ class Screen44Topup4 extends StatelessWidget {
               width: 222.0,
               height: 25.0,
               span: 
-                TextSpan(text: 'Пополнение кошелька', style: figStyle(fontSize: 21.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
+                TextSpan(text: context.l10n.topupWalletTitle, style: figStyle(fontSize: 21.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
               ,
             )
           ),
@@ -40,7 +41,7 @@ class Screen44Topup4 extends StatelessWidget {
               width: 335.0,
               height: 60.0,
               span: 
-                TextSpan(text: 'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
+                TextSpan(text: context.l10n.topupWalletDescription, style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
               ,
             )
           ),
@@ -64,7 +65,7 @@ class Screen44Topup4 extends StatelessWidget {
                     FigText(
                       noWrap: true,
                       span: 
-                        TextSpan(text: 'Далее', style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.294, color: const Color(0xffffffff)))
+                        TextSpan(text: context.l10n.addListingNext, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.294, color: const Color(0xffffffff)))
                       ,
                     ),
                   ],
@@ -88,7 +89,7 @@ class Screen44Topup4 extends StatelessWidget {
                     FigText(
                       width: 325.0,
                       span: 
-                        TextSpan(text: 'Ваш бюджет для пополнения', style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.17, color: const Color(0xff000000)))
+                        TextSpan(text: context.l10n.topupYourBudget, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.17, color: const Color(0xff000000)))
                       ,
                     ),
                     FigBox(
@@ -119,7 +120,7 @@ class Screen44Topup4 extends StatelessWidget {
                                       width: 110.0,
                                       height: 14.0,
                                       span: 
-                                        TextSpan(text: 'Введите значение', style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe07d7d7d)))
+                                        TextSpan(text: context.l10n.topupEnterAmount, style: figStyle(fontSize: 13.0, family: FigFont.display, weight: 500, height: 1.077, letterSpacing: 0.065, color: const Color(0xe07d7d7d)))
                                       ,
                                     )
                                   ),
@@ -174,7 +175,7 @@ class Screen44Topup4 extends StatelessWidget {
               width: 150.0,
               height: 57.0,
               span: 
-                TextSpan(text: '12 000 ', style: figStyle(fontSize: 48.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.48, color: const Color(0xff000000)))
+                TextSpan(text: "", style: figStyle(fontSize: 48.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.48, color: const Color(0xff000000)))
               ,
             )
           ),
@@ -185,7 +186,7 @@ class Screen44Topup4 extends StatelessWidget {
               width: 78.0,
               height: 32.0,
               span: 
-                TextSpan(text: '+1200 ', style: figStyle(fontSize: 27.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.27, color: const Color(0xff000000)))
+                TextSpan(text: "", style: figStyle(fontSize: 27.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.27, color: const Color(0xff000000)))
               ,
             )
           ),
@@ -204,7 +205,7 @@ class Screen44Topup4 extends StatelessWidget {
               width: 87.0,
               height: 57.0,
               span: 
-                TextSpan(text: 'сом', style: figStyle(fontSize: 48.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.48, color: const Color(0xff7d7d7d)))
+                TextSpan(text: context.l10n.som, style: figStyle(fontSize: 48.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.48, color: const Color(0xff7d7d7d)))
               ,
             )
           ),
@@ -215,7 +216,7 @@ class Screen44Topup4 extends StatelessWidget {
               width: 120.0,
               height: 32.0,
               span: 
-                TextSpan(text: 'кирпичей', style: figStyle(fontSize: 27.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.27, color: const Color(0xff7d7d7d)))
+                TextSpan(text: context.l10n.bricksGenitive, style: figStyle(fontSize: 27.0, family: FigFont.display, weight: 600, height: 1.0, letterSpacing: -0.27, color: const Color(0xff7d7d7d)))
               ,
             )
           ),

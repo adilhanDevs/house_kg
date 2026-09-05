@@ -578,13 +578,12 @@ class HistoryTile extends StatelessWidget {
 }
 
 /// «2 ч назад» — когда объект открывали.
-String _ago(DateTime at) {
+String _ago(DateTime at, BuildContext context) {
   final diff = DateTime.now().difference(at);
-  if (diff.inMinutes < 60) return '${diff.inMinutes} мин';
-  if (diff.inHours < 24) return '${diff.inHours} ч';
-  return '${diff.inDays} дн';
+  if (diff.inMinutes < 60) return context.l10n.timeAgoMinutes(diff.inMinutes);
+  if (diff.inHours < 24) return context.l10n.timeAgoHours(diff.inHours);
+  return context.l10n.timeAgoDays(diff.inDays);
 }
-
 class _Empty extends StatelessWidget {
   const _Empty({required this.message});
 

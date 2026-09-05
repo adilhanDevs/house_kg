@@ -1434,12 +1434,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String addListingErrorSave(Object error) {
-    return 'Ошибка сохранения: \$e';
+    return 'Ошибка сохранения: $error';
   }
 
   @override
   String addListingErrorArchive(Object error) {
-    return 'Ошибка архивации: \$e';
+    return 'Ошибка архивации: $error';
   }
 
   @override
@@ -1469,7 +1469,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String addListingErrorPublish(Object error) {
-    return 'Ошибка публикации: \$e';
+    return 'Ошибка публикации: $error';
   }
 
   @override
@@ -1519,7 +1519,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String addListingPromoCostError(Object error) {
-    return 'Не удалось получить стоимость продвижения: \$e';
+    return 'Не удалось получить стоимость продвижения: $error';
   }
 
   @override
@@ -1527,7 +1527,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String addListingLoadErrorDetails(Object error) {
-    return 'Не удалось загрузить данные объявления: \$e';
+    return 'Не удалось загрузить данные объявления: $error';
   }
 
   @override
@@ -1564,7 +1564,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String addListingPhotoSaveError(Object error) {
-    return 'Ошибка сохранения фото: \$e';
+    return 'Ошибка сохранения фото: $error';
   }
 
   @override
@@ -1860,5 +1860,346 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String addListingPromoCostSummary(String cost) {
     return 'Будет списано: $cost кирпичей';
+  }
+
+  @override
+  String get topupWalletTitle => 'Пополнение кошелька';
+
+  @override
+  String get topupWalletDescription =>
+      'Управляйте своим бюджетом для пополнения и продвижения объявлений.';
+
+  @override
+  String get topupYourBudget => 'Ваш бюджет для пополнения';
+
+  @override
+  String get topupEnterAmount => 'Введите значение';
+
+  @override
+  String get bricksGenitive => 'кирпичей';
+
+  @override
+  String get som => 'сом';
+
+  @override
+  String get accountPushMessages => 'Push о новых сообщениях';
+
+  @override
+  String get accountDeletedSuccess => 'Аккаунт успешно удалён';
+
+  @override
+  String get accountSecurityLogin => 'Безопасность и вход';
+
+  @override
+  String get accountAvatarDeleteWarn =>
+      'Ваш аватар будет удалён и заменён на инициалы.';
+
+  @override
+  String get accountEnterNewPassword => 'Введите новый пароль';
+
+  @override
+  String get accountDeleteWarning =>
+      'Все ваши объявления, баланс кирпичей и история будут безвозвратно удалены. Это действие нельзя отменить.';
+
+  @override
+  String get accountChooseFromGallery => 'Выбрать из галереи';
+
+  @override
+  String get accountDataUpdated => 'Данные успешно обновлены!';
+
+  @override
+  String get accountTwoFactor => 'Двухфакторная защита (2FA)';
+
+  @override
+  String get accountIfSetBefore => 'Если задан ранее';
+
+  @override
+  String get accountPasswordHint =>
+      'Задайте надёжный пароль не менее 8 символов для безопасности вашего аккаунта.';
+
+  @override
+  String get accountSmsProtection => 'Защита входа через СМС';
+
+  @override
+  String get accountFullName => 'Имя и Фамилия';
+
+  @override
+  String get accountPersonalData => 'Личные данные';
+
+  @override
+  String accountCoverUploadFailed(String error) {
+    return 'Не удалось загрузить фон: $error';
+  }
+
+  @override
+  String accountAvatarUploadFailed(String error) {
+    return 'Не удалось загрузить фото: $error';
+  }
+
+  @override
+  String get accountChangePasswordFailed => 'Не удалось изменить пароль';
+
+  @override
+  String accountSaveFailed(String error) {
+    return 'Не удалось сохранить: $error';
+  }
+
+  @override
+  String accountDeleteFailed(String error) {
+    return 'Не удалось удалить аккаунт: $error';
+  }
+
+  @override
+  String accountCoverDeleteFailed(String error) {
+    return 'Не удалось удалить фон: $error';
+  }
+
+  @override
+  String accountAvatarDeleteFailed(String error) {
+    return 'Не удалось удалить фото: $error';
+  }
+
+  @override
+  String get accountNotSpecified => 'Не указан';
+
+  @override
+  String get accountPhoneNumber => 'Номер телефона';
+
+  @override
+  String get accountCancel => 'Отмена';
+
+  @override
+  String get accountPasswordsNotMatch => 'Пароли не совпадают';
+
+  @override
+  String get accountPasswordMinLen =>
+      'Пароль должен содержать минимум 8 символов';
+
+  @override
+  String get accountRepeatNewPassword => 'Повторите новый пароль';
+
+  @override
+  String get accountWhatsappHint =>
+      'Покупатели смогут писать вам в WhatsApp по объявлениям';
+
+  @override
+  String get accountLinkedToAccount => 'Привязан к аккаунту и защищён по SMS';
+
+  @override
+  String accountEditField(String label) {
+    return 'Редактировать: $label';
+  }
+
+  @override
+  String get accountTakePhoto => 'Сделать снимок';
+
+  @override
+  String get accountPasswordChangeTitle => 'Смена пароля';
+
+  @override
+  String get accountMessages => 'Сообщения';
+
+  @override
+  String get accountSave => 'Сохранить';
+
+  @override
+  String get accountSavePassword => 'Сохранить пароль';
+
+  @override
+  String get accountCurrentPassword => 'Текущий пароль';
+
+  @override
+  String get accountType => 'Тип аккаунта';
+
+  @override
+  String get accountDeleting => 'Удаление...';
+
+  @override
+  String get accountDelete => 'Удалить';
+
+  @override
+  String get accountDeleteAccountPrompt => 'Удалить аккаунт?';
+
+  @override
+  String get accountDeleteCover => 'Удалить фон';
+
+  @override
+  String get accountDeleteCoverPrompt => 'Удалить фон профиля?';
+
+  @override
+  String get accountDeleteAvatar => 'Удалить фото';
+
+  @override
+  String get accountDeleteAvatarPrompt => 'Удалить фото профиля?';
+
+  @override
+  String get accountCoverTitle => 'Фон / обложка профиля';
+
+  @override
+  String get accountProfileCover => 'Фон профиля';
+
+  @override
+  String get accountProfileCoverDeleted => 'Фон профиля удалён';
+
+  @override
+  String get accountProfileCoverUpdated => 'Фон профиля успешно обновлён!';
+
+  @override
+  String get accountCoverDeleteWarn => 'Фоновое изображение будет удалено.';
+
+  @override
+  String get accountProfileAvatar => 'Фото профиля';
+
+  @override
+  String get accountProfileAvatarDeleted => 'Фото профиля удалено';
+
+  @override
+  String get accountProfileAvatarUpdated => 'Фото профиля успешно обновлено!';
+
+  @override
+  String accountSettingsLoadFailed(String error) {
+    return 'Настройки уведомлений не загрузились: $error';
+  }
+
+  @override
+  String get brickSystemTitle => 'Система кирпичей';
+
+  @override
+  String get brickSystemDesc =>
+      'Можно потратить только внутри приложения на:\nРекламу, Покупку подписки\nМожно получить баллы при:\nПополнении кошелька, Реферальная система, Выполнение квестов';
+
+  @override
+  String get brickSystemNext => 'Далее';
+
+  @override
+  String tariffPromoPosts(int count) {
+    return 'Продвижение на\nмаксимуме $count постов';
+  }
+
+  @override
+  String tariffMaxPosts(int count) {
+    return 'Выкладка до $count постов';
+  }
+
+  @override
+  String tariffReels(int count) {
+    return 'Доступ\n$count видео REELS';
+  }
+
+  @override
+  String get tariffBricks => 'Накопление\nкирпичей';
+
+  @override
+  String get tariffCatalog => 'Создание каталога';
+
+  @override
+  String get tariffWhatsapp => 'Доступ к\nWhatsapp';
+
+  @override
+  String tariffCostBricks(int count) {
+    return '$count кирпичей';
+  }
+
+  @override
+  String tariffCostSom(int count) {
+    return '$count сом';
+  }
+
+  @override
+  String tariffSwitchToFree(String name, int maxPosts) {
+    return 'Перейти на базовый тариф «$name»?\nЛимит составит до $maxPosts активных постов.';
+  }
+
+  @override
+  String tariffSwitchWithBricks(
+    String name,
+    int maxPosts,
+    Object balance,
+    Object costText,
+  ) {
+    return 'С вашего баланса кошелька будет списано $costText.\nВаш текущий баланс: $balance кирпичей.\nЛимит активных постов: до $maxPosts.\n\nАктивировать тариф «$name»?';
+  }
+
+  @override
+  String tariffSwitchPaid(String name, int maxPosts, Object costText) {
+    return 'Стоимость тарифа: $costText на 1 месяц.\nЛимит активных постов: до $maxPosts.\n\nПодтвердить оформление тарифа «$name»?';
+  }
+
+  @override
+  String get tariffSwitchTitle => 'Переход на тариф';
+
+  @override
+  String tariffInsufficientFunds(int balance, String costText) {
+    return 'Вы не можете оплатить тариф, так как ваш баланс составляет $balance кирпичей.\n\nНеобходимо $costText.';
+  }
+
+  @override
+  String get tariffInsufficientTitle => 'Недостаточно кирпичей';
+
+  @override
+  String get tariffTopupBtn => 'Пополнить баланс';
+
+  @override
+  String get tariffConfirmBtn => 'Подтвердить';
+
+  @override
+  String get tariffCancelBtn => 'Отмена';
+
+  @override
+  String get tariffSuccess => 'Тариф успешно изменён!';
+
+  @override
+  String tariffError(String error) {
+    return 'Не удалось оформить тариф: $error';
+  }
+
+  @override
+  String get tariffChooseBtn => 'Выбрать тариф';
+
+  @override
+  String get tariffCurrentBtn => 'Ваш текущий тариф';
+
+  @override
+  String listingRoomsShort(int rooms) {
+    return '$rooms-комн.';
+  }
+
+  @override
+  String listingAreaShort(String area) {
+    return '$areaм²';
+  }
+
+  @override
+  String listingFloorShort(int floor) {
+    return '$floor эт.';
+  }
+
+  @override
+  String listingFloorLong(int floor) {
+    return '$floor этаж';
+  }
+
+  @override
+  String get contactWrite => 'Написать';
+
+  @override
+  String get contactCall => 'Позвонить';
+
+  @override
+  String get rolePerformer => 'Исполнитель';
+
+  @override
+  String timeAgoMinutes(int count) {
+    return '$count мин';
+  }
+
+  @override
+  String timeAgoHours(int count) {
+    return '$count ч';
+  }
+
+  @override
+  String timeAgoDays(int count) {
+    return '$count дн';
   }
 }

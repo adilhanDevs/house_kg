@@ -1866,4 +1866,347 @@ class AppLocalizationsKy extends AppLocalizations {
   String addListingPromoCostSummary(String cost) {
     return 'Чегерилет: $cost кирпич';
   }
+
+  @override
+  String get topupWalletTitle => 'Капчыкты толуктоо';
+
+  @override
+  String get topupWalletDescription =>
+      'Жарыяларды илгерилетүү үчүн капчыгыңызды башкарыңыз.';
+
+  @override
+  String get topupYourBudget => 'Толуктоо суммасы';
+
+  @override
+  String get topupEnterAmount => 'Сумманы киргизиңиз';
+
+  @override
+  String get bricksGenitive => 'кирпич';
+
+  @override
+  String get som => 'сом';
+
+  @override
+  String get accountPushMessages => 'Жаңы билдирүүлөр жөнүндө Push';
+
+  @override
+  String get accountDeletedSuccess => 'Аккаунт ийгиликтүү жок кылынды';
+
+  @override
+  String get accountSecurityLogin => 'Коопсуздук жана кирүү';
+
+  @override
+  String get accountAvatarDeleteWarn =>
+      'Сиздин аватарыңыз жок кылынат жана баш тамгалар менен алмаштырылат.';
+
+  @override
+  String get accountEnterNewPassword => 'Жаңы сырсөздү киргизиңиз';
+
+  @override
+  String get accountDeleteWarning =>
+      'Бардык жарыяларыңыз, кирпич балансыңыз жана тарыхыңыз биротоло жок кылынат. Бул аракетти жокко чыгаруу мүмкүн эмес.';
+
+  @override
+  String get accountChooseFromGallery => 'Галереядан тандоо';
+
+  @override
+  String get accountDataUpdated => 'Маалыматтар ийгиликтүү жаңыртылды!';
+
+  @override
+  String get accountTwoFactor => 'Эки факторлуу коргоо (2FA)';
+
+  @override
+  String get accountIfSetBefore => 'Эгер мурун коюлган болсо';
+
+  @override
+  String get accountPasswordHint =>
+      'Аккаунтуңуздун коопсуздугу үчүн кеминде 8 белгиден турган ишенимдүү сырсөз коюңуз.';
+
+  @override
+  String get accountSmsProtection => 'SMS аркылуу кирүүнү коргоо';
+
+  @override
+  String get accountFullName => 'Аты жана Фамилиясы';
+
+  @override
+  String get accountPersonalData => 'Жеке маалыматтар';
+
+  @override
+  String accountCoverUploadFailed(String error) {
+    return 'Фонду жүктөөгө болбой калды: $error';
+  }
+
+  @override
+  String accountAvatarUploadFailed(String error) {
+    return 'Сүрөттү жүктөөгө болбой калды: $error';
+  }
+
+  @override
+  String get accountChangePasswordFailed => 'Сырсөздү өзгөртүүгө болбой калды';
+
+  @override
+  String accountSaveFailed(String error) {
+    return 'Сактоого болбой калды: $error';
+  }
+
+  @override
+  String accountDeleteFailed(String error) {
+    return 'Аккаунтту жок кылууга болбой калды: $error';
+  }
+
+  @override
+  String accountCoverDeleteFailed(String error) {
+    return 'Фонду жок кылууга болбой калды: $error';
+  }
+
+  @override
+  String accountAvatarDeleteFailed(String error) {
+    return 'Сүрөттү жок кылууга болбой калды: $error';
+  }
+
+  @override
+  String get accountNotSpecified => 'Көрсөтүлгөн эмес';
+
+  @override
+  String get accountPhoneNumber => 'Телефон номери';
+
+  @override
+  String get accountCancel => 'Жокко чыгаруу';
+
+  @override
+  String get accountPasswordsNotMatch => 'Сырсөздөр дал келбейт';
+
+  @override
+  String get accountPasswordMinLen => 'Сырсөз кеминде 8 белгиден турушу керек';
+
+  @override
+  String get accountRepeatNewPassword => 'Жаңы сырсөздү кайталаңыз';
+
+  @override
+  String get accountWhatsappHint =>
+      'Сатып алуучулар сизге WhatsApp аркылуу жаза алышат';
+
+  @override
+  String get accountLinkedToAccount =>
+      'Аккаунтка байланган жана SMS менен корголгон';
+
+  @override
+  String accountEditField(String label) {
+    return 'Түзөтүү: $label';
+  }
+
+  @override
+  String get accountTakePhoto => 'Сүрөткө тартуу';
+
+  @override
+  String get accountPasswordChangeTitle => 'Сырсөздү алмаштыруу';
+
+  @override
+  String get accountMessages => 'Билдирүүлөр';
+
+  @override
+  String get accountSave => 'Сактоо';
+
+  @override
+  String get accountSavePassword => 'Сырсөздү сактоо';
+
+  @override
+  String get accountCurrentPassword => 'Учурдагы сырсөз';
+
+  @override
+  String get accountType => 'Аккаунттун түрү';
+
+  @override
+  String get accountDeleting => 'Жок кылынууда...';
+
+  @override
+  String get accountDelete => 'Жок кылуу';
+
+  @override
+  String get accountDeleteAccountPrompt => 'Аккаунтту жок кыласызбы?';
+
+  @override
+  String get accountDeleteCover => 'Фонду жок кылуу';
+
+  @override
+  String get accountDeleteCoverPrompt => 'Профилдин фонун жок кыласызбы?';
+
+  @override
+  String get accountDeleteAvatar => 'Сүрөттү жок кылуу';
+
+  @override
+  String get accountDeleteAvatarPrompt => 'Профилдин сүрөтүн жок кыласызбы?';
+
+  @override
+  String get accountCoverTitle => 'Профилдин фону / мукабасы';
+
+  @override
+  String get accountProfileCover => 'Профилдин фону';
+
+  @override
+  String get accountProfileCoverDeleted => 'Профилдин фону жок кылынды';
+
+  @override
+  String get accountProfileCoverUpdated =>
+      'Профилдин фону ийгиликтүү жаңыртылды!';
+
+  @override
+  String get accountCoverDeleteWarn => 'Фондук сүрөт жок кылынат.';
+
+  @override
+  String get accountProfileAvatar => 'Профилдин сүрөтү';
+
+  @override
+  String get accountProfileAvatarDeleted => 'Профилдин сүрөтү жок кылынды';
+
+  @override
+  String get accountProfileAvatarUpdated =>
+      'Профилдин сүрөтү ийгиликтүү жаңыртылды!';
+
+  @override
+  String accountSettingsLoadFailed(String error) {
+    return 'Эскертме жөндөөлөрү жүктөлгөн жок: $error';
+  }
+
+  @override
+  String get brickSystemTitle => 'Кирпич системасы';
+
+  @override
+  String get brickSystemDesc =>
+      'Тиркеме ичинде гана сарптоого болот:\nЖарнамага, Жазылуу сатып алууга\nБаллдарды төмөнкү учурларда алууга болот:\nКапчыкты толуктоодо, Рефералдык системада, Квесттерди аткарууда';
+
+  @override
+  String get brickSystemNext => 'Кийинки';
+
+  @override
+  String tariffPromoPosts(int count) {
+    return 'Эң көп $count жарыяны\nилгерилетүү';
+  }
+
+  @override
+  String tariffMaxPosts(int count) {
+    return '$count жарыяга чейин жайгаштыруу';
+  }
+
+  @override
+  String tariffReels(int count) {
+    return '$count REELS\nвидеого уруксат';
+  }
+
+  @override
+  String get tariffBricks => 'Кирпич\nчогултуу';
+
+  @override
+  String get tariffCatalog => 'Каталог түзүү';
+
+  @override
+  String get tariffWhatsapp => 'Whatsapp\'ка\nуруксат';
+
+  @override
+  String tariffCostBricks(int count) {
+    return '$count кирпич';
+  }
+
+  @override
+  String tariffCostSom(int count) {
+    return '$count сом';
+  }
+
+  @override
+  String tariffSwitchToFree(String name, int maxPosts) {
+    return '«$name» базалык тарифине өтөсүзбү?\nЛимит $maxPosts активдүү жарыяга чейин болот.';
+  }
+
+  @override
+  String tariffSwitchWithBricks(
+    String name,
+    int maxPosts,
+    Object balance,
+    Object costText,
+  ) {
+    return 'Капчыгыңыздан $costText алынат.\nУчурдагы балансыңыз: $balance кирпич.\nАктивдүү жарыялардын лимити: $maxPosts чейин.\n\n«$name» тарифин активдештирүү керекпи?';
+  }
+
+  @override
+  String tariffSwitchPaid(String name, int maxPosts, Object costText) {
+    return 'Тарифтин баасы: 1 айга $costText.\nАктивдүү жарыялардын лимити: $maxPosts чейин.\n\n«$name» тарифин тариздөөнү ырастайсызбы?';
+  }
+
+  @override
+  String get tariffSwitchTitle => 'Тарифке өтүү';
+
+  @override
+  String tariffInsufficientFunds(int balance, String costText) {
+    return 'Сиз тарифти төлөй албайсыз, анткени балансыңызда $balance кирпич бар.\n\n$costText керек.';
+  }
+
+  @override
+  String get tariffInsufficientTitle => 'Кирпич жетишсиз';
+
+  @override
+  String get tariffTopupBtn => 'Балансты толуктоо';
+
+  @override
+  String get tariffConfirmBtn => 'Ырастоо';
+
+  @override
+  String get tariffCancelBtn => 'Жокко чыгаруу';
+
+  @override
+  String get tariffSuccess => 'Тариф ийгиликтүү өзгөртүлдү!';
+
+  @override
+  String tariffError(String error) {
+    return 'Тарифти тариздөөгө болбой калды: $error';
+  }
+
+  @override
+  String get tariffChooseBtn => 'Тарифти тандоо';
+
+  @override
+  String get tariffCurrentBtn => 'Учурдагы тарифиңиз';
+
+  @override
+  String listingRoomsShort(int rooms) {
+    return '$rooms бөлмө';
+  }
+
+  @override
+  String listingAreaShort(String area) {
+    return '$areaм²';
+  }
+
+  @override
+  String listingFloorShort(int floor) {
+    return '$floor-каб.';
+  }
+
+  @override
+  String listingFloorLong(int floor) {
+    return '$floor-кабат';
+  }
+
+  @override
+  String get contactWrite => 'Жазуу';
+
+  @override
+  String get contactCall => 'Чалуу';
+
+  @override
+  String get rolePerformer => 'Аткаруучу';
+
+  @override
+  String timeAgoMinutes(int count) {
+    return '$count мүн';
+  }
+
+  @override
+  String timeAgoHours(int count) {
+    return '$count саат';
+  }
+
+  @override
+  String timeAgoDays(int count) {
+    return '$count күн';
+  }
 }

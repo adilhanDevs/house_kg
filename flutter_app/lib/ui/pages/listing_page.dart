@@ -5,6 +5,7 @@
 // кликабельными фото, «Фотообзор» и способ покупки.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../l10n/l10n.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../app/app_state.dart';
@@ -474,7 +475,7 @@ class _ListingPageState extends State<ListingPage> {
                 ),
               )
             : const Icon(Icons.forum_outlined, size: 20.0),
-        label: const Text('Написать'),
+        label: Text(context.l10n.contactWrite),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -1092,12 +1093,12 @@ class _Specs extends StatelessWidget {
     // Подставлять «3-комн.» и «8 этаж» там, где их нет, нельзя: это выдуманные
     // данные. Показываем только то, что применимо к типу объекта.
     final showRooms =
-        showsField(listing.kind, ListingField.rooms) && listing.roomsLabel.isNotEmpty;
+        showsField(listing.kind, ListingField.rooms) && listing.roomsLabel(context.l10n).isNotEmpty;
     final showFloor =
-        showsField(listing.kind, ListingField.floor) && listing.floorLong.isNotEmpty;
+        showsField(listing.kind, ListingField.floor) && listing.floorLong(context.l10n).isNotEmpty;
     final showLand =
         showsField(listing.kind, ListingField.landArea) && listing.landArea != null;
-    final String area = listing.areaLabel;
+    final String area = listing.areaLabel(context.l10n);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1105,7 +1106,7 @@ class _Specs extends StatelessWidget {
       spacing: 7,
       children: [
         if (showRooms) ...[
-          FigText(noWrap: true, span: TextSpan(text: listing.roomsLabel, style: style)),
+          FigText(noWrap: true, span: TextSpan(text: listing.roomsLabel(context.l10n), style: style)),
           const _Dot(),
         ],
         FigText(
@@ -1129,7 +1130,7 @@ class _Specs extends StatelessWidget {
         ],
         if (showFloor) ...[
           const _Dot(),
-          FigText(noWrap: true, span: TextSpan(text: listing.floorLong, style: style)),
+          FigText(noWrap: true, span: TextSpan(text: listing.floorLong(context.l10n), style: style)),
         ],
       ],
     );

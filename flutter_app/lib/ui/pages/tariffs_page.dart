@@ -30,14 +30,14 @@ class _TariffsPageState extends State<TariffsPage> {
     if (plan.code == state.currentTariffCode) return;
 
     final costText = withBricks
-        ? '${plan.priceBricks ?? plan.priceSom} кирпичей'
-        : '${plan.priceSom} сом';
+        ? context.l10n.tariffCostBricks(plan.priceBricks ?? plan.priceSom)
+        : context.l10n.tariffCostSom(plan.priceSom);
 
     final message = plan.isFree
-        ? 'Перейти на базовый тариф «${plan.name}»?\nЛимит составит до ${plan.maxPosts} активных постов.'
+        ? context.l10n.tariffSwitchToFree(plan.name, plan.maxPosts)
         : withBricks
-            ? 'С вашего баланса кошелька будет списано $costText.\nВаш текущий баланс: ${state.walletBalance} кирпичей.\nЛимит активных постов: до ${plan.maxPosts}.\n\nАктивировать тариф «${plan.name}»?'
-            : 'Стоимость тарифа: $costText на 1 месяц.\nЛимит активных постов: до ${plan.maxPosts}.\n\nПодтвердить оформление тарифа «${plan.name}»?';
+            ? context.l10n.tariffSwitchWithBricks(costText, state.walletBalance, plan.maxPosts, plan.name)
+            : context.l10n.tariffSwitchPaid(costText, plan.maxPosts, plan.name);
 
     if (!withBricks && !plan.isFree) {
       // Открываем интерфейс оплаты Finik Pay
@@ -69,7 +69,7 @@ class _TariffsPageState extends State<TariffsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена', style: TextStyle(color: Color(0xff8e8e93))),
+            child: Text(context.l10n.tariffCancelBtn, style: TextStyle(color: Color(0xff8e8e93))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -77,7 +77,7 @@ class _TariffsPageState extends State<TariffsPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(plan.isFree ? 'Перейти' : 'Подтвердить', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(plan.isFree ? 'Перейти' : context.l10n.tariffConfirmBtn, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -108,7 +108,7 @@ class _TariffsPageState extends State<TariffsPage> {
         final topUp = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Недостаточно кирпичей'),
+            title: Text(context.l10n.tariffInsufficientTitle),
             content: Text(
               missing != null
                   ? 'Не хватает $missing кирпичей. Пополнить кошелёк и подключить тариф?'
@@ -117,7 +117,7 @@ class _TariffsPageState extends State<TariffsPage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Отмена'),
+                child: Text(context.l10n.tariffCancelBtn),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xffea812e)),
@@ -295,7 +295,7 @@ class _TariffsPageState extends State<TariffsPage> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    feature.title,
+                                    feature.localizedTitle(context),
                                     style: const TextStyle(
                                       fontSize: 12.5,
                                       height: 1.25,
@@ -330,7 +330,7 @@ class _TariffsPageState extends State<TariffsPage> {
                           child: Text(
                             isCurrent
                                 ? 'Ваш тариф'
-                                : (plan.isFree ? 'Выбрать тариф' : 'Купить за ${plan.priceSom} сом'),
+                                : (plan.isFree ? context.l10n.tariffChooseBtn : 'Купить за ${plan.priceSom} сом'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14.5,

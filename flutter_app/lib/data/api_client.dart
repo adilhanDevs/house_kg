@@ -364,8 +364,9 @@ class ListingApiClient {
   ///
   /// Отдаёт `total_cost`, `balance` и `is_affordable`, поэтому экран может
   /// показать цену и понять, хватает ли кирпичей, ещё до попытки оплаты.
-  Future<Map<String, dynamic>> getPromotionPricing({int days = 1, String? package}) async {
-    final params = <String, String>{'days': days.toString()};
+  Future<Map<String, dynamic>> getPromotionPricing({int days = 1, String? package, List<String> options = const []}) async {
+    final params = <String, dynamic>{'days': days.toString()};
+    if (options.isNotEmpty) params['options'] = options;
     if (package != null && package.isNotEmpty) params['package'] = package;
 
     final uri = Uri.parse('$baseUrl/api/v1/promotions/pricing/')

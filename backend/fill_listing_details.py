@@ -26,9 +26,10 @@ if "DJANGO_SETTINGS_MODULE" not in os.environ:
 else:
     django.setup()
 
-from apps.catalog.enums import MediaKind, MediaStatus
-from apps.catalog.models import Listing, ListingRoom, ListingMedia
 from django.core.files.base import ContentFile
+
+from apps.catalog.enums import MediaKind, MediaStatus
+from apps.catalog.models import Listing, ListingMedia, ListingRoom
 
 
 def fill_listings():

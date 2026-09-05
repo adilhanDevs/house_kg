@@ -3,6 +3,7 @@
 // чтобы поиску и фильтру было что фильтровать, и собраны из тех же фотографий
 // и того же набора полей.
 import 'package:flutter/foundation.dart';
+import '../l10n/l10n.dart';
 
 import 'api_config.dart';
 
@@ -625,11 +626,12 @@ class Listing {
   /// «102 000$» — как в макете: тысячи через неразрывный пробел.
   String get price => '${thousands(priceUsd)}\$';
   String? get oldPrice => oldPriceUsd == null ? null : '${thousands(oldPriceUsd!)}\$';
-  String get roomsLabel => '$rooms-комн.';
-  String get areaLabel => '$areaм';
-  String get floorLabel => '$floor эт.';
-  String get floorLong => '$floor этаж';
-  String get floorOfLabel => '$floor из $floors';
+  
+  String roomsLabel(AppLocalizations l10n) => l10n.listingRoomsShort(rooms);
+  String areaLabel(AppLocalizations l10n) => l10n.listingAreaShort(area.toStringAsFixed(0));
+  String floorLabel(AppLocalizations l10n) => l10n.listingFloorShort(floor);
+  String floorLong(AppLocalizations l10n) => l10n.listingFloorLong(floor);
+  String floorOfLabel(AppLocalizations l10n) => l10n.listingFloorOf(floor, floors);
 
   static String _thousands(int v) {
     final s = v.toString();

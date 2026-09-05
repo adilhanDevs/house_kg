@@ -619,7 +619,6 @@ def test_finik_test_amount_override_for_allowed_user(
     auth: APIClient, user, settings
 ):
     """Разрешённый пользователь получает счёт на test amount вместо номинальной суммы."""
-    from apps.billing.providers.finik import FinikPaymentProvider
 
     settings.FINIK_TEST_AMOUNT_KGS = "1"
     settings.FINIK_TEST_USER_IDS = [str(user.pk)]

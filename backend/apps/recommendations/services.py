@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from apps.catalog.models import Listing, ListingStatus
+from apps.catalog.models import Listing
 from apps.recommendations import constants
 from apps.recommendations.models import InteractionType, RecommendationEvent
 

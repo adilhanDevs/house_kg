@@ -1,6 +1,7 @@
 // GENERATED from screens/Components.bundle.js — figma node Frame48096303.
 // Do not edit by hand; regenerate with tool/generate_screens.js.
 import 'package:flutter/material.dart';
+import '../../l10n/l10n.dart';
 
 import '../fig/fig.dart';
 
@@ -30,7 +31,7 @@ class Screen41Topup1 extends StatelessWidget {
               width: 222.0,
               height: 25.0,
               span: 
-                TextSpan(text: 'Пополнение кошелька', style: figStyle(fontSize: 21.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
+                TextSpan(text: context.l10n.topupWalletTitle, style: figStyle(fontSize: 21.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
               ,
             )
           ),
@@ -40,7 +41,7 @@ class Screen41Topup1 extends StatelessWidget {
               width: 335.0,
               height: 60.0,
               span: 
-                TextSpan(text: 'Сату́рн — шестая планета по удалённости от Солнца и вторая по размерам планета в Солнечной системе после Юпитера.', style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
+                TextSpan(text: context.l10n.topupWalletDescription, style: figStyle(fontSize: 15.0, family: FigFont.display, weight: 500, height: 1.333, color: const Color(0xff7d7d7d)))
               ,
             )
           ),
@@ -64,7 +65,7 @@ class Screen41Topup1 extends StatelessWidget {
                     FigText(
                       noWrap: true,
                       span: 
-                        TextSpan(text: 'Далее', style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.294, color: const Color(0xffffffff)))
+                        TextSpan(text: context.l10n.addListingNext, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.294, color: const Color(0xffffffff)))
                       ,
                     ),
                   ],

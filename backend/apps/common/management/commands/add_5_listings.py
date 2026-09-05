@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 from PIL import Image, ImageDraw
 
-from apps.catalog.enums import PropertyKind, SellerKind, MediaKind
+from apps.catalog.enums import MediaKind, PropertyKind, SellerKind
 from apps.catalog.models import City, District, Listing, ListingMedia
 from apps.catalog.search import update_search_vectors
 

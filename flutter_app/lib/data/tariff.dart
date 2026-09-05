@@ -1,5 +1,29 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:flutter/widgets.dart';
+import '../l10n/l10n.dart';
+
+extension TariffFeatureL10n on TariffFeature {
+  String localizedTitle(BuildContext context) {
+    final l10n = context.l10n;
+    switch (icon) {
+      case TariffFeatureIcon.promotion:
+        return l10n.tariffPromoPosts(this.value);
+      case TariffFeatureIcon.posts:
+        return l10n.tariffMaxPosts(this.value);
+      case TariffFeatureIcon.reels:
+        return l10n.tariffReels(this.value);
+      case TariffFeatureIcon.bricks:
+        return l10n.tariffBricks;
+      case TariffFeatureIcon.catalog:
+        return l10n.tariffCatalog;
+      case TariffFeatureIcon.whatsapp:
+        return l10n.tariffWhatsapp;
+    }
+  }
+}
+
+
 enum TariffFeatureIcon {
   promotion,
   posts,
@@ -14,10 +38,12 @@ class TariffFeature {
   const TariffFeature({
     required this.title,
     required this.icon,
+    this.value = 0,
   });
 
   final String title;
   final TariffFeatureIcon icon;
+  final int value;
 }
 
 @immutable
@@ -92,8 +118,8 @@ const List<TariffPlan> kDefaultTariffPlans = [
     maxPromoPosts: 3,
     maxPosts: 5,
     features: [
-      TariffFeature(title: 'Продвижение на\nмаксимуме 3 постов', icon: TariffFeatureIcon.promotion),
-      TariffFeature(title: 'Выкладка до 5 постов', icon: TariffFeatureIcon.posts),
+      TariffFeature(title: 'Продвижение на\nмаксимуме 3 постов', icon: TariffFeatureIcon.promotion, value: 3),
+      TariffFeature(title: 'Выкладка до 5 постов', icon: TariffFeatureIcon.posts, value: 5),
     ],
   ),
   TariffPlan(
@@ -107,11 +133,11 @@ const List<TariffPlan> kDefaultTariffPlans = [
     hasBricksAccumulation: true,
     hasCatalogCreation: true,
     features: [
-      TariffFeature(title: 'Продвижение на\nмаксимуме 5 постов', icon: TariffFeatureIcon.promotion),
-      TariffFeature(title: 'Доступ\n3 видео REELS', icon: TariffFeatureIcon.reels),
+      TariffFeature(title: 'Продвижение на\nмаксимуме 5 постов', icon: TariffFeatureIcon.promotion, value: 5),
+      TariffFeature(title: 'Доступ\n3 видео REELS', icon: TariffFeatureIcon.reels, value: 3),
       TariffFeature(title: 'Накопление\nкирпичей', icon: TariffFeatureIcon.bricks),
       TariffFeature(title: 'Создание каталога', icon: TariffFeatureIcon.catalog),
-      TariffFeature(title: 'Выкладка\nдо 15 постов', icon: TariffFeatureIcon.posts),
+      TariffFeature(title: 'Выкладка\nдо 15 постов', icon: TariffFeatureIcon.posts, value: 15),
     ],
   ),
   TariffPlan(
@@ -126,12 +152,12 @@ const List<TariffPlan> kDefaultTariffPlans = [
     hasCatalogCreation: true,
     hasWhatsappAccess: true,
     features: [
-      TariffFeature(title: 'Продвижение на\nмаксимуме 15 постов', icon: TariffFeatureIcon.promotion),
+      TariffFeature(title: 'Продвижение на\nмаксимуме 15 постов', icon: TariffFeatureIcon.promotion, value: 15),
       TariffFeature(title: 'Накопление\nкирпичей', icon: TariffFeatureIcon.bricks),
       TariffFeature(title: 'Создание каталога', icon: TariffFeatureIcon.catalog),
-      TariffFeature(title: 'Выкладка\nдо 20 постов', icon: TariffFeatureIcon.posts),
+      TariffFeature(title: 'Выкладка\nдо 20 постов', icon: TariffFeatureIcon.posts, value: 20),
       TariffFeature(title: 'Доступ к\nWhatsapp', icon: TariffFeatureIcon.whatsapp),
-      TariffFeature(title: 'Доступ\n3 видео REELS', icon: TariffFeatureIcon.reels),
+      TariffFeature(title: 'Доступ\n3 видео REELS', icon: TariffFeatureIcon.reels, value: 3),
     ],
   ),
   TariffPlan(
@@ -146,12 +172,12 @@ const List<TariffPlan> kDefaultTariffPlans = [
     hasCatalogCreation: true,
     hasWhatsappAccess: true,
     features: [
-      TariffFeature(title: 'Продвижение на\nмаксимуме 15 постов', icon: TariffFeatureIcon.promotion),
+      TariffFeature(title: 'Продвижение на\nмаксимуме 15 постов', icon: TariffFeatureIcon.promotion, value: 15),
       TariffFeature(title: 'Накопление\nкирпичей', icon: TariffFeatureIcon.bricks),
       TariffFeature(title: 'Создание каталога', icon: TariffFeatureIcon.catalog),
-      TariffFeature(title: 'Выкладка\nдо 20 постов', icon: TariffFeatureIcon.posts),
+      TariffFeature(title: 'Выкладка\nдо 20 постов', icon: TariffFeatureIcon.posts, value: 20),
       TariffFeature(title: 'Доступ к\nWhatsapp', icon: TariffFeatureIcon.whatsapp),
-      TariffFeature(title: 'Доступ\n15 видео REELS', icon: TariffFeatureIcon.reels),
+      TariffFeature(title: 'Доступ\n15 видео REELS', icon: TariffFeatureIcon.reels, value: 15),
     ],
   ),
 ];

@@ -320,6 +320,7 @@ class ListingReelsView(ListAPIView):
 
     def get_queryset(self) -> QuerySet[Listing]:
         from django.db.models import Prefetch
+
         from apps.catalog.enums import MediaKind, MediaStatus
         from apps.catalog.models import ListingMedia
 

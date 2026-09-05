@@ -1,8 +1,8 @@
 import os
-import sys
-import django
 import urllib.request
 from decimal import Decimal
+
+import django
 
 # Настройка Django окружения
 if "DJANGO_SETTINGS_MODULE" not in os.environ:
@@ -11,9 +11,18 @@ django.setup()
 
 from django.core.files.base import ContentFile
 from django.utils import timezone
-from apps.users.models import User, SellerProfile
-from apps.catalog.models import City, District, HouseSeries, Builder, Listing, ListingMedia
-from apps.catalog.enums import PropertyKind, SellerKind, ListingStatus, MediaKind, MediaStatus, Currency
+
+from apps.catalog.enums import (
+    Currency,
+    ListingStatus,
+    MediaKind,
+    MediaStatus,
+    PropertyKind,
+    SellerKind,
+)
+from apps.catalog.models import Builder, City, District, HouseSeries, Listing, ListingMedia
+from apps.users.models import SellerProfile, User
+
 
 def run():
     print("🚀 Начинаем создание данных продавца и объявлений...")

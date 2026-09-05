@@ -5,6 +5,7 @@
 // заголовок, «Скачать все фото», сердце, стрелки, точки, «Вернуться» — кадр
 // закрыт своей фотографией, и потому перерисовано в тех же координатах.
 import 'package:flutter/material.dart';
+import '../../l10n/l10n.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
@@ -631,12 +632,12 @@ class _Specs extends StatelessWidget {
       color: _white,
     );
 
-    final String rooms = (listing.roomsLabel.isNotEmpty && !listing.isPlot)
-        ? listing.roomsLabel
+    final String rooms = (listing.roomsLabel(context.l10n).isNotEmpty && !listing.isPlot)
+        ? listing.roomsLabel(context.l10n)
         : '3-комн.';
-    final String area = listing.areaLabel;
-    final String floor = (listing.floorLong.isNotEmpty && !listing.isPlot)
-        ? listing.floorLong
+    final String area = listing.areaLabel(context.l10n);
+    final String floor = (listing.floorLong(context.l10n).isNotEmpty && !listing.isPlot)
+        ? listing.floorLong(context.l10n)
         : '8 этаж';
 
     return Row(
