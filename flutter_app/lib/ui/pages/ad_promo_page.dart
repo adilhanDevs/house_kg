@@ -1,17 +1,14 @@
 import 'package:house_kgz/l10n/l10n.dart';
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../app/app_state.dart';
 import '../../app/routes.dart';
-import '../../app/stage.dart';
 import '../../data/api_client.dart';
-import '../../fig/fig.dart';
-import '../fig_controls.dart';
 import '../widgets/finik_payment_flow.dart';
 
-/// Какое действие отправляет объявление: публикация с продвижением или без.
+
 enum _PromoAction { next, skip }
 
 class AdPromoPage extends StatefulWidget {
@@ -32,10 +29,10 @@ class _AdPromoPageState extends State<AdPromoPage> {
   final TextEditingController _daysController = TextEditingController();
   
   late final String _idempotencyKey;
-
-  /// Предрасчёт с сервера: цена продвижения и баланс кошелька. Пока не
-  /// загружен, экран не показывает выдуманных чисел.
   Map<String, dynamic>? _pricing;
+
+  _PromoAction? _submitting;
+  bool get _isPublishing => _submitting != null;
 
   @override
   void initState() {
@@ -44,7 +41,6 @@ class _AdPromoPageState extends State<AdPromoPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadPricing());
   }
 
-  /// Тянет стоимость продвижения на выбранное число дней.
   Future<void> _loadPricing() async {
     if (!mounted) return;
     final state = AppScope.read(context);
@@ -53,14 +49,12 @@ class _AdPromoPageState extends State<AdPromoPage> {
       final pricing = await state.apiClient.getPromotionPricing(days: days > 0 ? days : 1);
       if (mounted) setState(() => _pricing = pricing);
     } catch (e) {
-      debugPrint('Не удалось получить стоимость продвижения: \$e');
+      debugPrint('Pricing err: $e');
     }
   }
 
   int get _promotionCost => (_pricing?['total_cost'] as num?)?.toInt() ?? 0;
-
-  int get _walletBalance =>
-      (_pricing?['balance'] as num?)?.toInt() ?? AppScope.read(context).walletBalance;
+  int get _walletBalance => (_pricing?['balance'] as num?)?.toInt() ?? AppScope.read(context).walletBalance;
 
   @override
   void dispose() {
@@ -69,20 +63,6 @@ class _AdPromoPageState extends State<AdPromoPage> {
     super.dispose();
   }
 
-  /// Какое из двух действий сейчас выполняется.
-  ///
-  /// Раньше здесь стоял общий флаг, а индикатор жил только на «Далее» — и
-  /// нажатие «Продолжить без продвижения» крутило колесо на соседней кнопке.
-  /// Человек не понимал, что именно делает приложение.
-  _PromoAction? _submitting;
-
-  bool get _isPublishing => _submitting != null;
-
-  /// Списывает кирпичи за продвижение. При нехватке открывает пополнение
-  /// через Finik на недостающую сумму и повторяет попытку.
-  ///
-  /// Ключ идемпотентности один на обе попытки: повторный запрос с тем же
-  /// ключом не спишет дважды.
   Future<bool> _promote(AppState state, String slug, int days) async {
     try {
       await state.apiClient.promoteListing(slug, days, _idempotencyKey);
@@ -92,15 +72,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
         if (mounted) _showPromotionError(e.message);
         return false;
       }
-
-      // 1 сом = 1 кирпич при пополнении (§1.2 ТЗ), поэтому недостающие
-      // кирпичи — это и есть сумма к оплате.
       final missing = e.missingBricks ?? (_promotionCost - _walletBalance);
       if (missing <= 0) {
         _showPromotionError(e.message);
         return false;
       }
-
       final paid = await startFinikPayment(
         context: context,
         amountSom: missing,
@@ -108,17 +84,12 @@ class _AdPromoPageState extends State<AdPromoPage> {
         state: state,
       );
       if (paid != true || !mounted) return false;
-
       await state.fetchWalletBalance();
       try {
         await state.apiClient.promoteListing(slug, days, _idempotencyKey);
         return true;
-      } catch (retryError) {
-        if (mounted) {
-          _showPromotionError(
-            retryError is ApiException ? retryError.message : retryError.toString(),
-          );
-        }
+      } catch (re) {
+        if (mounted) _showPromotionError(re is ApiException ? re.message : re.toString());
         return false;
       }
     } catch (e) {
@@ -129,20 +100,11 @@ class _AdPromoPageState extends State<AdPromoPage> {
 
   void _showPromotionError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.l10n.addListingPromoNotPaid(message)),
-        duration: const Duration(seconds: 4),
-        backgroundColor: const Color(0xffd93025),
-      ),
+      SnackBar(content: Text(context.l10n.addListingPromoNotPaid(message)), backgroundColor: const Color(0xffd93025)),
     );
   }
 
-  Future<void> _publishListing({
-    required bool withPromo,
-    _PromoAction action = _PromoAction.next,
-  }) async {
-    // Обе кнопки заперты на время отправки: второе нажатие не должно
-    // отправить объявление дважды.
+  Future<void> _publishListing({required bool withPromo, _PromoAction action = _PromoAction.next}) async {
     if (_isPublishing) return;
     setState(() => _submitting = action);
     final state = AppScope.read(context);
@@ -150,68 +112,42 @@ class _AdPromoPageState extends State<AdPromoPage> {
     try {
       await state.apiClient.publishListing(slug);
       state.resetDraft();
-
-      // Продвижение оплачивается кирпичами. Если их не хватает, предлагаем
-      // пополнить кошелёк через Finik и повторяем списание — молча
-      // проглатывать ошибку нельзя, иначе экран рапортует об успехе, которого
-      // не было.
       var promoted = false;
       if (withPromo) {
         final days = int.tryParse(_daysController.text.trim()) ?? _selectedDay;
         promoted = await _promote(state, slug, days);
         if (!promoted && mounted) {
-          // Объявление опубликовано, продвижение — нет. Так и говорим.
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.l10n.addListingPublishedNoPromo),
-              duration: Duration(seconds: 3),
-              backgroundColor: Color(0xffd93025),
-            ),
+            SnackBar(content: Text(context.l10n.addListingPublishedNoPromo), backgroundColor: Color(0xffd93025)),
           );
           Navigator.of(context).pushReplacementNamed(Routes.adPreview, arguments: slug);
           return;
         }
       }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(promoted
-                ? context.l10n.addListingPublishedPromoSuccess
-                : context.l10n.addListingPublishedSuccess2),
-            duration: const Duration(seconds: 2),
+            content: Text(promoted ? context.l10n.addListingPublishedPromoSuccess : context.l10n.addListingPublishedSuccess2),
             backgroundColor: const Color(0xffea812e),
           ),
         );
-        Navigator.of(context).pushReplacementNamed(
-          Routes.adPreview,
-          arguments: slug,
-        );
+        Navigator.of(context).pushReplacementNamed(Routes.adPreview, arguments: slug);
       }
     } catch (e) {
       if (mounted) {
-        final errorMsg = e is ApiException ? e.message : e.toString();
+        final err = e is ApiException ? e.message : e.toString();
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(context.l10n.addListingPublishingTitle),
-            content: Text(errorMsg),
+            content: Text(err),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pushNamed(Routes.tariffs);
-                },
+                onPressed: () { Navigator.of(ctx).pop(); Navigator.of(context).pushNamed(Routes.tariffs); },
                 child: const Text('Сменить тариф', style: TextStyle(color: Color(0xfff5222d), fontWeight: FontWeight.bold)),
               ),
               TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pushReplacementNamed(
-                    Routes.adPreview,
-                    arguments: slug,
-                  );
-                },
+                onPressed: () { Navigator.of(ctx).pop(); Navigator.of(context).pushReplacementNamed(Routes.adPreview, arguments: slug); },
                 child: Text(context.l10n.addListingToPreview, style: TextStyle(color: Color(0xffea812e))),
               ),
               ElevatedButton(
@@ -224,451 +160,372 @@ class _AdPromoPageState extends State<AdPromoPage> {
         );
       }
     } finally {
-      if (mounted) {
-        // Сбрасываем и после ошибки: обе кнопки должны вернуться.
-        setState(() => _submitting = null);
-      }
+      if (mounted) setState(() => _submitting = null);
     }
   }
 
-  Future<void> _onNext() async {
-    if (_useBricks) {
-      await _publishListing(withPromo: true);
-    } else {
-      await _publishListing(withPromo: false);
-    }
+  void _onNext() => _publishListing(withPromo: true, action: _PromoAction.next);
+
+  Widget _buildBrickIcon({double width = 24.0, double height = 16.0}) {
+    return Image.asset(
+      'assets/figma/7d929ed14946ddce.png',
+      width: width,
+      height: height,
+      fit: BoxFit.contain,
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600, color: Colors.black),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const orangeColor = Color(0xffea812e);
-
-    // Кадр макета не знает про системную навигацию Android, и нижние кнопки
-    // упирались в неё: на 412x915 «Продолжить без продвижения» кончалась в
-    // 20 px от края, а жестовая полоса занимает больше. Поднимаем блок
-    // действий ровно на величину этой полосы, пересчитанную в координаты
-    // макета — раскладка остаётся прежней, кнопки перестают уходить под неё.
-    final stageScale = MediaQuery.sizeOf(context).width / kDesignWidth;
-    final safeLift = stageScale > 0 ? bottomSafeInset(context) / stageScale : 0.0;
-
+    final orange = const Color(0xffea812e);
     final sumText = _sumController.text.trim().replaceAll(' ', '');
     final int sumValue = int.tryParse(sumText) ?? 0;
+    final l10n = context.l10n;
 
-    return FigStage(
-      frame: frame(_useBricks ? '51' : '50'),
-      background: const Color(0xffffffff),
-      overlays: [
-        // 1. Белая маска под вкладками бюджетирования (Y=226..416)
-        const Positioned(
-          left: 0.0,
-          right: 0.0,
-          top: 226.0,
-          height: 190.0,
-          child: ColoredBox(color: Color(0xffffffff)),
-        ),
-
-        // 2. Вкладки бюджетирования (Y=224)
-        Positioned(
-          left: 20.0,
-          top: 224.0,
-          width: 335.0,
-          height: 38.0,
-          child: Row(
-            children: [
-              // Левая кнопка «Списать кирпичи»
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => _useBricks = true);
-                  },
-                  child: Container(
-                    height: 38.0,
-                    decoration: BoxDecoration(
-                      color: _useBricks ? orangeColor : const Color(0xffffffff),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: _useBricks ? null : Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(l10n.addListingPromoTitle, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18.0)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.addListingPromoIntro,
+                      style: const TextStyle(fontSize: 14.0, color: Color(0xff7d7d7d)),
                     ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    const SizedBox(height: 16.0),
+                    const Divider(color: Color(0xffe5e5ea), thickness: 1, height: 1),
+                    const SizedBox(height: 16.0),
+                    _buildSectionTitle(l10n.addListingPromoBudget),
+                    const SizedBox(height: 12.0),
+                    Row(
                       children: [
-                        const FigBox(
-                          width: 24.0,
-                          height: 16.0,
-                          bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _useBricks = true),
+                            child: Container(
+                              height: 38.0,
+                              decoration: BoxDecoration(
+                                color: _useBricks ? orange : Colors.white,
+                                borderRadius: BorderRadius.circular(8.0),
+                                border: _useBricks ? null : Border.all(color: const Color(0xffe5e5ea)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildBrickIcon(),
+                                  const SizedBox(width: 4.0),
+                                  Flexible(
+                                    child: Text(
+                                      l10n.addListingSpendBricks,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: _useBricks ? Colors.white : const Color(0xff7d7d7d),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 4.0),
-                        Flexible(
-                          child: Text(
-                            context.l10n.addListingSpendBricks,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: _useBricks ? const Color(0xffffffff) : const Color(0xff7d7d7d),
+                        const SizedBox(width: 6.0),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _useBricks = false),
+                            child: Container(
+                              height: 38.0,
+                              decoration: BoxDecoration(
+                                color: !_useBricks ? orange : Colors.white,
+                                borderRadius: BorderRadius.circular(8.0),
+                                border: !_useBricks ? null : Border.all(color: const Color(0xffe5e5ea)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                l10n.addListingPromoTopupWallet,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: !_useBricks ? Colors.white : const Color(0xff7d7d7d),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6.0),
-              // Правая кнопка «Пополнение кошелька»
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => _useBricks = false);
-                  },
-                  child: Container(
-                    height: 38.0,
-                    decoration: BoxDecoration(
-                      color: !_useBricks ? orangeColor : const Color(0xffffffff),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: !_useBricks ? null : Border.all(color: const Color(0xffe5e5ea), width: 1.0),
+                    const SizedBox(height: 16.0),
+                    if (!_useBricks)
+                      Row(
+                        children: [
+                          Container(
+                            width: 125.0,
+                            height: 36.0,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8.0),
+                              border: Border.all(color: const Color(0xffe5e5ea)),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                            alignment: Alignment.centerLeft,
+                            child: TextField(
+                              controller: _sumController,
+                              keyboardType: TextInputType.number,
+                              onChanged: (_) => setState(() {}),
+                              style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.black),
+                              decoration: InputDecoration(
+                                hintText: l10n.addListingEnterAmount,
+                                hintStyle: const TextStyle(fontSize: 12.0, color: Color(0xff7d7d7d)),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6.0),
+                          Expanded(
+                            child: Container(
+                              height: 36.0,
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              decoration: BoxDecoration(
+                                color: const Color(0xffe8f6e4),
+                                borderRadius: BorderRadius.circular(8.0),
+                                border: Border.all(color: const Color(0xffc5e8bc)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  _buildBrickIcon(width: 22, height: 15),
+                                  const SizedBox(width: 4.0),
+                                  Flexible(
+                                    child: Text(
+                                      l10n.addListingPromoBricksResult(sumValue.toString()),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: Color(0xff4dba17)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Container(
+                        height: 36.0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffe8f6e4),
+                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(color: const Color(0xffc5e8bc)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _buildBrickIcon(),
+                            const SizedBox(width: 6.0),
+                            Flexible(
+                              child: Text(
+                                _pricing == null
+                                    ? l10n.addListingPromoBalance(_walletBalance.toString())
+                                    : l10n.addListingPromoBalanceAndCost(_walletBalance.toString(), _promotionCost.toString()),
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: _pricing != null && _walletBalance < _promotionCost ? const Color(0xffd93025) : const Color(0xff4dba17),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 16.0),
+                    const Divider(color: Color(0xffe5e5ea), thickness: 1, height: 1),
+                    const SizedBox(height: 16.0),
+                    _buildSectionTitle(l10n.addListingPromoDays),
+                    const SizedBox(height: 12.0),
+                    Row(
+                      children: [
+                        ...List.generate(5, (i) {
+                          final day = i + 1;
+                          final isSel = _selectedDay == day;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedDay = day;
+                                _loadPricing();
+                                _daysController.clear();
+                              });
+                            },
+                            child: Container(
+                              width: 30.0,
+                              height: 30.0,
+                              margin: const EdgeInsets.only(right: 4.0),
+                              decoration: BoxDecoration(
+                                color: isSel ? const Color(0xfffdf1e8) : Colors.white,
+                                borderRadius: BorderRadius.circular(8.0),
+                                border: Border.all(color: isSel ? orange : const Color(0xffe5e5ea)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '$day',
+                                style: TextStyle(
+                                  fontSize: 13.0,
+                                  fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                  color: isSel ? orange : const Color(0xff7d7d7d),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                        const SizedBox(width: 4.0),
+                        Expanded(
+                          child: Container(
+                            height: 30.0,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8.0),
+                              border: Border.all(color: const Color(0xffe5e5ea)),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            alignment: Alignment.centerLeft,
+                            child: TextField(
+                              controller: _daysController,
+                              keyboardType: TextInputType.number,
+                              onChanged: (val) {
+                                if (val.isNotEmpty) setState(() => _selectedDay = 0);
+                              },
+                              style: const TextStyle(fontSize: 12.0, color: Colors.black),
+                              decoration: InputDecoration(
+                                hintText: l10n.addListingPromoDaysHint,
+                                hintStyle: const TextStyle(fontSize: 12.0, color: Color(0xff7d7d7d)),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Пополнение кошелька',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: !_useBricks ? const Color(0xffffffff) : const Color(0xff7d7d7d),
+                    const SizedBox(height: 24.0),
+                    _buildToggleRow(l10n.addListingPromoExact, _useTarget, (v) => setState(() => _useTarget = v)),
+                    const SizedBox(height: 16.0),
+                    _buildToggleRow(l10n.addListingPromoClientBase, _useClientBase, (v) => setState(() => _useClientBase = v)),
+                    const SizedBox(height: 16.0),
+                    _buildToggleRow(l10n.addListingPromoWhatsapp, _useWhatsappBase, (v) => setState(() => _useWhatsappBase = v)),
+                    const SizedBox(height: 24.0),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: const Color(0xfff7f7f7),
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.addListingPromoEstimatedViews,
+                            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
+                          const SizedBox(height: 8.0),
+                          Text(
+                            l10n.addListingPromoEstimateDesc,
+                            style: const TextStyle(fontSize: 13.0, color: Color(0xff7d7d7d), height: 1.4),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-
-        // 3. Разделительная линия под кнопками (Y=274)
-        Positioned(
-          left: 20.0,
-          top: 274.0,
-          width: 335.0,
-          height: 1.0,
-          child: Container(color: const Color(0xffe5e5ea)),
-        ),
-
-        // 4. Блок баланса / суммы (Y=286)
-        if (!_useBricks)
-          // Пополнение кошелька: [Введите сумму] + [+X Кирпичей]
-          Positioned(
-            left: 20.0,
-            top: 286.0,
-            width: 335.0,
-            height: 36.0,
-            child: Row(
-              children: [
-                Container(
-                  width: 125.0,
-                  height: 36.0,
-                  decoration: BoxDecoration(
-                    color: const Color(0xffffffff),
-                    borderRadius: BorderRadius.circular(8.0),
-                    border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  alignment: Alignment.centerLeft,
-                  child: TextField(
-                    controller: _sumController,
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                    style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color(0xff000000)),
-                    decoration: InputDecoration(
-                      hintText: context.l10n.addListingEnterAmount,
-                      hintStyle: TextStyle(fontSize: 12.0, color: Color(0xff7d7d7d)),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6.0),
-                Expanded(
-                  child: Container(
-                    height: 36.0,
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xffe8f6e4),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(color: const Color(0xffc5e8bc), width: 1.0),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const FigBox(
-                          width: 22.0,
-                          height: 15.0,
-                          bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
-                        ),
-                        const SizedBox(width: 4.0),
-                        Flexible(
-                          child: Text(
-                            '+$sumValue Кирпичей',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xff4dba17),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
             ),
-          )
-        else
-          // Списать кирпичи: [Ваш баланс: 8938 кирпичей]
-          Positioned(
-            left: 20.0,
-            top: 286.0,
-            height: 36.0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0),
-              decoration: BoxDecoration(
-                color: const Color(0xffe8f6e4),
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: const Color(0xffc5e8bc), width: 1.0),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [BoxShadow(color: Color(0x1a000000), offset: Offset(0, -1), blurRadius: 4)],
               ),
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const FigBox(
-                    width: 24.0,
-                    height: 16.0,
-                    bgImage: FigBgImage('assets/figma/7d929ed14946ddce.png', x: 0.543, y: 0.488, wFactor: 1.622, hFactor: 1.558),
-                  ),
-                  const SizedBox(width: 6.0),
-                  // Настоящий баланс и цена: раньше здесь стояло зашитое
-                  // «8938 кирпичей», одинаковое у всех пользователей.
-                  Text(
-                    _pricing == null
-                        ? 'Ваш баланс: $_walletBalance кирпичей'
-                        : 'Баланс: $_walletBalance · продвижение: $_promotionCost кирпичей',
-                    style: TextStyle(
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w600,
-                      color: _pricing != null && _walletBalance < _promotionCost
-                          ? const Color(0xffd93025)
-                          : const Color(0xff4dba17),
+                  ElevatedButton(
+                    onPressed: _isPublishing ? null : _onNext,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: orange,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                     ),
+                    child: _submitting == _PromoAction.next
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(l10n.addListingNext, style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 8.0),
+                  OutlinedButton(
+                    onPressed: _isPublishing ? null : () => _publishListing(withPromo: false, action: _PromoAction.skip),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: orange,
+                      side: BorderSide(color: orange),
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                    ),
+                    child: _submitting == _PromoAction.skip
+                        ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: orange, strokeWidth: 2))
+                        : Text(l10n.addListingContinueNoPromo, style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
-          ),
-
-        // 5. Заголовок «Количество дней» (Y=338)
-        Positioned(
-          left: 20.0,
-          top: 338.0,
-          child: Text(
-            context.l10n.addListingPromoDays,
-            style: TextStyle(
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-              color: Color(0xff000000),
-            ),
-          ),
+          ],
         ),
+      ),
+    );
+  }
 
-        // 6. Интерактивные чипы дней и поле «Введите значение» (Y=368)
-        Positioned(
-          left: 20.0,
-          top: 368.0,
-          width: 335.0,
-          height: 34.0,
-          child: Row(
-            children: [
-              ...List.generate(5, (i) {
-                final day = i + 1;
-                final isSel = _selectedDay == day;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedDay = day;
-                      _loadPricing();
-                      _daysController.clear();
-                    });
-                  },
-                  child: Container(
-                    width: 30.0,
-                    height: 30.0,
-                    margin: const EdgeInsets.only(right: 4.0),
-                    decoration: BoxDecoration(
-                      color: isSel ? const Color(0xfffdf1e8) : const Color(0xffffffff),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: isSel ? orangeColor : const Color(0xffe5e5ea),
-                        width: 1.0,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '$day',
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                        color: isSel ? orangeColor : const Color(0xff7d7d7d),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              const SizedBox(width: 4.0),
-              Expanded(
-                child: Container(
-                  height: 30.0,
-                  decoration: BoxDecoration(
-                    color: const Color(0xffffffff),
-                    borderRadius: BorderRadius.circular(8.0),
-                    border: Border.all(color: const Color(0xffe5e5ea), width: 1.0),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  alignment: Alignment.centerLeft,
-                  child: TextField(
-                    controller: _daysController,
-                    keyboardType: TextInputType.number,
-                    onChanged: (val) {
-                      if (val.isNotEmpty) {
-                        setState(() => _selectedDay = 0);
-                      }
-                    },
-                    style: TextStyle(fontSize: 12.0, color: Color(0xff000000)),
-                    decoration: InputDecoration(
-                      hintText: context.l10n.addListingEnterValue,
-                      hintStyle: TextStyle(fontSize: 12.0, color: Color(0xff7d7d7d)),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+  Widget _buildToggleRow(String title, bool value, ValueChanged<bool> onChanged) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(title, style: const TextStyle(fontSize: 15.0, color: Colors.black)),
         ),
-
-        // Тумблер «Использовать точное продвижение» (Y=424)
-        Positioned(
-          left: 315.0,
-          top: 424.0,
-          child: FigToggle(
-            value: _useTarget,
-            label: context.l10n.addListingPromoExact,
-            onChanged: (val) => setState(() => _useTarget = val),
-          ),
-        ),
-
-        // Тумблер «Использовать клиентскую базу» (Y=447)
-        Positioned(
-          left: 315.0,
-          top: 447.0,
-          child: FigToggle(
-            value: _useClientBase,
-            label: context.l10n.addListingPromoClientBase,
-            onChanged: (val) => setState(() => _useClientBase = val),
-          ),
-        ),
-
-        // Тумблер «Использовать Whatsapp базу» (Y=470)
-        Positioned(
-          left: 315.0,
-          top: 470.0,
-          child: FigToggle(
-            value: _useWhatsappBase,
-            label: context.l10n.addListingPromoWhatsapp,
-            onChanged: (val) => setState(() => _useWhatsappBase = val),
-          ),
-        ),
-
-        // Маска для скрытия нарисованной на фоне кнопки context.l10n.addListingNext
-        Positioned(
-          left: 20.0,
-          top: 710.0 - safeLift,
-          width: 335.0,
-          height: 60.0,
-          child: const ColoredBox(color: Color(0xffffffff)),
-        ),
-
-        // Кнопка «Далее» (Завершить создание и опубликовать)
-        Positioned(
-          left: 25.0,
-          top: 690.0 - safeLift,
-          width: 325.0,
-          height: 44.0,
-          child: ElevatedButton(
-            onPressed: _isPublishing ? null : _onNext,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: orangeColor,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-            ),
-            child: _submitting == _PromoAction.next
-                ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Text(
-                    context.l10n.addListingNext,
-                    style: TextStyle(
-                      fontSize: 17.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-          ),
-        ),
-
-        // Кнопка «Продолжить без продвижения»
-        Positioned(
-          left: 25.0,
-          top: 744.0 - safeLift,
-          width: 325.0,
-          height: 44.0,
-          child: OutlinedButton(
-            onPressed: _isPublishing
-                ? null
-                : () => _publishListing(
-                      withPromo: false,
-                      action: _PromoAction.skip,
-                    ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: orangeColor),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-            ),
-            child: _submitting == _PromoAction.skip
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: orangeColor,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Text(
-                    context.l10n.addListingContinueNoPromo,
-                    style: TextStyle(
-                      fontSize: 15.0,
-                      fontWeight: FontWeight.bold,
-                      color: orangeColor,
-                    ),
-                  ),
-          ),
+        const SizedBox(width: 16),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: Colors.white,
+          activeTrackColor: const Color(0xffea812e),
         ),
       ],
     );

@@ -482,10 +482,10 @@
   "addListingErrorPublish": "Жарыялоо катасы: {error}",
   "addListingRetry": "Кайталоо",
   "addListingPromotion": "Алдыга жылдыруу",
-  "addListingContinueNoPromo": "Алдыга жылдыруусуз улантуу",
+  "addListingContinueNoPromo": "Илгерилетпей улантуу",
   "addListingPromoTopup": "Жарыяны алдыга жылдыруу үчүн толуктоо",
   "addListingEnterAmount": "Сумманы киргизиңиз",
-  "addListingSpendBricks": "Кирпичтерди эсептен чыгаруу",
+  "addListingSpendBricks": "Кирпичтерди колдонуу",
   "addListingPromoDays": "Күндөрдүн саны",
   "addListingEnterValue": "Маанини киргизиңиз",
   "addListingPromoExact": "Так алдыга жылдырууну колдонуу",
@@ -581,5 +581,39 @@
   "addListingTotalFloorsLabel": "Бардык кабаттар",
   "addListingPriceUSDLabel": "Баасы (\\$ USD)",
   "addListingRoomLabel": "Бөлмө",
-  "addListingUnspecified": "Көрсөтүлгөн эмес"
+  "addListingUnspecified": "Көрсөтүлгөн эмес",
+  "addListingPromoTitle": "Жарыяны илгерилетүү",
+  "addListingPromoIntro": "Жарыяңызды көбүрөөк колдонуучу көрүшү үчүн илгерилетиңиз.",
+  "addListingPromoBudget": "Болжолдуу бюджет",
+  "addListingPromoTopupWallet": "Капчыкты толуктоо",
+  "addListingPromoBricksResult": "+{amount} кирпич",
+  "@addListingPromoBricksResult": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingPromoBalance": "Сиздин баланс: {balance} кирпич",
+  "@addListingPromoBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingPromoBalanceAndCost": "Баланс: {balance} · илгерилетүү: {cost} кирпич",
+  "@addListingPromoBalanceAndCost": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingPromoDaysHint": "Күндөрдүн санын киргизиңиз",
+  "addListingPromoEstimatedViews": "Күнүнө 121–180 көрсөтүү",
+  "addListingPromoEstimateDesc": "Болжолдуу көрсөтүүлөрдүн саны бюджетке жана тандалган мөөнөткө жараша болот."
 }

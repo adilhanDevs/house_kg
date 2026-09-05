@@ -3463,6 +3463,66 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Не указано'**
   String get addListingUnspecified;
+
+  /// No description provided for @addListingPromoTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продвижение'**
+  String get addListingPromoTitle;
+
+  /// No description provided for @addListingPromoIntro.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продвигайте объявление, чтобы его увидело больше пользователей.'**
+  String get addListingPromoIntro;
+
+  /// No description provided for @addListingPromoBudget.
+  ///
+  /// In ru, this message translates to:
+  /// **'Примерный бюджет'**
+  String get addListingPromoBudget;
+
+  /// No description provided for @addListingPromoTopupWallet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пополнение кошелька'**
+  String get addListingPromoTopupWallet;
+
+  /// No description provided for @addListingPromoBricksResult.
+  ///
+  /// In ru, this message translates to:
+  /// **'+{amount} кирпичей'**
+  String addListingPromoBricksResult(String amount);
+
+  /// No description provided for @addListingPromoBalance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш баланс: {balance} кирпичей'**
+  String addListingPromoBalance(String balance);
+
+  /// No description provided for @addListingPromoBalanceAndCost.
+  ///
+  /// In ru, this message translates to:
+  /// **'Баланс: {balance} · продвижение: {cost} кирпичей'**
+  String addListingPromoBalanceAndCost(String balance, String cost);
+
+  /// No description provided for @addListingPromoDaysHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите значение'**
+  String get addListingPromoDaysHint;
+
+  /// No description provided for @addListingPromoEstimatedViews.
+  ///
+  /// In ru, this message translates to:
+  /// **'121–180 показов в день'**
+  String get addListingPromoEstimatedViews;
+
+  /// No description provided for @addListingPromoEstimateDesc.
+  ///
+  /// In ru, this message translates to:
+  /// **'Примерное количество показов зависит от бюджета и выбранного срока.'**
+  String get addListingPromoEstimateDesc;
 }
 
 class _AppLocalizationsDelegate

@@ -843,5 +843,39 @@
   "addListingTotalFloorsLabel": "Всего этажей",
   "addListingPriceUSDLabel": "Стоимость (\\$ USD)",
   "addListingRoomLabel": "Комната",
-  "addListingUnspecified": "Не указано"
+  "addListingUnspecified": "Не указано",
+  "addListingPromoTitle": "Продвижение",
+  "addListingPromoIntro": "Продвигайте объявление, чтобы его увидело больше пользователей.",
+  "addListingPromoBudget": "Примерный бюджет",
+  "addListingPromoTopupWallet": "Пополнение кошелька",
+  "addListingPromoBricksResult": "+{amount} кирпичей",
+  "@addListingPromoBricksResult": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingPromoBalance": "Ваш баланс: {balance} кирпичей",
+  "@addListingPromoBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingPromoBalanceAndCost": "Баланс: {balance} · продвижение: {cost} кирпичей",
+  "@addListingPromoBalanceAndCost": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "addListingPromoDaysHint": "Введите значение",
+  "addListingPromoEstimatedViews": "121–180 показов в день",
+  "addListingPromoEstimateDesc": "Примерное количество показов зависит от бюджета и выбранного срока."
 }

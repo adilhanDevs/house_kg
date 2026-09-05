@@ -1481,7 +1481,7 @@ class AppLocalizationsKy extends AppLocalizations {
   String get addListingPromotion => 'Алдыга жылдыруу';
 
   @override
-  String get addListingContinueNoPromo => 'Алдыга жылдыруусуз улантуу';
+  String get addListingContinueNoPromo => 'Илгерилетпей улантуу';
 
   @override
   String get addListingPromoTopup => 'Жарыяны алдыга жылдыруу үчүн толуктоо';
@@ -1490,7 +1490,7 @@ class AppLocalizationsKy extends AppLocalizations {
   String get addListingEnterAmount => 'Сумманы киргизиңиз';
 
   @override
-  String get addListingSpendBricks => 'Кирпичтерди эсептен чыгаруу';
+  String get addListingSpendBricks => 'Кирпичтерди колдонуу';
 
   @override
   String get addListingPromoDays => 'Күндөрдүн саны';
@@ -1823,4 +1823,42 @@ class AppLocalizationsKy extends AppLocalizations {
 
   @override
   String get addListingUnspecified => 'Көрсөтүлгөн эмес';
+
+  @override
+  String get addListingPromoTitle => 'Жарыяны илгерилетүү';
+
+  @override
+  String get addListingPromoIntro =>
+      'Жарыяңызды көбүрөөк колдонуучу көрүшү үчүн илгерилетиңиз.';
+
+  @override
+  String get addListingPromoBudget => 'Болжолдуу бюджет';
+
+  @override
+  String get addListingPromoTopupWallet => 'Капчыкты толуктоо';
+
+  @override
+  String addListingPromoBricksResult(String amount) {
+    return '+$amount кирпич';
+  }
+
+  @override
+  String addListingPromoBalance(String balance) {
+    return 'Сиздин баланс: $balance кирпич';
+  }
+
+  @override
+  String addListingPromoBalanceAndCost(String balance, String cost) {
+    return 'Баланс: $balance · илгерилетүү: $cost кирпич';
+  }
+
+  @override
+  String get addListingPromoDaysHint => 'Күндөрдүн санын киргизиңиз';
+
+  @override
+  String get addListingPromoEstimatedViews => 'Күнүнө 121–180 көрсөтүү';
+
+  @override
+  String get addListingPromoEstimateDesc =>
+      'Болжолдуу көрсөтүүлөрдүн саны бюджетке жана тандалган мөөнөткө жараша болот.';
 }

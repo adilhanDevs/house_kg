@@ -1818,4 +1818,42 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get addListingUnspecified => 'Не указано';
+
+  @override
+  String get addListingPromoTitle => 'Продвижение';
+
+  @override
+  String get addListingPromoIntro =>
+      'Продвигайте объявление, чтобы его увидело больше пользователей.';
+
+  @override
+  String get addListingPromoBudget => 'Примерный бюджет';
+
+  @override
+  String get addListingPromoTopupWallet => 'Пополнение кошелька';
+
+  @override
+  String addListingPromoBricksResult(String amount) {
+    return '+$amount кирпичей';
+  }
+
+  @override
+  String addListingPromoBalance(String balance) {
+    return 'Ваш баланс: $balance кирпичей';
+  }
+
+  @override
+  String addListingPromoBalanceAndCost(String balance, String cost) {
+    return 'Баланс: $balance · продвижение: $cost кирпичей';
+  }
+
+  @override
+  String get addListingPromoDaysHint => 'Введите значение';
+
+  @override
+  String get addListingPromoEstimatedViews => '121–180 показов в день';
+
+  @override
+  String get addListingPromoEstimateDesc =>
+      'Примерное количество показов зависит от бюджета и выбранного срока.';
 }
