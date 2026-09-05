@@ -183,7 +183,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
     final l10n = context.l10n;
-    final userName = (state.userName ?? '').trim();
+    final fullName = (state.userName ?? '').trim();
+    final userName = fullName.split(' ').first;
     final greeting = userName.isEmpty
         ? l10n.homeGreetingGuest
         : l10n.homeGreeting(userName);
