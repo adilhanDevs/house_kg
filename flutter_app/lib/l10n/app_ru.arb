@@ -877,5 +877,13 @@
   },
   "addListingPromoDaysHint": "Введите значение",
   "addListingPromoEstimatedViews": "121–180 показов в день",
-  "addListingPromoEstimateDesc": "Примерное количество показов зависит от бюджета и выбранного срока."
+  "addListingPromoEstimateDesc": "Примерное количество показов зависит от бюджета и выбранного срока.",
+  "addListingPromoCostSummary": "Будет списано: {cost} кирпичей",
+  "@addListingPromoCostSummary": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  }
 }

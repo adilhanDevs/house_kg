@@ -1861,4 +1861,9 @@ class AppLocalizationsKy extends AppLocalizations {
   @override
   String get addListingPromoEstimateDesc =>
       'Болжолдуу көрсөтүүлөрдүн саны бюджетке жана тандалган мөөнөткө жараша болот.';
+
+  @override
+  String addListingPromoCostSummary(String cost) {
+    return 'Чегерилет: $cost кирпич';
+  }
 }

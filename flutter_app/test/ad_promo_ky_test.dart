@@ -59,6 +59,9 @@ void main() {
     // H. secondary CTA = Илгерилетпей улантуу
     expect(find.text('Илгерилетпей улантуу'), findsWidgets);
 
+    // Check cost summary
+    expect(find.textContaining('Чегерилет:'), findsWidgets);
+
     // Switch to RU
     await tester.pumpWidget(buildApp(state, const Locale('ru')));
     await tester.pumpAndSettle();

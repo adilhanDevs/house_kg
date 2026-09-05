@@ -615,5 +615,13 @@
   },
   "addListingPromoDaysHint": "Күндөрдүн санын киргизиңиз",
   "addListingPromoEstimatedViews": "Күнүнө 121–180 көрсөтүү",
-  "addListingPromoEstimateDesc": "Болжолдуу көрсөтүүлөрдүн саны бюджетке жана тандалган мөөнөткө жараша болот."
+  "addListingPromoEstimateDesc": "Болжолдуу көрсөтүүлөрдүн саны бюджетке жана тандалган мөөнөткө жараша болот.",
+  "addListingPromoCostSummary": "Чегерилет: {cost} кирпич",
+  "@addListingPromoCostSummary": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  }
 }

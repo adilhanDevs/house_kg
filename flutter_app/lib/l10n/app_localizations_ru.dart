@@ -1856,4 +1856,9 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get addListingPromoEstimateDesc =>
       'Примерное количество показов зависит от бюджета и выбранного срока.';
+
+  @override
+  String addListingPromoCostSummary(String cost) {
+    return 'Будет списано: $cost кирпичей';
+  }
 }

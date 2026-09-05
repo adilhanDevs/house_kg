@@ -3523,6 +3523,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Примерное количество показов зависит от бюджета и выбранного срока.'**
   String get addListingPromoEstimateDesc;
+
+  /// No description provided for @addListingPromoCostSummary.
+  ///
+  /// In ru, this message translates to:
+  /// **'Будет списано: {cost} кирпичей'**
+  String addListingPromoCostSummary(String cost);
 }
 
 class _AppLocalizationsDelegate
