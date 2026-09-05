@@ -165,13 +165,17 @@ class _AdPromoPageState extends State<AdPromoPage> {
 
   void _onNext() => _publishListing(withPromo: true, action: _PromoAction.next);
 
-  Widget _buildBrickIcon({double size = 16.0}) {
-    return Image.asset(
+  Widget _buildBrickIcon({double size = 24.0, double scale = 1.0}) {
+    Widget image = Image.asset(
       'assets/figma/7d929ed14946ddce.png',
       width: size,
       height: size,
       fit: BoxFit.contain,
     );
+    if (scale != 1.0) {
+      image = Transform.scale(scale: scale, child: image);
+    }
+    return SizedBox(width: size, height: size, child: image);
   }
 
   Widget _buildSectionTitle(String title) {
@@ -261,7 +265,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       if (!_useBricks)
-                                         Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0)),
+                                         Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0, scale: 1.8)),
                                       Flexible(
                                         child: Text(
                                           l10n.addListingPromoTopupWallet,
@@ -294,7 +298,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0)),
+                                      Padding(padding: const EdgeInsets.only(right: 8.0), child: _buildBrickIcon(size: 24.0, scale: 1.8)),
                                       Flexible(
                                         child: Text(
                                           l10n.addListingSpendBricks,
@@ -331,8 +335,8 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                 ),
                                 child: Row(
                                   children: [
-                                    _buildBrickIcon(size: 24.0),
-                                    const SizedBox(width: 12.0),
+                                    _buildBrickIcon(size: 24.0, scale: 2.0),
+                                    const SizedBox(width: 8.0),
                                     Expanded(
                                       child: Text(
                                         _pricing == null
@@ -395,7 +399,7 @@ class _AdPromoPageState extends State<AdPromoPage> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      _buildBrickIcon(size: 20.0),
+                                      _buildBrickIcon(size: 24.0, scale: 2.0),
                                       const SizedBox(width: 8.0),
                                       Flexible(
                                         child: Text(
