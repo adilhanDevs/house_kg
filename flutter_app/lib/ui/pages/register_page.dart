@@ -151,7 +151,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isSending = true);
     try {
-      final otp = await state.startRegistration(phone);
+      final otp = await state.startRegistration(phone, password: password, name: name);
       if (!mounted) return;
       Navigator.of(context).pushNamed(
         Routes.code,

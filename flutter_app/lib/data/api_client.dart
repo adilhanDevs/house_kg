@@ -910,9 +910,17 @@ class ListingApiClient {
               // это подсказка по конкретным полям. У остальных (нехватка
               // средств, конфликт) получилось бы «Недостаточно средств
               // (required: 780, available: 100)» вместо человеческой фразы.
-              if (errorCode == 'validation_error' && details is Map && details.isNotEmpty) {
-                final fieldErrors = details.entries.map((e) => '${e.key}: ${e.value}').join(', ');
-                errorMessage = '$msg ($fieldErrors)';
+                            if (errorCode == 'validation_error' && details is Map && details.isNotEmpty) {
+                final messages = <String>[];
+                for (final value in details.values) {
+                  if (value is List) {
+                    messages.addAll(value.map((e) => e.toString()));
+                  } else {
+                    messages.add(value.toString());
+                  }
+                }
+                errorMessage = messages.join('
+');
               } else {
                 errorMessage = msg.toString();
               }
@@ -1201,7 +1209,7 @@ class ListingApiClient {
   ///
   /// `resend_after` нужен экрану кода: собственный отсчёт клиента расходился
   /// с серверными лимитами и показывал второе, неверное время.
-  Future<Map<String, dynamic>> requestOtp(String phone, {String? purpose}) async {
+  Future<Map<String, dynamic>> requestOtp(String phone, {String? purpose, String? password, String? name}) async {
     final uri = Uri.parse('$baseUrl/api/v1/auth/otp/request/');
     try {
       final response = await _client.post(
@@ -1213,6 +1221,8 @@ class ListingApiClient {
         body: jsonEncode({
           'phone': phone,
           if (purpose != null) 'purpose': purpose,
+          if (password != null && password.isNotEmpty) 'password': password,
+          if (name != null && name.isNotEmpty) 'name': name,
         }),
       );
       return _processResponse(response);

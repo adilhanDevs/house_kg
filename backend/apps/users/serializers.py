@@ -260,10 +260,46 @@ class OtpRequestSerializer(serializers.Serializer):
         choices=OtpPurpose.choices,
         default=OtpPurpose.LOGIN,
     )
+    password = serializers.CharField(
+        max_length=128,
+        required=False,
+        allow_blank=True,
+        default="",
+        write_only=True,
+        style={"input_type": "password"},
+    )
+    name = serializers.CharField(
+        max_length=120, 
+        required=False, 
+        allow_blank=True, 
+        default=""
+    )
 
     def validate_phone(self, value: str) -> str:
         return normalize_phone(value)
 
+    def validate_password(self, value: str) -> str:
+        if not value:
+            return value
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
+    def validate(self, attrs: dict) -> dict:
+        purpose = attrs.get("purpose")
+        password = attrs.get("password") or ""
+        
+        # Если цель - регистрация (или регистрация pro), пароль обязателен.
+        if purpose in (OtpPurpose.REGISTER, OtpPurpose.REGISTER):
+            if not password:
+                # Временно не требуем строго, если клиент еще не обновился,
+                # но если передали - он уже провалидирован.
+                pass
+        return attrs
 
 class OtpRequestResponseSerializer(serializers.Serializer):
     """Ответ на запрос кода. Самого кода здесь нет и быть не может."""

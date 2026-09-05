@@ -595,8 +595,8 @@ class AppState extends ChangeNotifier {
   ///
   /// Аккаунт здесь не создаётся и пароль никуда не сохраняется — до ввода
   /// кода мы не знаем, принадлежит ли номер тому, кто его вписал.
-  Future<Map<String, dynamic>> startRegistration(String phone) async {
-    return apiClient.requestOtp(phone, purpose: 'register');
+  Future<Map<String, dynamic>> startRegistration(String phone, {String? password, String? name}) async {
+    return apiClient.requestOtp(phone, purpose: 'register', password: password, name: name);
   }
 
   /// Второй шаг: код подтверждён — заводим аккаунт с именем и паролем.
