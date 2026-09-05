@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../fig/fig.dart';
+import '../../app/app_scope.dart';
 import '../../l10n/l10n.dart';
 
 class SupportPage extends StatefulWidget {
@@ -21,16 +22,21 @@ class _SupportPageState extends State<SupportPage> {
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _msgController.text.trim();
     if (text.isEmpty) return;
     final l10n = context.l10n;
 
     setState(() => _isSending = true);
-    Future.delayed(const Duration(milliseconds: 600), () {
+    
+    try {
+      await AppScope.read(context).sendSupportTicket(
+        subject: 'Сообщение из приложения',
+        message: text,
+      );
+      
       if (!mounted) return;
       setState(() {
-        _isSending = false;
         _msgController.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,7 +55,18 @@ class _SupportPageState extends State<SupportPage> {
           ),
         ),
       );
-    });
+    } catch (e) {
+      if (!mounted) return;
+      // error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.supportSendError),
+          backgroundColor: const Color(0xffd93025),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
   }
 
   Future<void> _openUrl(Uri uri) async {

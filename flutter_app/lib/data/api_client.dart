@@ -919,8 +919,7 @@ class ListingApiClient {
                     messages.add(value.toString());
                   }
                 }
-                errorMessage = messages.join('
-');
+                errorMessage = messages.join('\\n');
               } else {
                 errorMessage = msg.toString();
               }
@@ -1542,5 +1541,20 @@ class ListingApiClient {
       if (e is ApiException || e is NetworkException) rethrow;
       throw NetworkException(e.toString());
     }
+  }
+  Future<void> sendSupportTicket({
+    required String subject,
+    required String message,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/support/tickets/');
+    final response = await _client.post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode({
+        'subject': subject,
+        'message': message,
+      }),
+    );
+    _processResponse(response);
   }
 }

@@ -990,5 +990,6 @@
   "tariffOr": "же",
   "tariffBricksPrice": "{price} Кирпич",
   "tariffAreaSqM": "{area} м²",
-  "tariffAreaSot": "{area} сот."
+  "tariffAreaSot": "{area} сот.",
+  "supportSendError": "Билдирүүнү жөнөтүү мүмкүн болгон жок. Кайра аракет кылыңыз."
 }

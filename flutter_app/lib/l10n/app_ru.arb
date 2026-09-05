@@ -1252,5 +1252,6 @@
   "tariffOr": "или",
   "tariffBricksPrice": "{price} Кирпичей",
   "tariffAreaSqM": "{area} м²",
-  "tariffAreaSot": "{area} сот."
+  "tariffAreaSot": "{area} сот.",
+  "supportSendError": "Не удалось отправить сообщение. Попробуйте ещё раз."
 }

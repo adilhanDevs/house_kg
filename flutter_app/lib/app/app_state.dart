@@ -1606,4 +1606,13 @@ class AppScope extends InheritedNotifier<AppState> {
     assert(scope != null, 'AppScope не найден выше по дереву');
     return scope!.notifier!;
   }
+  Future<void> sendSupportTicket({
+    required String subject,
+    required String message,
+  }) async {
+    await apiClient.sendSupportTicket(
+      subject: subject,
+      message: message,
+    );
+  }
 }
