@@ -135,13 +135,13 @@ class _ListingPageState extends State<ListingPage> {
   void _onCallPressed() {
     if (_listing?.sellerPhone == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Номер телефона продавца недоступен')),
+        SnackBar(content: Text(context.l10n.listingDetailsPhoneUnavailable)),
       );
       return;
     }
     // Здесь логика звонка, например: launchUrl(Uri.parse('tel:${_listing!.sellerPhone}'));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Звоним: ${_listing!.sellerPhone}')),
+      SnackBar(content: Text(context.l10n.listingDetailsCalling(_listing!.sellerPhone))),
     );
   }
 
@@ -159,7 +159,7 @@ class _ListingPageState extends State<ListingPage> {
 
     if (!state.isAuthenticated) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Войдите, чтобы написать продавцу')),
+        SnackBar(content: Text(context.l10n.listingDetailsLoginToMessage)),
       );
       navigator.pushNamed(Routes.welcome);
       return;
@@ -244,8 +244,8 @@ class _ListingPageState extends State<ListingPage> {
     final title = (video?.title != null && video!.title!.isNotEmpty)
         ? video.title!
         : (index == 0
-            ? 'Обзор квартиры'
-            : (index == 1 ? 'Обзор местности' : 'Инфраструктура района'));
+            ? context.l10n.listingDetailsAppOverview
+            : (index == 1 ? context.l10n.listingDetailsAreaOverview : context.l10n.listingDetailsInfrastructure));
 
     String thumbUrl = video?.thumbnailUrl ?? '';
     if (thumbUrl.isEmpty && listing.photos.isNotEmpty) {
@@ -368,7 +368,7 @@ class _ListingPageState extends State<ListingPage> {
               ),
               SizedBox(height: 16),
               Text(
-                'Загрузка объявления...',
+                context.l10n.listingDetailsLoading,
                 style: TextStyle(
                   fontSize: 14,
                   color: Color(0xff8e8e93),
@@ -401,7 +401,7 @@ class _ListingPageState extends State<ListingPage> {
                 const Icon(Icons.info_outline, size: 48, color: Color(0xff8e8e93)),
                 const SizedBox(height: 16),
                 const Text(
-                  'Объявление не найдено или снято с публикации',
+                  context.l10n.listingDetailsNotFound,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -416,7 +416,7 @@ class _ListingPageState extends State<ListingPage> {
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text('Назад'),
+                  child: const Text(context.l10n.listingDetailsBack),
                 ),
               ],
             ),
@@ -432,7 +432,7 @@ class _ListingPageState extends State<ListingPage> {
     final badges = <_Badge>[
       if (listing.owner)
         _Badge(
-          'Собственник',
+          context.l10n.listingDetailsSeller,
           const Color(0xffe8f0fe),
           const Color(0xff1a73e8),
           onTap: () {
@@ -451,9 +451,9 @@ class _ListingPageState extends State<ListingPage> {
           },
         ),
       if (listing.belowMarket)
-        const _Badge('Цена ниже рыночной', Color(0xffe6f4ea), Color(0xff188038)),
+        _Badge(context.l10n.listingDetailsBadgeBelowMarket, Color(0xffe6f4ea), Color(0xff188038)),
       if (listing.redBook)
-        const _Badge('Красная книга', Color(0xfffce8e6), Color(0xffd93025)),
+        _Badge(context.l10n.listingDetailsBadgeRedBook, Color(0xfffce8e6), Color(0xffd93025)),
     ];
 
     return Scaffold(
@@ -527,7 +527,7 @@ class _ListingPageState extends State<ListingPage> {
                   top: 48,
                   child: Semantics(
                     button: true,
-                    label: favourite ? 'Убрать из избранного' : 'В избранное',
+                    label: favourite ? context.l10n.listingDetailsRemoveFavorite : context.l10n.listingDetailsAddFavorite,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => state.toggleFavourite(listing.id),
@@ -711,7 +711,7 @@ class _ListingPageState extends State<ListingPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25),
               child: Text(
-                'Ключевые места',
+                context.l10n.listingDetailsKeyPlaces,
                 style: figStyle(
                   fontSize: 15.0,
                   family: FigFont.display,
@@ -769,7 +769,7 @@ class _ListingPageState extends State<ListingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Общая информация',
+                    context.l10n.listingDetailsGeneralInfo,
                     style: figStyle(
                       fontSize: 17.0,
                       family: FigFont.display,
@@ -779,27 +779,27 @@ class _ListingPageState extends State<ListingPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _buildInfoRow('Общая квадратура', '${listing.area}м²'),
+                  _buildInfoRow(context.l10n.listingDetailsTotalArea, '${listing.area}м²'),
                   for (final room in listing.roomsBreakdown)
-                    _buildInfoRow(room.name, '${room.area.toStringAsFixed(0)}м²'),
+                    _buildInfoRow(localizedRoomName(context.l10n, room.name), '${room.area.toStringAsFixed(0)}м²'),
                   if (showsField(listing.kind, ListingField.interior))
-                    _buildInfoRow('Мебель', listing.furniture.isNotEmpty ? listing.furniture : 'Полностью', isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsFurniture, listing.furniture.isNotEmpty ? listing.furniture : context.l10n.listingDetailsFullyFurnished, isPlain: true),
                   // Фолбэка «из 12» здесь быть не должно: у участка этажей нет
                   // вообще, а у дома их столько, сколько указал владелец.
                   if (showsField(listing.kind, ListingField.floor) && listing.floors > 0)
-                    _buildInfoRow('Этаж', '${listing.floor} из ${listing.floors}', isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsFloor, '${listing.floor} из ${listing.floors}', isPlain: true),
                   if (showsField(listing.kind, ListingField.landArea) && listing.landArea != null)
-                    _buildInfoRow('Площадь участка', '${listing.landArea!.toStringAsFixed(0)} соток', isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsPlotArea, '${listing.landArea!.toStringAsFixed(0)} соток', isPlain: true),
                   if (listing.plotPurpose.isNotEmpty)
-                    _buildInfoRow('Назначение', plotPurposeLabels[listing.plotPurpose] ?? listing.plotPurpose, isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsPurpose, plotPurposeLabels[listing.plotPurpose] ?? listing.plotPurpose, isPlain: true),
                   if (listing.commercialPurpose.isNotEmpty)
-                    _buildInfoRow('Назначение', commercialPurposeLabels[listing.commercialPurpose] ?? listing.commercialPurpose, isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsPurpose, commercialPurposeLabels[listing.commercialPurpose] ?? listing.commercialPurpose, isPlain: true),
                   if (listing.buildingLine.isNotEmpty)
-                    _buildInfoRow('Линия', buildingLineLabels[listing.buildingLine] ?? listing.buildingLine, isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsLine, buildingLineLabels[listing.buildingLine] ?? listing.buildingLine, isPlain: true),
                   if (showsField(listing.kind, ListingField.separateEntrance))
-                    _buildInfoRow('Отдельный вход', listing.hasSeparateEntrance ? 'Есть' : 'Нет', isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsSeparateEntrance, listing.hasSeparateEntrance ? context.l10n.listingDetailsYes : context.l10n.listingDetailsNo, isPlain: true),
                   if (listing.ceilingHeight != null)
-                    _buildInfoRow('Высота потолков', '${listing.ceilingHeight} м', isPlain: true),
+                    _buildInfoRow(context.l10n.listingDetailsCeilingHeight, '${listing.ceilingHeight} м', isPlain: true),
                 ],
               ),
             ),
@@ -821,7 +821,7 @@ class _ListingPageState extends State<ListingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Варианты покупки',
+                    context.l10n.listingDetailsPurchaseOptions,
                     style: figStyle(
                       fontSize: 17.0,
                       family: FigFont.display,
@@ -848,7 +848,7 @@ class _ListingPageState extends State<ListingPage> {
                               ),
                             ),
                             child: Text(
-                              'Прямая покупка',
+                              context.l10n.listingDetailsDirectPurchase,
                               style: TextStyle(
                                 fontSize: 13.0,
                                 fontWeight: !_useMortgage ? FontWeight.w600 : FontWeight.w400,
@@ -874,7 +874,7 @@ class _ListingPageState extends State<ListingPage> {
                               ),
                             ),
                             child: Text(
-                              'Ипотека',
+                              context.l10n.listingDetailsMortgage,
                               style: TextStyle(
                                 fontSize: 13.0,
                                 fontWeight: _useMortgage ? FontWeight.w600 : FontWeight.w400,
@@ -900,7 +900,7 @@ class _ListingPageState extends State<ListingPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Можно сторговаться',
+                    context.l10n.listingDetailsNegotiable,
                     style: figStyle(
                       fontSize: 15.0,
                       family: FigFont.display,
@@ -928,7 +928,7 @@ class _ListingPageState extends State<ListingPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
                 child: Text(
-                  'Видеообзор',
+                  context.l10n.listingVideo,
                   style: figStyle(
                     fontSize: 17.0,
                     family: FigFont.display,
@@ -964,7 +964,7 @@ class _ListingPageState extends State<ListingPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
                 child: Text(
-                  'Фотообзор',
+                  context.l10n.listingPhotos,
                   style: figStyle(
                     fontSize: 17.0,
                     family: FigFont.display,

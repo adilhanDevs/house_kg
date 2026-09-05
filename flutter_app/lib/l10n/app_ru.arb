@@ -885,15 +885,13 @@
         "type": "String"
       }
     }
-  }
-,
+  },
   "topupWalletTitle": "Пополнение кошелька",
   "topupWalletDescription": "Управляйте своим бюджетом для пополнения и продвижения объявлений.",
   "topupYourBudget": "Ваш бюджет для пополнения",
   "topupEnterAmount": "Введите значение",
   "bricksGenitive": "кирпичей",
-  "som": "сом"
-,
+  "som": "сом",
   "accountPushMessages": "Push о новых сообщениях",
   "accountDeletedSuccess": "Аккаунт успешно удалён",
   "accountSecurityLogin": "Безопасность и вход",
@@ -909,18 +907,54 @@
   "accountFullName": "Имя и Фамилия",
   "accountPersonalData": "Личные данные",
   "accountCoverUploadFailed": "Не удалось загрузить фон: {error}",
-  "@accountCoverUploadFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountCoverUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountAvatarUploadFailed": "Не удалось загрузить фото: {error}",
-  "@accountAvatarUploadFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountAvatarUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountChangePasswordFailed": "Не удалось изменить пароль",
   "accountSaveFailed": "Не удалось сохранить: {error}",
-  "@accountSaveFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountDeleteFailed": "Не удалось удалить аккаунт: {error}",
-  "@accountDeleteFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountCoverDeleteFailed": "Не удалось удалить фон: {error}",
-  "@accountCoverDeleteFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountCoverDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountAvatarDeleteFailed": "Не удалось удалить фото: {error}",
-  "@accountAvatarDeleteFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountAvatarDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountNotSpecified": "Не указан",
   "accountPhoneNumber": "Номер телефона",
   "accountCancel": "Отмена",
@@ -930,7 +964,13 @@
   "accountWhatsappHint": "Покупатели смогут писать вам в WhatsApp по объявлениям",
   "accountLinkedToAccount": "Привязан к аккаунту и защищён по SMS",
   "accountEditField": "Редактировать: {label}",
-  "@accountEditField": { "placeholders": { "label": { "type": "String" } } },
+  "@accountEditField": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "accountTakePhoto": "Сделать снимок",
   "accountPasswordChangeTitle": "Смена пароля",
   "accountMessages": "Сообщения",
@@ -954,61 +994,231 @@
   "accountProfileAvatarDeleted": "Фото профиля удалено",
   "accountProfileAvatarUpdated": "Фото профиля успешно обновлено!",
   "accountSettingsLoadFailed": "Настройки уведомлений не загрузились: {error}",
-  "@accountSettingsLoadFailed": { "placeholders": { "error": { "type": "String" } } }
-,
+  "@accountSettingsLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "brickSystemTitle": "Система кирпичей",
   "brickSystemDesc": "Можно потратить только внутри приложения на:\nРекламу, Покупку подписки\nМожно получить баллы при:\nПополнении кошелька, Реферальная система, Выполнение квестов",
-  "brickSystemNext": "Далее"
-,
+  "brickSystemNext": "Далее",
   "tariffPromoPosts": "Продвижение на\nмаксимуме {count} постов",
-  "@tariffPromoPosts": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffPromoPosts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffMaxPosts": "Выкладка до {count} постов",
-  "@tariffMaxPosts": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffMaxPosts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffReels": "Доступ\n{count} видео REELS",
-  "@tariffReels": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffReels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffBricks": "Накопление\nкирпичей",
   "tariffCatalog": "Создание каталога",
   "tariffWhatsapp": "Доступ к\nWhatsapp",
   "tariffCostBricks": "{count} кирпичей",
-  "@tariffCostBricks": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffCostBricks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffCostSom": "{count} сом",
-  "@tariffCostSom": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffCostSom": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchToFree": "Перейти на базовый тариф «{name}»?\nЛимит составит до {maxPosts} активных постов.",
-  "@tariffSwitchToFree": { "placeholders": { "name": { "type": "String" }, "maxPosts": { "type": "int" } } },
+  "@tariffSwitchToFree": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "maxPosts": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchWithBricks": "С вашего баланса кошелька будет списано {costText}.\nВаш текущий баланс: {balance} кирпичей.\nЛимит активных постов: до {maxPosts}.\n\nАктивировать тариф «{name}»?",
-  "@tariffSwitchWithBricks": { "placeholders": { "name": { "type": "String" }, "maxPosts": { "type": "int" } } },
+  "@tariffSwitchWithBricks": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "maxPosts": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchPaid": "Стоимость тарифа: {costText} на 1 месяц.\nЛимит активных постов: до {maxPosts}.\n\nПодтвердить оформление тарифа «{name}»?",
-  "@tariffSwitchPaid": { "placeholders": { "name": { "type": "String" }, "maxPosts": { "type": "int" } } },
+  "@tariffSwitchPaid": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "maxPosts": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchTitle": "Переход на тариф",
   "tariffInsufficientFunds": "Вы не можете оплатить тариф, так как ваш баланс составляет {balance} кирпичей.\n\nНеобходимо {costText}.",
-  "@tariffInsufficientFunds": { "placeholders": { "balance": { "type": "int" }, "costText": { "type": "String" } } },
+  "@tariffInsufficientFunds": {
+    "placeholders": {
+      "balance": {
+        "type": "int"
+      },
+      "costText": {
+        "type": "String"
+      }
+    }
+  },
   "tariffInsufficientTitle": "Недостаточно кирпичей",
   "tariffTopupBtn": "Пополнить баланс",
   "tariffConfirmBtn": "Подтвердить",
   "tariffCancelBtn": "Отмена",
   "tariffSuccess": "Тариф успешно изменён!",
   "tariffError": "Не удалось оформить тариф: {error}",
-  "@tariffError": { "placeholders": { "error": { "type": "String" } } },
+  "@tariffError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "tariffChooseBtn": "Выбрать тариф",
-  "tariffCurrentBtn": "Ваш текущий тариф"
-,
+  "tariffCurrentBtn": "Ваш текущий тариф",
   "listingRoomsShort": "{rooms}-комн.",
-  "@listingRoomsShort": { "placeholders": { "rooms": { "type": "int" } } },
+  "@listingRoomsShort": {
+    "placeholders": {
+      "rooms": {
+        "type": "int"
+      }
+    }
+  },
   "listingAreaShort": "{area}м²",
-  "@listingAreaShort": { "placeholders": { "area": { "type": "String" } } },
+  "@listingAreaShort": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
   "listingFloorShort": "{floor} эт.",
-  "@listingFloorShort": { "placeholders": { "floor": { "type": "int" } } },
+  "@listingFloorShort": {
+    "placeholders": {
+      "floor": {
+        "type": "int"
+      }
+    }
+  },
   "listingFloorLong": "{floor} этаж",
-  "@listingFloorLong": { "placeholders": { "floor": { "type": "int" } } }
-,
+  "@listingFloorLong": {
+    "placeholders": {
+      "floor": {
+        "type": "int"
+      }
+    }
+  },
   "contactWrite": "Написать",
   "contactCall": "Позвонить",
-  "rolePerformer": "Исполнитель"
-,
+  "rolePerformer": "Исполнитель",
   "timeAgoMinutes": "{count} мин",
-  "@timeAgoMinutes": { "placeholders": { "count": { "type": "int" } } },
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timeAgoHours": "{count} ч",
-  "@timeAgoHours": { "placeholders": { "count": { "type": "int" } } },
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timeAgoDays": "{count} дн",
-  "@timeAgoDays": { "placeholders": { "count": { "type": "int" } } }
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "listingDetailsKeyPlaces": "Ключевые места",
+  "listingDetailsGeneralInfo": "Общая информация",
+  "listingDetailsTotalArea": "Общая квадратура",
+  "listingDetailsPurchaseOptions": "Варианты покупки",
+  "listingDetailsDirectPurchase": "Прямая покупка",
+  "listingDetailsMortgage": "Ипотека",
+  "listingDetailsNegotiable": "Можно сторговаться",
+  "listingDetailsFurniture": "Мебель",
+  "listingDetailsFloor": "Этаж",
+  "listingDetailsPlotArea": "Площадь участка",
+  "listingDetailsPurpose": "Назначение",
+  "listingDetailsLine": "Линия",
+  "listingDetailsSeparateEntrance": "Отдельный вход",
+  "listingDetailsCeilingHeight": "Высота потолков",
+  "listingDetailsYes": "Есть",
+  "listingDetailsNo": "Нет",
+  "listingDetailsPhoneUnavailable": "Номер телефона продавца недоступен",
+  "listingDetailsLoginToMessage": "Войдите, чтобы написать продавцу",
+  "listingDetailsLoading": "Загрузка объявления...",
+  "listingDetailsNotFound": "Объявление не найдено или снято с публикации",
+  "listingDetailsBack": "Назад",
+  "listingDetailsBadgeBelowMarket": "Цена ниже рыночной",
+  "listingDetailsBadgeRedBook": "Красная книга",
+  "listingDetailsRemoveFavorite": "Убрать из избранного",
+  "listingDetailsAddFavorite": "В избранное",
+  "listingDetailsCalling": "Звоним: {phone}",
+  "@listingDetailsCalling": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "listingDetailsAppOverview": "Обзор квартиры",
+  "listingDetailsAreaOverview": "Обзор местности",
+  "listingDetailsInfrastructure": "Инфраструктура района",
+  "listingDetailsFullyFurnished": "Полностью",
+  "addListingRoomKids": "Детская",
+  "addListingRoomOffice": "Кабинет",
+  "addListingRoomStorage": "Кладовая",
+  "addListingRoomLoggia": "Лоджия",
+  "listingDetailsSeller": "Собственник",
+  "listingDetailsDownloadVideo": "Скачать видео",
+  "listingDetailsDownloading": "Скачивание…",
+  "listingDetailsSoundOn": "Звук вкл",
+  "listingDetailsSoundOff": "Звук выкл",
+  "listingDetailsOverviewWithDistrict": "Обзор — {district}",
+  "@listingDetailsOverviewWithDistrict": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "listingDetailsDownloadAllPhotos": "Скачать все фото"
 }

@@ -2209,4 +2209,133 @@ class AppLocalizationsKy extends AppLocalizations {
   String timeAgoDays(int count) {
     return '$count күн';
   }
+
+  @override
+  String get listingDetailsKeyPlaces => 'Негизги жерлер';
+
+  @override
+  String get listingDetailsGeneralInfo => 'Жалпы маалымат';
+
+  @override
+  String get listingDetailsTotalArea => 'Жалпы аянты';
+
+  @override
+  String get listingDetailsPurchaseOptions => 'Сатып алуу варианттары';
+
+  @override
+  String get listingDetailsDirectPurchase => 'Түз сатып алуу';
+
+  @override
+  String get listingDetailsMortgage => 'Ипотека';
+
+  @override
+  String get listingDetailsNegotiable => 'Соодалашса болот';
+
+  @override
+  String get listingDetailsFurniture => 'Эмерек';
+
+  @override
+  String get listingDetailsFloor => 'Кабат';
+
+  @override
+  String get listingDetailsPlotArea => 'Участоктун аянты';
+
+  @override
+  String get listingDetailsPurpose => 'Багыты';
+
+  @override
+  String get listingDetailsLine => 'Линия';
+
+  @override
+  String get listingDetailsSeparateEntrance => 'Өзүнчө кирүүчү эшик';
+
+  @override
+  String get listingDetailsCeilingHeight => 'Шыптын бийиктиги';
+
+  @override
+  String get listingDetailsYes => 'Бар';
+
+  @override
+  String get listingDetailsNo => 'Жок';
+
+  @override
+  String get listingDetailsPhoneUnavailable =>
+      'Сатуучунун телефон номери жеткиликсиз';
+
+  @override
+  String get listingDetailsLoginToMessage => 'Сатуучуга жазуу үчүн кириңиз';
+
+  @override
+  String get listingDetailsLoading => 'Жарыя жүктөлүүдө...';
+
+  @override
+  String get listingDetailsNotFound =>
+      'Жарыя табылган жок же жарыялоодон алынган';
+
+  @override
+  String get listingDetailsBack => 'Артка';
+
+  @override
+  String get listingDetailsBadgeBelowMarket => 'Баасы базар баасынан төмөн';
+
+  @override
+  String get listingDetailsBadgeRedBook => 'Кызыл китеп';
+
+  @override
+  String get listingDetailsRemoveFavorite => 'Сүйүктүүлөрдөн алып салуу';
+
+  @override
+  String get listingDetailsAddFavorite => 'Сүйүктүүлөргө кошуу';
+
+  @override
+  String listingDetailsCalling(String phone) {
+    return '$phone номерине чалуу';
+  }
+
+  @override
+  String get listingDetailsAppOverview => 'Батирге сереп';
+
+  @override
+  String get listingDetailsAreaOverview => 'Аймакка сереп';
+
+  @override
+  String get listingDetailsInfrastructure => 'Райондун инфраструктурасы';
+
+  @override
+  String get listingDetailsFullyFurnished => 'Толук';
+
+  @override
+  String get addListingRoomKids => 'Балдар бөлмөсү';
+
+  @override
+  String get addListingRoomOffice => 'Кабинет';
+
+  @override
+  String get addListingRoomStorage => 'Кмпа';
+
+  @override
+  String get addListingRoomLoggia => 'Лоджия';
+
+  @override
+  String get listingDetailsSeller => 'Мүлк ээси';
+
+  @override
+  String get listingDetailsDownloadVideo => 'Видеону жүктөп алуу';
+
+  @override
+  String get listingDetailsDownloading => 'Жүктөлүүдө…';
+
+  @override
+  String get listingDetailsSoundOn => 'Үн күйүк';
+
+  @override
+  String get listingDetailsSoundOff => 'Үн өчүрүк';
+
+  @override
+  String listingDetailsOverviewWithDistrict(String district) {
+    return 'Сереп — $district';
+  }
+
+  @override
+  String get listingDetailsDownloadAllPhotos => 'Бардык сүрөттөрдү жүктөп алуу';
 }

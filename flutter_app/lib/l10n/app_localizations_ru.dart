@@ -2202,4 +2202,133 @@ class AppLocalizationsRu extends AppLocalizations {
   String timeAgoDays(int count) {
     return '$count дн';
   }
+
+  @override
+  String get listingDetailsKeyPlaces => 'Ключевые места';
+
+  @override
+  String get listingDetailsGeneralInfo => 'Общая информация';
+
+  @override
+  String get listingDetailsTotalArea => 'Общая квадратура';
+
+  @override
+  String get listingDetailsPurchaseOptions => 'Варианты покупки';
+
+  @override
+  String get listingDetailsDirectPurchase => 'Прямая покупка';
+
+  @override
+  String get listingDetailsMortgage => 'Ипотека';
+
+  @override
+  String get listingDetailsNegotiable => 'Можно сторговаться';
+
+  @override
+  String get listingDetailsFurniture => 'Мебель';
+
+  @override
+  String get listingDetailsFloor => 'Этаж';
+
+  @override
+  String get listingDetailsPlotArea => 'Площадь участка';
+
+  @override
+  String get listingDetailsPurpose => 'Назначение';
+
+  @override
+  String get listingDetailsLine => 'Линия';
+
+  @override
+  String get listingDetailsSeparateEntrance => 'Отдельный вход';
+
+  @override
+  String get listingDetailsCeilingHeight => 'Высота потолков';
+
+  @override
+  String get listingDetailsYes => 'Есть';
+
+  @override
+  String get listingDetailsNo => 'Нет';
+
+  @override
+  String get listingDetailsPhoneUnavailable =>
+      'Номер телефона продавца недоступен';
+
+  @override
+  String get listingDetailsLoginToMessage => 'Войдите, чтобы написать продавцу';
+
+  @override
+  String get listingDetailsLoading => 'Загрузка объявления...';
+
+  @override
+  String get listingDetailsNotFound =>
+      'Объявление не найдено или снято с публикации';
+
+  @override
+  String get listingDetailsBack => 'Назад';
+
+  @override
+  String get listingDetailsBadgeBelowMarket => 'Цена ниже рыночной';
+
+  @override
+  String get listingDetailsBadgeRedBook => 'Красная книга';
+
+  @override
+  String get listingDetailsRemoveFavorite => 'Убрать из избранного';
+
+  @override
+  String get listingDetailsAddFavorite => 'В избранное';
+
+  @override
+  String listingDetailsCalling(String phone) {
+    return 'Звоним: $phone';
+  }
+
+  @override
+  String get listingDetailsAppOverview => 'Обзор квартиры';
+
+  @override
+  String get listingDetailsAreaOverview => 'Обзор местности';
+
+  @override
+  String get listingDetailsInfrastructure => 'Инфраструктура района';
+
+  @override
+  String get listingDetailsFullyFurnished => 'Полностью';
+
+  @override
+  String get addListingRoomKids => 'Детская';
+
+  @override
+  String get addListingRoomOffice => 'Кабинет';
+
+  @override
+  String get addListingRoomStorage => 'Кладовая';
+
+  @override
+  String get addListingRoomLoggia => 'Лоджия';
+
+  @override
+  String get listingDetailsSeller => 'Собственник';
+
+  @override
+  String get listingDetailsDownloadVideo => 'Скачать видео';
+
+  @override
+  String get listingDetailsDownloading => 'Скачивание…';
+
+  @override
+  String get listingDetailsSoundOn => 'Звук вкл';
+
+  @override
+  String get listingDetailsSoundOff => 'Звук выкл';
+
+  @override
+  String listingDetailsOverviewWithDistrict(String district) {
+    return 'Обзор — $district';
+  }
+
+  @override
+  String get listingDetailsDownloadAllPhotos => 'Скачать все фото';
 }

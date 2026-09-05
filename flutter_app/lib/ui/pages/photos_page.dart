@@ -5,6 +5,7 @@
 // заголовок, «Скачать все фото», сердце, стрелки, точки, «Вернуться» — кадр
 // закрыт своей фотографией, и потому перерисовано в тех же координатах.
 import 'package:flutter/material.dart';
+
 import '../../l10n/l10n.dart';
 
 import '../../app/app_state.dart';
@@ -246,7 +247,7 @@ class _PhotosPageState extends State<PhotosPage> {
                     FigText(
                       noWrap: true,
                       span: TextSpan(
-                        text: 'Фотообзор',
+                        text: context.l10n.listingPhotos,
                         style: figStyle(
                           fontSize: 21.0,
                           family: FigFont.display,
@@ -357,7 +358,7 @@ class _PhotosPageState extends State<PhotosPage> {
                 top: 756.5,
                 child: Semantics(
                   button: true,
-                  label: 'Вернуться',
+                  label: context.l10n.listingDetailsBack,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => Navigator.of(context).maybePop(),
@@ -395,7 +396,7 @@ class _PhotosPageState extends State<PhotosPage> {
                             FigText(
                               noWrap: true,
                               span: TextSpan(
-                                text: 'Вернуться',
+                                text: context.l10n.listingDetailsBack,
                                 style: figStyle(
                                   fontSize: 13.0,
                                   family: FigFont.display,
@@ -493,7 +494,7 @@ class _About extends StatelessWidget {
         children: [
           Semantics(
             button: true,
-            label: listing.agent,
+            label: listing.localizedAgent(context.l10n),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => Navigator.of(context).pushNamed(
@@ -522,7 +523,7 @@ class _About extends StatelessWidget {
                       FigText(
                         noWrap: true,
                         span: TextSpan(
-                          text: listing.agent,
+                          text: listing.localizedAgent(context.l10n),
                           style: figStyle(
                             fontSize: 15.0,
                             family: FigFont.display,
@@ -723,7 +724,7 @@ class _DownloadPill extends StatelessWidget {
           FigText(
             noWrap: true,
             span: TextSpan(
-              text: 'Скачать все фото',
+              text: context.l10n.listingDetailsDownloadAllPhotos,
               style: figStyle(
                 fontSize: 10.0,
                 family: FigFont.display,

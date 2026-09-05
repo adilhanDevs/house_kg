@@ -58,6 +58,14 @@ enum SellerKind {
   agency('Агенство недвижимости');
 
   const SellerKind(this.label);
+  String localizedLabel(AppLocalizations l10n) {
+    switch (this) {
+      case SellerKind.owner: return l10n.roleOwner;
+      case SellerKind.realtor: return l10n.roleRealtor;
+      case SellerKind.agency: return l10n.roleAgency;
+    }
+  }
+
 
   /// Подпись — как в макете, вместе с его опечаткой в «агенстве».
   final String label;
@@ -535,6 +543,13 @@ class Listing {
   final int floors;
   final String photo;
   final PropertyKind kind;
+  String localizedAgent(AppLocalizations l10n) {
+    if (agent.toLowerCase().trim() == 'собственник') {
+      return l10n.roleOwner;
+    }
+    return agent;
+  }
+
   final SellerKind seller;
   final bool isFavourite;
 

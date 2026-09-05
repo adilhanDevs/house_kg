@@ -4092,6 +4092,252 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'{count} дн'**
   String timeAgoDays(int count);
+
+  /// No description provided for @listingDetailsKeyPlaces.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ключевые места'**
+  String get listingDetailsKeyPlaces;
+
+  /// No description provided for @listingDetailsGeneralInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Общая информация'**
+  String get listingDetailsGeneralInfo;
+
+  /// No description provided for @listingDetailsTotalArea.
+  ///
+  /// In ru, this message translates to:
+  /// **'Общая квадратура'**
+  String get listingDetailsTotalArea;
+
+  /// No description provided for @listingDetailsPurchaseOptions.
+  ///
+  /// In ru, this message translates to:
+  /// **'Варианты покупки'**
+  String get listingDetailsPurchaseOptions;
+
+  /// No description provided for @listingDetailsDirectPurchase.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прямая покупка'**
+  String get listingDetailsDirectPurchase;
+
+  /// No description provided for @listingDetailsMortgage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ипотека'**
+  String get listingDetailsMortgage;
+
+  /// No description provided for @listingDetailsNegotiable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно сторговаться'**
+  String get listingDetailsNegotiable;
+
+  /// No description provided for @listingDetailsFurniture.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мебель'**
+  String get listingDetailsFurniture;
+
+  /// No description provided for @listingDetailsFloor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этаж'**
+  String get listingDetailsFloor;
+
+  /// No description provided for @listingDetailsPlotArea.
+  ///
+  /// In ru, this message translates to:
+  /// **'Площадь участка'**
+  String get listingDetailsPlotArea;
+
+  /// No description provided for @listingDetailsPurpose.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначение'**
+  String get listingDetailsPurpose;
+
+  /// No description provided for @listingDetailsLine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Линия'**
+  String get listingDetailsLine;
+
+  /// No description provided for @listingDetailsSeparateEntrance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отдельный вход'**
+  String get listingDetailsSeparateEntrance;
+
+  /// No description provided for @listingDetailsCeilingHeight.
+  ///
+  /// In ru, this message translates to:
+  /// **'Высота потолков'**
+  String get listingDetailsCeilingHeight;
+
+  /// No description provided for @listingDetailsYes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть'**
+  String get listingDetailsYes;
+
+  /// No description provided for @listingDetailsNo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет'**
+  String get listingDetailsNo;
+
+  /// No description provided for @listingDetailsPhoneUnavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Номер телефона продавца недоступен'**
+  String get listingDetailsPhoneUnavailable;
+
+  /// No description provided for @listingDetailsLoginToMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войдите, чтобы написать продавцу'**
+  String get listingDetailsLoginToMessage;
+
+  /// No description provided for @listingDetailsLoading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка объявления...'**
+  String get listingDetailsLoading;
+
+  /// No description provided for @listingDetailsNotFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объявление не найдено или снято с публикации'**
+  String get listingDetailsNotFound;
+
+  /// No description provided for @listingDetailsBack.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назад'**
+  String get listingDetailsBack;
+
+  /// No description provided for @listingDetailsBadgeBelowMarket.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цена ниже рыночной'**
+  String get listingDetailsBadgeBelowMarket;
+
+  /// No description provided for @listingDetailsBadgeRedBook.
+  ///
+  /// In ru, this message translates to:
+  /// **'Красная книга'**
+  String get listingDetailsBadgeRedBook;
+
+  /// No description provided for @listingDetailsRemoveFavorite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Убрать из избранного'**
+  String get listingDetailsRemoveFavorite;
+
+  /// No description provided for @listingDetailsAddFavorite.
+  ///
+  /// In ru, this message translates to:
+  /// **'В избранное'**
+  String get listingDetailsAddFavorite;
+
+  /// No description provided for @listingDetailsCalling.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звоним: {phone}'**
+  String listingDetailsCalling(String phone);
+
+  /// No description provided for @listingDetailsAppOverview.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обзор квартиры'**
+  String get listingDetailsAppOverview;
+
+  /// No description provided for @listingDetailsAreaOverview.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обзор местности'**
+  String get listingDetailsAreaOverview;
+
+  /// No description provided for @listingDetailsInfrastructure.
+  ///
+  /// In ru, this message translates to:
+  /// **'Инфраструктура района'**
+  String get listingDetailsInfrastructure;
+
+  /// No description provided for @listingDetailsFullyFurnished.
+  ///
+  /// In ru, this message translates to:
+  /// **'Полностью'**
+  String get listingDetailsFullyFurnished;
+
+  /// No description provided for @addListingRoomKids.
+  ///
+  /// In ru, this message translates to:
+  /// **'Детская'**
+  String get addListingRoomKids;
+
+  /// No description provided for @addListingRoomOffice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кабинет'**
+  String get addListingRoomOffice;
+
+  /// No description provided for @addListingRoomStorage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кладовая'**
+  String get addListingRoomStorage;
+
+  /// No description provided for @addListingRoomLoggia.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лоджия'**
+  String get addListingRoomLoggia;
+
+  /// No description provided for @listingDetailsSeller.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собственник'**
+  String get listingDetailsSeller;
+
+  /// No description provided for @listingDetailsDownloadVideo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скачать видео'**
+  String get listingDetailsDownloadVideo;
+
+  /// No description provided for @listingDetailsDownloading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скачивание…'**
+  String get listingDetailsDownloading;
+
+  /// No description provided for @listingDetailsSoundOn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звук вкл'**
+  String get listingDetailsSoundOn;
+
+  /// No description provided for @listingDetailsSoundOff.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звук выкл'**
+  String get listingDetailsSoundOff;
+
+  /// No description provided for @listingDetailsOverviewWithDistrict.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обзор — {district}'**
+  String listingDetailsOverviewWithDistrict(String district);
+
+  /// No description provided for @listingDetailsDownloadAllPhotos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скачать все фото'**
+  String get listingDetailsDownloadAllPhotos;
 }
 
 class _AppLocalizationsDelegate

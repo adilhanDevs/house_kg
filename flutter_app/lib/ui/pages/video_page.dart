@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../../l10n/l10n.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
@@ -152,7 +153,7 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
                 asset: v.url,
                 title: (v.title != null && v.title!.isNotEmpty) 
                     ? v.title! 
-                    : (targetListing.district.isNotEmpty ? 'Обзор — ${targetListing.district}' : 'Видеообзор'),
+                    : (targetListing.district.isNotEmpty ? context.l10n.listingDetailsOverviewWithDistrict(targetListing.district) : context.l10n.listingVideo),
                 description: (v.description != null && v.description!.isNotEmpty) ? v.description! : targetListing.description,
               )).toList(),
             ));
@@ -170,7 +171,7 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
               asset: v.url,
               title: (v.title != null && v.title!.isNotEmpty)
                   ? v.title!
-                  : (l.district.isNotEmpty ? 'Обзор — ${l.district}' : 'Видеообзор'),
+                  : (l.district.isNotEmpty ? context.l10n.listingDetailsOverviewWithDistrict(l.district) : context.l10n.listingVideo),
               description: (v.description != null && v.description!.isNotEmpty) ? v.description! : l.description,
             )).toList();
             _feed.add(_ListingFeedItem(
@@ -573,7 +574,7 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
                         noWrap: true,
                         ellipsis: true,
                         span: TextSpan(
-                          text: 'Видеообзор',
+                          text: context.l10n.listingVideo,
                           style: figStyle(
                             fontSize: 21.0,
                             family: FigFont.display,
@@ -724,7 +725,7 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
                 bottom: 25.0,
                 child: Semantics(
                   button: true,
-                  label: 'Вернуться',
+                  label: context.l10n.listingDetailsBack,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
@@ -766,7 +767,7 @@ class _VideoPageState extends State<VideoPage> with SingleTickerProviderStateMix
                             FigText(
                               noWrap: true,
                               span: TextSpan(
-                                text: 'Вернуться',
+                                text: context.l10n.listingDetailsBack,
                                 style: figStyle(
                                   fontSize: 13.0,
                                   family: FigFont.display,
@@ -1237,7 +1238,7 @@ class _MuteButton extends StatelessWidget {
               FigText(
                 noWrap: true,
                 span: TextSpan(
-                  text: isMuted ? 'Звук выкл' : 'Звук вкл',
+                  text: isMuted ? context.l10n.listingDetailsSoundOff : context.l10n.listingDetailsSoundOn,
                   style: figStyle(
                     fontSize: 10.0,
                     family: FigFont.display,
@@ -1319,7 +1320,7 @@ class _About extends StatelessWidget {
         children: [
           Semantics(
             button: true,
-            label: listing.agent,
+            label: listing.localizedAgent(context.l10n),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onAgentTap,
@@ -1334,7 +1335,7 @@ class _About extends StatelessWidget {
                       FigText(
                         noWrap: true,
                         span: TextSpan(
-                          text: listing.agent,
+                          text: listing.localizedAgent(context.l10n),
                           style: figStyle(
                             fontSize: 15.0,
                             family: FigFont.display,
@@ -1504,7 +1505,7 @@ class _DownloadVideoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = isDownloading ? 'Скачивание…' : 'Скачать видео';
+    final label = isDownloading ? context.l10n.listingDetailsDownloading : context.l10n.listingDetailsDownloadVideo;
     return Semantics(
       button: true,
       enabled: onTap != null,

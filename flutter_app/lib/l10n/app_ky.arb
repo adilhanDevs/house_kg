@@ -623,15 +623,13 @@
         "type": "String"
       }
     }
-  }
-,
+  },
   "topupWalletTitle": "Капчыкты толуктоо",
   "topupWalletDescription": "Жарыяларды илгерилетүү үчүн капчыгыңызды башкарыңыз.",
   "topupYourBudget": "Толуктоо суммасы",
   "topupEnterAmount": "Сумманы киргизиңиз",
   "bricksGenitive": "кирпич",
-  "som": "сом"
-,
+  "som": "сом",
   "accountPushMessages": "Жаңы билдирүүлөр жөнүндө Push",
   "accountDeletedSuccess": "Аккаунт ийгиликтүү жок кылынды",
   "accountSecurityLogin": "Коопсуздук жана кирүү",
@@ -647,18 +645,54 @@
   "accountFullName": "Аты жана Фамилиясы",
   "accountPersonalData": "Жеке маалыматтар",
   "accountCoverUploadFailed": "Фонду жүктөөгө болбой калды: {error}",
-  "@accountCoverUploadFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountCoverUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountAvatarUploadFailed": "Сүрөттү жүктөөгө болбой калды: {error}",
-  "@accountAvatarUploadFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountAvatarUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountChangePasswordFailed": "Сырсөздү өзгөртүүгө болбой калды",
   "accountSaveFailed": "Сактоого болбой калды: {error}",
-  "@accountSaveFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountDeleteFailed": "Аккаунтту жок кылууга болбой калды: {error}",
-  "@accountDeleteFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountCoverDeleteFailed": "Фонду жок кылууга болбой калды: {error}",
-  "@accountCoverDeleteFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountCoverDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountAvatarDeleteFailed": "Сүрөттү жок кылууга болбой калды: {error}",
-  "@accountAvatarDeleteFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@accountAvatarDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "accountNotSpecified": "Көрсөтүлгөн эмес",
   "accountPhoneNumber": "Телефон номери",
   "accountCancel": "Жокко чыгаруу",
@@ -668,7 +702,13 @@
   "accountWhatsappHint": "Сатып алуучулар сизге WhatsApp аркылуу жаза алышат",
   "accountLinkedToAccount": "Аккаунтка байланган жана SMS менен корголгон",
   "accountEditField": "Түзөтүү: {label}",
-  "@accountEditField": { "placeholders": { "label": { "type": "String" } } },
+  "@accountEditField": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "accountTakePhoto": "Сүрөткө тартуу",
   "accountPasswordChangeTitle": "Сырсөздү алмаштыруу",
   "accountMessages": "Билдирүүлөр",
@@ -692,61 +732,231 @@
   "accountProfileAvatarDeleted": "Профилдин сүрөтү жок кылынды",
   "accountProfileAvatarUpdated": "Профилдин сүрөтү ийгиликтүү жаңыртылды!",
   "accountSettingsLoadFailed": "Эскертме жөндөөлөрү жүктөлгөн жок: {error}",
-  "@accountSettingsLoadFailed": { "placeholders": { "error": { "type": "String" } } }
-,
+  "@accountSettingsLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "brickSystemTitle": "Кирпич системасы",
   "brickSystemDesc": "Тиркеме ичинде гана сарптоого болот:\nЖарнамага, Жазылуу сатып алууга\nБаллдарды төмөнкү учурларда алууга болот:\nКапчыкты толуктоодо, Рефералдык системада, Квесттерди аткарууда",
-  "brickSystemNext": "Кийинки"
-,
+  "brickSystemNext": "Кийинки",
   "tariffPromoPosts": "Эң көп {count} жарыяны\nилгерилетүү",
-  "@tariffPromoPosts": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffPromoPosts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffMaxPosts": "{count} жарыяга чейин жайгаштыруу",
-  "@tariffMaxPosts": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffMaxPosts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffReels": "{count} REELS\nвидеого уруксат",
-  "@tariffReels": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffReels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffBricks": "Кирпич\nчогултуу",
   "tariffCatalog": "Каталог түзүү",
   "tariffWhatsapp": "Whatsapp'ка\nуруксат",
   "tariffCostBricks": "{count} кирпич",
-  "@tariffCostBricks": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffCostBricks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffCostSom": "{count} сом",
-  "@tariffCostSom": { "placeholders": { "count": { "type": "int" } } },
+  "@tariffCostSom": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchToFree": "«{name}» базалык тарифине өтөсүзбү?\nЛимит {maxPosts} активдүү жарыяга чейин болот.",
-  "@tariffSwitchToFree": { "placeholders": { "name": { "type": "String" }, "maxPosts": { "type": "int" } } },
+  "@tariffSwitchToFree": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "maxPosts": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchWithBricks": "Капчыгыңыздан {costText} алынат.\nУчурдагы балансыңыз: {balance} кирпич.\nАктивдүү жарыялардын лимити: {maxPosts} чейин.\n\n«{name}» тарифин активдештирүү керекпи?",
-  "@tariffSwitchWithBricks": { "placeholders": { "name": { "type": "String" }, "maxPosts": { "type": "int" } } },
+  "@tariffSwitchWithBricks": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "maxPosts": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchPaid": "Тарифтин баасы: 1 айга {costText}.\nАктивдүү жарыялардын лимити: {maxPosts} чейин.\n\n«{name}» тарифин тариздөөнү ырастайсызбы?",
-  "@tariffSwitchPaid": { "placeholders": { "name": { "type": "String" }, "maxPosts": { "type": "int" } } },
+  "@tariffSwitchPaid": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "maxPosts": {
+        "type": "int"
+      }
+    }
+  },
   "tariffSwitchTitle": "Тарифке өтүү",
   "tariffInsufficientFunds": "Сиз тарифти төлөй албайсыз, анткени балансыңызда {balance} кирпич бар.\n\n{costText} керек.",
-  "@tariffInsufficientFunds": { "placeholders": { "balance": { "type": "int" }, "costText": { "type": "String" } } },
+  "@tariffInsufficientFunds": {
+    "placeholders": {
+      "balance": {
+        "type": "int"
+      },
+      "costText": {
+        "type": "String"
+      }
+    }
+  },
   "tariffInsufficientTitle": "Кирпич жетишсиз",
   "tariffTopupBtn": "Балансты толуктоо",
   "tariffConfirmBtn": "Ырастоо",
   "tariffCancelBtn": "Жокко чыгаруу",
   "tariffSuccess": "Тариф ийгиликтүү өзгөртүлдү!",
   "tariffError": "Тарифти тариздөөгө болбой калды: {error}",
-  "@tariffError": { "placeholders": { "error": { "type": "String" } } },
+  "@tariffError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "tariffChooseBtn": "Тарифти тандоо",
-  "tariffCurrentBtn": "Учурдагы тарифиңиз"
-,
+  "tariffCurrentBtn": "Учурдагы тарифиңиз",
   "listingRoomsShort": "{rooms} бөлмө",
-  "@listingRoomsShort": { "placeholders": { "rooms": { "type": "int" } } },
+  "@listingRoomsShort": {
+    "placeholders": {
+      "rooms": {
+        "type": "int"
+      }
+    }
+  },
   "listingAreaShort": "{area}м²",
-  "@listingAreaShort": { "placeholders": { "area": { "type": "String" } } },
+  "@listingAreaShort": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
   "listingFloorShort": "{floor}-каб.",
-  "@listingFloorShort": { "placeholders": { "floor": { "type": "int" } } },
+  "@listingFloorShort": {
+    "placeholders": {
+      "floor": {
+        "type": "int"
+      }
+    }
+  },
   "listingFloorLong": "{floor}-кабат",
-  "@listingFloorLong": { "placeholders": { "floor": { "type": "int" } } }
-,
+  "@listingFloorLong": {
+    "placeholders": {
+      "floor": {
+        "type": "int"
+      }
+    }
+  },
   "contactWrite": "Жазуу",
   "contactCall": "Чалуу",
-  "rolePerformer": "Аткаруучу"
-,
+  "rolePerformer": "Аткаруучу",
   "timeAgoMinutes": "{count} мүн",
-  "@timeAgoMinutes": { "placeholders": { "count": { "type": "int" } } },
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timeAgoHours": "{count} саат",
-  "@timeAgoHours": { "placeholders": { "count": { "type": "int" } } },
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timeAgoDays": "{count} күн",
-  "@timeAgoDays": { "placeholders": { "count": { "type": "int" } } }
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "listingDetailsKeyPlaces": "Негизги жерлер",
+  "listingDetailsGeneralInfo": "Жалпы маалымат",
+  "listingDetailsTotalArea": "Жалпы аянты",
+  "listingDetailsPurchaseOptions": "Сатып алуу варианттары",
+  "listingDetailsDirectPurchase": "Түз сатып алуу",
+  "listingDetailsMortgage": "Ипотека",
+  "listingDetailsNegotiable": "Соодалашса болот",
+  "listingDetailsFurniture": "Эмерек",
+  "listingDetailsFloor": "Кабат",
+  "listingDetailsPlotArea": "Участоктун аянты",
+  "listingDetailsPurpose": "Багыты",
+  "listingDetailsLine": "Линия",
+  "listingDetailsSeparateEntrance": "Өзүнчө кирүүчү эшик",
+  "listingDetailsCeilingHeight": "Шыптын бийиктиги",
+  "listingDetailsYes": "Бар",
+  "listingDetailsNo": "Жок",
+  "listingDetailsPhoneUnavailable": "Сатуучунун телефон номери жеткиликсиз",
+  "listingDetailsLoginToMessage": "Сатуучуга жазуу үчүн кириңиз",
+  "listingDetailsLoading": "Жарыя жүктөлүүдө...",
+  "listingDetailsNotFound": "Жарыя табылган жок же жарыялоодон алынган",
+  "listingDetailsBack": "Артка",
+  "listingDetailsBadgeBelowMarket": "Баасы базар баасынан төмөн",
+  "listingDetailsBadgeRedBook": "Кызыл китеп",
+  "listingDetailsRemoveFavorite": "Сүйүктүүлөрдөн алып салуу",
+  "listingDetailsAddFavorite": "Сүйүктүүлөргө кошуу",
+  "listingDetailsCalling": "{phone} номерине чалуу",
+  "@listingDetailsCalling": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "listingDetailsAppOverview": "Батирге сереп",
+  "listingDetailsAreaOverview": "Аймакка сереп",
+  "listingDetailsInfrastructure": "Райондун инфраструктурасы",
+  "listingDetailsFullyFurnished": "Толук",
+  "addListingRoomKids": "Балдар бөлмөсү",
+  "addListingRoomOffice": "Кабинет",
+  "addListingRoomStorage": "Кмпа",
+  "addListingRoomLoggia": "Лоджия",
+  "listingDetailsSeller": "Мүлк ээси",
+  "listingDetailsDownloadVideo": "Видеону жүктөп алуу",
+  "listingDetailsDownloading": "Жүктөлүүдө…",
+  "listingDetailsSoundOn": "Үн күйүк",
+  "listingDetailsSoundOff": "Үн өчүрүк",
+  "listingDetailsOverviewWithDistrict": "Сереп — {district}",
+  "@listingDetailsOverviewWithDistrict": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "listingDetailsDownloadAllPhotos": "Бардык сүрөттөрдү жүктөп алуу"
 }
