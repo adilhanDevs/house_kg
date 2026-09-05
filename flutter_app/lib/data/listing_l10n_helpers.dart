@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../l10n/app_localizations.dart';
 
 String localizedRoomName(AppLocalizations l10n, String roomName) {
   final normalized = roomName.toLowerCase().trim();
