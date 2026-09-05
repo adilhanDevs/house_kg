@@ -46,7 +46,8 @@ class CandidateGenerator:
 
     def get_candidates(self) -> QuerySet[Listing]:
         """Generate base pool of valid listings."""
-        base_qs = Listing.objects.filter(status=ListingStatus.ACTIVE)
+        from apps.catalog.services import listing_queryset
+        base_qs = listing_queryset(self.context.user, only_active=True)
 
         # Фильтры пользователя — жёсткие, и применяются ДО всякого
         # ранжирования. Человек, попросивший однокомнатную до 60 тысяч, не
@@ -110,7 +111,7 @@ class CandidateGenerator:
         # Fetch fresh and bumped items
         qs = base_qs.order_by("-bumped_at", "-published_at")[: constants.MAX_CANDIDATES]
 
-        return qs.select_related("district", "city", "owner", "series").prefetch_related("media")
+        return qs
 
 
 @dataclass
