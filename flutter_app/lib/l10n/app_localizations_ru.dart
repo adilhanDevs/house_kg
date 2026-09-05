@@ -875,6 +875,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupBonusHint => '1 сом = 1 кирпич + 10% бонус';
 
   @override
+  String get topupConversionRate => '1 сом = 1 кирпич';
+
+  @override
   String topupYouWillGet(int bricks) {
     return 'Вам будет начислено: $bricks кирпичей';
   }
@@ -2067,6 +2070,28 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get brickSystemDesc =>
       'Можно потратить только внутри приложения на:\nРекламу, Покупку подписки\nМожно получить баллы при:\nПополнении кошелька, Реферальная система, Выполнение квестов';
+
+  @override
+  String get brickSpendTitle =>
+      'Можно потратить только \\nвнутри приложения на:';
+
+  @override
+  String get brickSpendAds => 'Рекламу';
+
+  @override
+  String get brickSpendSubs => 'Покупку подписки';
+
+  @override
+  String get brickEarnTitle => 'Можно получить баллы при:';
+
+  @override
+  String get brickEarnTopup => 'Пополнении кошелька';
+
+  @override
+  String get brickEarnRef => 'Реферальная система';
+
+  @override
+  String get brickEarnQuests => 'Выполнение квестов';
 
   @override
   String get brickSystemNext => 'Далее';

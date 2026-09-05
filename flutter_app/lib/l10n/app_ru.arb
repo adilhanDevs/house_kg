@@ -422,6 +422,7 @@
   "topupTitle": "Пополнение баланса",
   "topupAmount": "Сумма пополнения (сом)",
   "topupBonusHint": "1 сом = 1 кирпич + 10% бонус",
+  "topupConversionRate": "1 сом = 1 кирпич",
   "topupYouWillGet": "Вам будет начислено: {bricks} кирпичей",
   "@topupYouWillGet": {
     "placeholders": {

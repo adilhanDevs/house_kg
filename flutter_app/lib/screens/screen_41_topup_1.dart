@@ -82,7 +82,7 @@ class Screen41Topup1 extends StatelessWidget {
               width: 138.0,
               height: 20.0,
               span: 
-                TextSpan(text: '1 сом = 1 кирпичу', style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
+                TextSpan(text: context.l10n.topupConversionRate, style: figStyle(fontSize: 17.0, family: FigFont.display, weight: 600, height: 1.0, color: const Color(0xff000000)))
               ,
             )
           ),

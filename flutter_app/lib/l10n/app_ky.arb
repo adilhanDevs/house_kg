@@ -272,6 +272,7 @@
   "topupTitle": "Балансты толуктоо",
   "topupAmount": "Толуктоо суммасы (сом)",
   "topupBonusHint": "1 сом = 1 кирпич + 10% бонус",
+  "topupConversionRate": "1 сом = 1 кирпич",
   "topupYouWillGet": "Сизге чектелет: {bricks} кирпич",
   "topupPayButton": "{amount} сом төлөө",
   "topupSelectMethod": "Төлөм ыкмасын тандаңыз",

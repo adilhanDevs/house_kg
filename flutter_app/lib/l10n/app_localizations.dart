@@ -1730,6 +1730,12 @@ abstract class AppLocalizations {
   /// **'1 сом = 1 кирпич + 10% бонус'**
   String get topupBonusHint;
 
+  /// No description provided for @topupConversionRate.
+  ///
+  /// In ru, this message translates to:
+  /// **'1 сом = 1 кирпич'**
+  String get topupConversionRate;
+
   /// No description provided for @topupYouWillGet.
   ///
   /// In ru, this message translates to:
@@ -3895,6 +3901,48 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Можно потратить только внутри приложения на:\nРекламу, Покупку подписки\nМожно получить баллы при:\nПополнении кошелька, Реферальная система, Выполнение квестов'**
   String get brickSystemDesc;
+
+  /// No description provided for @brickSpendTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно потратить только \\nвнутри приложения на:'**
+  String get brickSpendTitle;
+
+  /// No description provided for @brickSpendAds.
+  ///
+  /// In ru, this message translates to:
+  /// **'Рекламу'**
+  String get brickSpendAds;
+
+  /// No description provided for @brickSpendSubs.
+  ///
+  /// In ru, this message translates to:
+  /// **'Покупку подписки'**
+  String get brickSpendSubs;
+
+  /// No description provided for @brickEarnTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно получить баллы при:'**
+  String get brickEarnTitle;
+
+  /// No description provided for @brickEarnTopup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пополнении кошелька'**
+  String get brickEarnTopup;
+
+  /// No description provided for @brickEarnRef.
+  ///
+  /// In ru, this message translates to:
+  /// **'Реферальная система'**
+  String get brickEarnRef;
+
+  /// No description provided for @brickEarnQuests.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выполнение квестов'**
+  String get brickEarnQuests;
 
   /// No description provided for @brickSystemNext.
   ///

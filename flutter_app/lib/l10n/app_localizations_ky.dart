@@ -877,6 +877,9 @@ class AppLocalizationsKy extends AppLocalizations {
   String get topupBonusHint => '1 сом = 1 кирпич + 10% бонус';
 
   @override
+  String get topupConversionRate => '1 сом = 1 кирпич';
+
+  @override
   String topupYouWillGet(int bricks) {
     return 'Сизге чектелет: $bricks кирпич';
   }
@@ -2074,6 +2077,27 @@ class AppLocalizationsKy extends AppLocalizations {
   @override
   String get brickSystemDesc =>
       'Тиркеме ичинде гана сарптоого болот:\nЖарнамага, Жазылуу сатып алууга\nБаллдарды төмөнкү учурларда алууга болот:\nКапчыкты толуктоодо, Рефералдык системада, Квесттерди аткарууда';
+
+  @override
+  String get brickSpendTitle => 'Тиркеме ичинде гана \\nсарптоого болот:';
+
+  @override
+  String get brickSpendAds => 'Жарнамага';
+
+  @override
+  String get brickSpendSubs => 'Жазылуу сатып алууга';
+
+  @override
+  String get brickEarnTitle => 'Баллдарды төмөнкү учурларда алууга болот:';
+
+  @override
+  String get brickEarnTopup => 'Капчыкты толуктоодо';
+
+  @override
+  String get brickEarnRef => 'Рефералдык системада';
+
+  @override
+  String get brickEarnQuests => 'Квесттерди аткарууда';
 
   @override
   String get brickSystemNext => 'Кийинки';
