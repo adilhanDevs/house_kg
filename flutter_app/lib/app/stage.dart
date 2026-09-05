@@ -260,7 +260,7 @@ class FigStage extends StatelessWidget {
     // считается в координатах макета, и полоса меню там ровно та, что в кадре.
     // Где системной полосы нет — в браузере и на десктопе — берём полосу
     // макета, иначе меню поднимается на её высоту и низ экрана не сходится.
-    final bottomSafe = bottomBar == null
+    final bottomSafe = bottomBar == null || keyboard > 0
         ? bottomSafeInset(context)
         : (kIsWeb
             ? bottomSafeInset(context)
