@@ -542,7 +542,7 @@ class HistoryTile extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                     child: Text(
-                      _ago(entry.at),
+                      _ago(entry.at, context),
                       style: const TextStyle(
                         fontSize: 10.0,
                         fontWeight: FontWeight.w500,
